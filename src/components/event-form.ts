@@ -21,6 +21,8 @@ export class HacEventForm extends LitElement {
     end?: string;
     calendar?: string;
   } = {};
+  @property({ type: Boolean }) busy = false;
+  @property({ type: String }) errorMessage = "";
 
   @state() private summary = "";
   @state() private description = "";
@@ -36,7 +38,11 @@ export class HacEventForm extends LitElement {
   }
 
   protected updated(changed: Map<string, unknown>): void {
-    if (changed.has("event") || changed.has("defaults") || changed.has("calendars")) {
+    if (
+      changed.has("event") ||
+      changed.has("defaults") ||
+      changed.has("calendars")
+    ) {
       this.hydrate();
     }
   }
@@ -53,7 +59,9 @@ export class HacEventForm extends LitElement {
       this.summary = "";
       this.description = "";
       this.location = "";
-      this.start = this.toLocalInput(this.defaults.start ?? new Date().toISOString());
+      this.start = this.toLocalInput(
+        this.defaults.start ?? new Date().toISOString()
+      );
       this.end = this.toLocalInput(
         this.defaults.end ??
           new Date(Date.now() + 60 * 60 * 1000).toISOString()
@@ -77,25 +85,47 @@ export class HacEventForm extends LitElement {
     return new Date(value).toISOString();
   }
 
+  private get isRecurring(): boolean {
+    return Boolean(this.event?.recurring || this.event?.rrule);
+  }
+
+  private get calendarMoveBlocked(): boolean {
+    return (
+      this.isRecurring &&
+      Boolean(this.event) &&
+      this.calendar !== this.event!.calendar
+    );
+  }
+
   private onCalendarChange(e: Event): void {
     const next = (e.target as HTMLSelectElement).value;
     this.calendar = next;
     if (this.event && next !== this.event.calendar) {
-      this.moveNote =
-        "Calendar change uses create-on-new then delete-from-old so the event is never lost first.";
+      if (this.isRecurring) {
+        this.moveNote =
+          "Recurring events cannot change calendars yet (phase 1). Keep the original calendar or recreate as a one-off.";
+      } else {
+        this.moveNote =
+          "Calendar change uses create-on-new then delete-from-old so the event is never lost first.";
+      }
     } else {
       this.moveNote = "";
     }
   }
 
   private close(): void {
+    if (this.busy) return;
     this.dispatchEvent(
       new CustomEvent("form-cancel", { bubbles: true, composed: true })
     );
   }
 
   private save(): void {
+    if (this.busy) return;
     if (!this.summary.trim() || !this.start || !this.end || !this.calendar) {
+      return;
+    }
+    if (this.calendarMoveBlocked) {
       return;
     }
     const input: CalendarEventInput = {
@@ -122,10 +152,6 @@ export class HacEventForm extends LitElement {
 
   render() {
     const title = this.event ? "Edit event" : "New event";
-    const recurringBlocked =
-      this.event &&
-      (this.event.recurring || this.event.rrule) &&
-      this.calendar !== this.event.calendar;
 
     return html`
       <div class="form-backdrop" @click=${this.close}>
@@ -141,13 +167,19 @@ export class HacEventForm extends LitElement {
           <input
             id="summary"
             .value=${this.summary}
+            ?disabled=${this.busy}
             @input=${(e: Event) => {
               this.summary = (e.target as HTMLInputElement).value;
             }}
           />
 
           <label for="calendar">Calendar</label>
-          <select id="calendar" .value=${this.calendar} @change=${this.onCalendarChange}>
+          <select
+            id="calendar"
+            .value=${this.calendar}
+            ?disabled=${this.busy}
+            @change=${this.onCalendarChange}
+          >
             ${this.calendars.map(
               (id) => html`<option value=${id}>${id}</option>`
             )}
@@ -158,6 +190,7 @@ export class HacEventForm extends LitElement {
             id="start"
             type="datetime-local"
             .value=${this.start}
+            ?disabled=${this.busy}
             @input=${(e: Event) => {
               this.start = (e.target as HTMLInputElement).value;
             }}
@@ -168,6 +201,7 @@ export class HacEventForm extends LitElement {
             id="end"
             type="datetime-local"
             .value=${this.end}
+            ?disabled=${this.busy}
             @input=${(e: Event) => {
               this.end = (e.target as HTMLInputElement).value;
             }}
@@ -177,6 +211,7 @@ export class HacEventForm extends LitElement {
           <input
             id="location"
             .value=${this.location}
+            ?disabled=${this.busy}
             @input=${(e: Event) => {
               this.location = (e.target as HTMLInputElement).value;
             }}
@@ -186,30 +221,39 @@ export class HacEventForm extends LitElement {
           <textarea
             id="description"
             .value=${this.description}
+            ?disabled=${this.busy}
             @input=${(e: Event) => {
               this.description = (e.target as HTMLTextAreaElement).value;
             }}
           ></textarea>
 
-          ${this.moveNote
-            ? html`<p class="hint">${this.moveNote}</p>`
-            : null}
-          ${recurringBlocked
+          ${this.isRecurring
             ? html`<p class="hint warn">
-                Recurring events cannot change calendars yet.
+                This is a recurring event. Same-calendar edits are sent to HA;
+                changing calendars is blocked until recurring moves are designed.
               </p>`
+            : null}
+          ${this.moveNote
+            ? html`<p class="hint ${this.calendarMoveBlocked ? "warn" : ""}">
+                ${this.moveNote}
+              </p>`
+            : null}
+          ${this.errorMessage
+            ? html`<p class="hint warn" role="alert">${this.errorMessage}</p>`
             : null}
 
           <div class="form-actions">
-            <button type="button" @click=${this.close}>Cancel</button>
+            <button type="button" ?disabled=${this.busy} @click=${this.close}>
+              Cancel
+            </button>
             <button
               type="button"
               class="primary"
-              ?disabled=${Boolean(recurringBlocked)}
+              ?disabled=${this.busy || this.calendarMoveBlocked}
               @click=${this.save}
               style="background:var(--hac-accent);color:#fff;border:0;border-radius:8px;padding:0.45rem 0.9rem;font:inherit;cursor:pointer"
             >
-              Save
+              ${this.busy ? "Saving…" : "Save"}
             </button>
           </div>
         </div>

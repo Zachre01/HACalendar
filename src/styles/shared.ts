@@ -119,6 +119,43 @@ export const cardStyles = css`
   .status[data-kind="warn"] {
     color: #8a5a00;
   }
+
+  .banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    padding: 0.65rem 1rem;
+    background: #fff6e8;
+    border-bottom: 1px solid rgba(138, 90, 0, 0.25);
+    color: #5c3d00;
+    font-size: 0.85rem;
+  }
+
+  .banner button {
+    font: inherit;
+    border: 1px solid rgba(138, 90, 0, 0.35);
+    background: #fff;
+    color: #5c3d00;
+    border-radius: 8px;
+    padding: 0.3rem 0.65rem;
+    cursor: pointer;
+  }
+
+  .banner button.danger {
+    background: var(--hac-danger);
+    border-color: var(--hac-danger);
+    color: #fff;
+  }
+
+  .empty-hint {
+    position: absolute;
+    inset: 3rem 1rem auto;
+    text-align: center;
+    color: var(--hac-muted);
+    font-size: 0.9rem;
+    pointer-events: none;
+  }
 `;
 
 export const gridStyles = css`

@@ -6,7 +6,7 @@ Inspired by Daylight/Skylight aesthetics — **own codebase**, not a fork of tho
 
 ## Status
 
-Phase 1 scaffold: UI shell, form, and move orchestration sketched. Wire against your HA instance’s real `calendar.*` entities via card config.
+Phase 1 **v0.2.0**: read path (REST + service fallback), write path (WS create/update/delete), and move path with duplicate-cleanup banner. Recurring calendar moves are blocked in the UI.
 
 ## Install (manual / private)
 
@@ -29,19 +29,20 @@ entities:
   - calendar.family
   - calendar.personal
 initial_view: week
+# Optional: show_demo_when_empty: true
 ```
 
-Until you set real entity ids, placeholders (`calendar.family`, etc.) and demo blocks are used so the grid still renders.
+Until you set real entity ids, placeholders (`calendar.family`, etc.) are fine — failed loads show a status warning and an empty grid (no fake events unless `show_demo_when_empty`).
 
 ## Calendar move safety
 
 Changing an event’s calendar:
 
 1. Create on the target calendar  
-2. Confirm create succeeded  
+2. Confirm the new event via refetch (match summary/start/end → uid)  
 3. Delete from the source  
 
-If delete fails, both copies remain and the card surfaces a cleanup warning. Recurring moves are blocked in phase 1.
+If delete fails, both copies remain and a banner offers **Remove old copy**. Recurring moves are blocked in phase 1.
 
 ## Develop
 

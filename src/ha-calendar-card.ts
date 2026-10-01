@@ -1,4 +1,4 @@
-import { LitElement, html, css } from "lit";
+import { LitElement, html, css, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import {
   CARD_NAME,
@@ -14,6 +14,7 @@ import type {
   CalendarViewMode,
   HaCalendarCardConfig,
   HomeAssistant,
+  PendingDuplicate,
 } from "./types";
 import type { EventFormSaveDetail } from "./components/event-form";
 import "./components/time-grid";
@@ -45,8 +46,13 @@ export class HaCalendarCard extends LitElement {
     end?: string;
     calendar?: string;
   } = {};
-  @state() private status = `HA Calendar Card v${CARD_VERSION} — scaffold`;
+  @state() private formBusy = false;
+  @state() private formError = "";
+  @state() private status = `HA Calendar Card v${CARD_VERSION}`;
   @state() private statusKind: "info" | "error" | "warn" = "info";
+  @state() private loading = false;
+  @state() private pendingDuplicate: PendingDuplicate | null = null;
+  @state() private loadGeneration = 0;
 
   public setConfig(config: HaCalendarCardConfig): void {
     if (!config) {
@@ -58,6 +64,7 @@ export class HaCalendarCard extends LitElement {
       initial_view: "week",
       day_start_hour: DAY_START_HOUR,
       day_end_hour: DAY_END_HOUR,
+      show_demo_when_empty: false,
       ...config,
       type: config.type ?? `custom:${CARD_NAME}`,
     };
@@ -77,7 +84,12 @@ export class HaCalendarCard extends LitElement {
   }
 
   protected updated(changed: Map<string, unknown>): void {
-    if (changed.has("hass") || changed.has("config") || changed.has("anchorDate") || changed.has("view")) {
+    if (
+      changed.has("hass") ||
+      changed.has("config") ||
+      changed.has("anchorDate") ||
+      changed.has("view")
+    ) {
       void this.refreshEvents();
     }
   }
@@ -104,27 +116,62 @@ export class HaCalendarCard extends LitElement {
   }
 
   private async refreshEvents(): Promise<void> {
+    const generation = ++this.loadGeneration;
+
     if (!this.hass) {
       this.events = this.demoEvents();
+      this.status = "Preview mode — demo events (no hass)";
+      this.statusKind = "info";
       return;
     }
+
+    this.loading = true;
     const api = new CalendarApi(this.hass);
     const { start, end } = this.range();
+    const entityIds = this.entities();
+
     try {
-      const loaded = await api.getEvents(this.entities(), start, end);
-      this.events = loaded.length ? loaded : this.demoEvents();
-      if (!loaded.length) {
-        this.status = "No events from HA yet — showing demo blocks";
+      const result = await api.getEvents(entityIds, start, end);
+      if (generation !== this.loadGeneration) return;
+
+      if (result.events.length) {
+        this.events = result.events;
+        const errNote = result.errors.length
+          ? ` · ${result.errors.length} calendar(s) failed`
+          : "";
+        this.status = `${result.events.length} event(s)${errNote}`;
+        this.statusKind = result.errors.length ? "warn" : "info";
+      } else if (result.anySuccess) {
+        this.events = this.config.show_demo_when_empty
+          ? this.demoEvents()
+          : [];
+        this.status = this.config.show_demo_when_empty
+          ? "No events — showing demo blocks"
+          : "No events in this range";
         this.statusKind = "info";
+      } else {
+        // All configured entities failed (often placeholders not on this HA)
+        this.events = this.config.show_demo_when_empty
+          ? this.demoEvents()
+          : [];
+        this.status = result.errors.length
+          ? `Could not load: ${result.errors.join(", ")} — check entity ids`
+          : "No calendars loaded";
+        this.statusKind = "warn";
       }
     } catch (err) {
-      this.events = this.demoEvents();
+      if (generation !== this.loadGeneration) return;
+      this.events = [];
       this.status = `Load failed: ${err instanceof Error ? err.message : String(err)}`;
       this.statusKind = "error";
+    } finally {
+      if (generation === this.loadGeneration) {
+        this.loading = false;
+      }
     }
   }
 
-  /** Visual shell demo data when HA is missing or empty */
+  /** Preview-only demo data when hass is missing */
   private demoEvents(): CalendarEvent[] {
     const day = new Date(this.anchorDate);
     day.setHours(0, 0, 0, 0);
@@ -162,6 +209,8 @@ export class HaCalendarCard extends LitElement {
 
   private openCreate(detail?: { start: Date; end: Date }): void {
     this.editing = null;
+    this.formError = "";
+    this.formBusy = false;
     this.formDefaults = {
       start: (detail?.start ?? new Date()).toISOString(),
       end: (detail?.end ?? new Date(Date.now() + 3600000)).toISOString(),
@@ -172,103 +221,203 @@ export class HaCalendarCard extends LitElement {
 
   private openEdit(ev: CalendarEvent): void {
     this.editing = ev;
+    this.formError = "";
+    this.formBusy = false;
     this.formDefaults = {};
     this.formOpen = true;
   }
 
-  private async onFormSave(e: CustomEvent<EventFormSaveDetail>): Promise<void> {
+  private async onFormSave(
+    e: CustomEvent<EventFormSaveDetail>
+  ): Promise<void> {
     const { mode, input, original } = e.detail;
-    this.formOpen = false;
 
     if (!this.hass) {
-      this.status = "No hass connection — form save sketched only";
-      this.statusKind = "warn";
+      this.formError = "No Home Assistant connection — cannot save.";
       return;
     }
 
+    this.formBusy = true;
+    this.formError = "";
     const api = new CalendarApi(this.hass);
 
     try {
       if (mode === "create") {
         await api.createEvent(input);
-        this.status = "Event created";
+        this.formOpen = false;
+        this.status = `Created “${input.summary}” on ${input.calendar}`;
         this.statusKind = "info";
       } else if (original && input.calendar !== original.calendar) {
-        const moved = await api.moveEventToCalendar(
-          { ...original, ...input, calendar: original.calendar },
-          input.calendar
-        );
+        if (original.recurring || original.rrule) {
+          this.formError =
+            "Recurring events cannot change calendars yet. Keep the original calendar.";
+          return;
+        }
+        const moved = await api.moveEventToCalendar(original, input.calendar, {
+          ...input,
+          calendar: input.calendar,
+        });
         if (moved.status === "moved") {
-          this.status = `Moved to ${input.calendar}`;
+          this.formOpen = false;
+          this.pendingDuplicate = null;
+          this.status = `Moved “${input.summary}” → ${input.calendar}`;
           this.statusKind = "info";
         } else if (moved.status === "create_failed") {
-          this.status = `Move aborted (create failed): ${moved.error}`;
+          this.formError = `Move aborted (create failed): ${moved.error}`;
+          this.status = this.formError;
           this.statusKind = "error";
+          return;
         } else if (moved.status === "delete_failed") {
-          this.status = `Duplicate left on old calendar — cleanup needed: ${moved.error}`;
+          this.formOpen = false;
+          this.pendingDuplicate = moved.pending;
+          this.status = `Copy exists on ${input.calendar}, but the old event could not be removed.`;
           this.statusKind = "warn";
         } else if (moved.status === "blocked_recurring") {
-          this.status = moved.reason;
-          this.statusKind = "warn";
+          this.formError = moved.reason;
+          return;
         }
       } else if (original) {
-        await api.updateEvent(original.calendar, original.uid, input);
-        this.status = "Event updated";
+        await api.updateEvent(
+          original.calendar,
+          original.uid,
+          { ...input, calendar: original.calendar },
+          original.recurrence_id
+        );
+        this.formOpen = false;
+        this.status = `Updated “${input.summary}”`;
         this.statusKind = "info";
       }
       await this.refreshEvents();
     } catch (err) {
-      this.status = err instanceof Error ? err.message : String(err);
+      this.formError = err instanceof Error ? err.message : String(err);
+      this.status = this.formError;
+      this.statusKind = "error";
+    } finally {
+      this.formBusy = false;
+    }
+  }
+
+  private async cleanupDuplicate(): Promise<void> {
+    if (!this.hass || !this.pendingDuplicate) return;
+    const dup = this.pendingDuplicate;
+    const api = new CalendarApi(this.hass);
+    try {
+      await api.deleteEvent(dup.entityId, dup.uid);
+      this.pendingDuplicate = null;
+      this.status = `Removed old copy of “${dup.summary}” from ${dup.entityId}`;
+      this.statusKind = "info";
+      await this.refreshEvents();
+    } catch (err) {
+      this.status = `Cleanup failed: ${err instanceof Error ? err.message : String(err)}`;
       this.statusKind = "error";
     }
+  }
+
+  private dismissDuplicate(): void {
+    this.pendingDuplicate = null;
+    this.status = "Duplicate warning dismissed — old copy may still exist";
+    this.statusKind = "warn";
   }
 
   protected render() {
     const title = this.config.title ?? "HA Calendar";
     const calendars = this.entities();
+    const showEmpty =
+      !this.loading && this.events.length === 0 && Boolean(this.hass);
 
     return html`
       <div class="shell">
+        ${this.pendingDuplicate
+          ? html`
+              <div class="banner" role="status">
+                <span>
+                  Duplicate after move: “${this.pendingDuplicate.summary}” is on
+                  <strong>${this.pendingDuplicate.targetCalendar}</strong>, but
+                  still on
+                  <strong>${this.pendingDuplicate.entityId}</strong>.
+                </span>
+                <button
+                  type="button"
+                  class="danger"
+                  @click=${() => void this.cleanupDuplicate()}
+                >
+                  Remove old copy
+                </button>
+                <button type="button" @click=${this.dismissDuplicate}>
+                  Dismiss
+                </button>
+              </div>
+            `
+          : nothing}
+
         <header class="toolbar">
           <h1 class="brand">${title}</h1>
-          <button class="nav-btn" type="button" @click=${() => this.shift(this.view === "day" ? -1 : -7)}>
+          <button
+            class="nav-btn"
+            type="button"
+            @click=${() => this.shift(this.view === "day" ? -1 : -7)}
+          >
             ‹
           </button>
-          <button class="nav-btn" type="button" @click=${() => { this.anchorDate = new Date(); }}>
+          <button
+            class="nav-btn"
+            type="button"
+            @click=${() => {
+              this.anchorDate = new Date();
+            }}
+          >
             Today
           </button>
-          <button class="nav-btn" type="button" @click=${() => this.shift(this.view === "day" ? 1 : 7)}>
+          <button
+            class="nav-btn"
+            type="button"
+            @click=${() => this.shift(this.view === "day" ? 1 : 7)}
+          >
             ›
           </button>
           <div class="view-toggle" role="group" aria-label="View">
             <button
               type="button"
               aria-pressed=${this.view === "day"}
-              @click=${() => { this.view = "day"; }}
+              @click=${() => {
+                this.view = "day";
+              }}
             >
               Day
             </button>
             <button
               type="button"
               aria-pressed=${this.view === "week"}
-              @click=${() => { this.view = "week"; }}
+              @click=${() => {
+                this.view = "week";
+              }}
             >
               Week
             </button>
           </div>
-          <button class="primary-btn" type="button" @click=${() => this.openCreate()}>
+          <button
+            class="primary-btn"
+            type="button"
+            @click=${() => this.openCreate()}
+          >
             New
           </button>
         </header>
 
         <div class="grid-wrap">
+          ${showEmpty
+            ? html`<div class="empty-hint">
+                No events in this range. Double-click a time slot or press New.
+              </div>`
+            : nothing}
           <hac-time-grid
             .mode=${this.view}
             .anchorDate=${this.anchorDate}
             .events=${this.events}
             .dayStartHour=${this.config.day_start_hour ?? DAY_START_HOUR}
             .dayEndHour=${this.config.day_end_hour ?? DAY_END_HOUR}
-            @event-select=${(e: CustomEvent<CalendarEvent>) => this.openEdit(e.detail)}
+            @event-select=${(e: CustomEvent<CalendarEvent>) =>
+              this.openEdit(e.detail)}
             @slot-create=${(e: CustomEvent<{ start: Date; end: Date }>) =>
               this.openCreate(e.detail)}
           ></hac-time-grid>
@@ -279,14 +428,20 @@ export class HaCalendarCard extends LitElement {
                   .calendars=${calendars}
                   .event=${this.editing}
                   .defaults=${this.formDefaults}
-                  @form-cancel=${() => { this.formOpen = false; }}
+                  .busy=${this.formBusy}
+                  .errorMessage=${this.formError}
+                  @form-cancel=${() => {
+                    if (!this.formBusy) this.formOpen = false;
+                  }}
                   @form-save=${this.onFormSave}
                 ></hac-event-form>
               `
-            : null}
+            : nothing}
         </div>
 
-        <div class="status" data-kind=${this.statusKind}>${this.status}</div>
+        <div class="status" data-kind=${this.statusKind}>
+          ${this.loading ? "Loading… · " : ""}${this.status}
+        </div>
       </div>
     `;
   }
