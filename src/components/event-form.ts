@@ -162,6 +162,11 @@ export class HacEventForm extends LitElement {
           aria-label=${title}
         >
           <h2>${title}</h2>
+          <p class="form-sub">
+            ${this.event
+              ? "Edit details or move to another calendar."
+              : "Add a one-off event to a configured calendar."}
+          </p>
 
           <label for="summary">Title</label>
           <input
@@ -185,27 +190,32 @@ export class HacEventForm extends LitElement {
             )}
           </select>
 
-          <label for="start">Start</label>
-          <input
-            id="start"
-            type="datetime-local"
-            .value=${this.start}
-            ?disabled=${this.busy}
-            @input=${(e: Event) => {
-              this.start = (e.target as HTMLInputElement).value;
-            }}
-          />
-
-          <label for="end">End</label>
-          <input
-            id="end"
-            type="datetime-local"
-            .value=${this.end}
-            ?disabled=${this.busy}
-            @input=${(e: Event) => {
-              this.end = (e.target as HTMLInputElement).value;
-            }}
-          />
+          <div class="row-2">
+            <div>
+              <label for="start">Start</label>
+              <input
+                id="start"
+                type="datetime-local"
+                .value=${this.start}
+                ?disabled=${this.busy}
+                @input=${(e: Event) => {
+                  this.start = (e.target as HTMLInputElement).value;
+                }}
+              />
+            </div>
+            <div>
+              <label for="end">End</label>
+              <input
+                id="end"
+                type="datetime-local"
+                .value=${this.end}
+                ?disabled=${this.busy}
+                @input=${(e: Event) => {
+                  this.end = (e.target as HTMLInputElement).value;
+                }}
+              />
+            </div>
+          </div>
 
           <label for="location">Location</label>
           <input
@@ -239,7 +249,7 @@ export class HacEventForm extends LitElement {
               </p>`
             : null}
           ${this.errorMessage
-            ? html`<p class="hint warn" role="alert">${this.errorMessage}</p>`
+            ? html`<p class="hint error" role="alert">${this.errorMessage}</p>`
             : null}
 
           <div class="form-actions">
@@ -251,7 +261,6 @@ export class HacEventForm extends LitElement {
               class="primary"
               ?disabled=${this.busy || this.calendarMoveBlocked}
               @click=${this.save}
-              style="background:var(--hac-accent);color:#fff;border:0;border-radius:8px;padding:0.45rem 0.9rem;font:inherit;cursor:pointer"
             >
               ${this.busy ? "Saving…" : "Save"}
             </button>

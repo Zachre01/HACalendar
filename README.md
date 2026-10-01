@@ -6,7 +6,7 @@ Inspired by Daylight/Skylight aesthetics — **own codebase**, not a fork of tho
 
 ## Status
 
-Phase 1 **v0.2.0**: read path (REST + service fallback), write path (WS create/update/delete), and move path with duplicate-cleanup banner. Recurring calendar moves are blocked in the UI.
+Phase 1 **v0.3.0**: read/write/move paths plus polish — daylight-inspired styling, mobile toolbar & week scroll, today/now markers, empty + error panels with retry. Recurring calendar moves remain blocked.
 
 ## Install (manual / private)
 

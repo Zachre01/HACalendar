@@ -16,8 +16,15 @@ function addDays(d: Date, n: number): Date {
   return x;
 }
 
+function sameDay(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
 function parseEventDate(value: string): Date {
-  // HA may send date-only (all-day) or ISO datetime
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     const [y, m, day] = value.split("-").map(Number);
     return new Date(y, m - 1, day);
@@ -32,6 +39,7 @@ export class HacTimeGrid extends LitElement {
   @property({ attribute: false }) mode: CalendarViewMode = "week";
   @property({ attribute: false }) anchorDate: Date = new Date();
   @property({ attribute: false }) events: CalendarEvent[] = [];
+  @property({ attribute: false }) calendars: string[] = [];
   @property({ type: Number }) dayStartHour = DAY_START_HOUR;
   @property({ type: Number }) dayEndHour = DAY_END_HOUR;
 
@@ -53,6 +61,11 @@ export class HacTimeGrid extends LitElement {
     return out;
   }
 
+  private calendarColor(entityId: string): string {
+    const idx = Math.max(0, this.calendars.indexOf(entityId));
+    return `var(--hac-cal-${idx % 5})`;
+  }
+
   private eventStyle(ev: CalendarEvent, day: Date): string | null {
     const start = parseEventDate(ev.start);
     const end = parseEventDate(ev.end);
@@ -71,12 +84,24 @@ export class HacTimeGrid extends LitElement {
       (clampedStart.getHours() - this.dayStartHour) * 60 +
       clampedStart.getMinutes();
     const durationMin = Math.max(
-      20,
+      22,
       (clampedEnd.getTime() - clampedStart.getTime()) / 60000
     );
     const top = (minutesFromGrid / 60) * HOUR_HEIGHT_PX;
     const height = (durationMin / 60) * HOUR_HEIGHT_PX;
-    return `top:${top}px;height:${height}px;`;
+    const color = this.calendarColor(ev.calendar);
+    return `top:${top}px;height:${height}px;background:${color};`;
+  }
+
+  private nowLineTop(day: Date): number | null {
+    const now = new Date();
+    if (!sameDay(now, day)) return null;
+    if (now.getHours() < this.dayStartHour || now.getHours() >= this.dayEndHour) {
+      return null;
+    }
+    const minutes =
+      (now.getHours() - this.dayStartHour) * 60 + now.getMinutes();
+    return (minutes / 60) * HOUR_HEIGHT_PX;
   }
 
   private onEventClick(ev: CalendarEvent): void {
@@ -89,7 +114,7 @@ export class HacTimeGrid extends LitElement {
     );
   }
 
-  private onSlotDblClick(day: Date, hour: number): void {
+  private onSlotCreate(day: Date, hour: number): void {
     const start = new Date(day);
     start.setHours(hour, 0, 0, 0);
     const end = new Date(start);
@@ -103,10 +128,17 @@ export class HacTimeGrid extends LitElement {
     );
   }
 
+  private hourFromPointer(e: MouseEvent, target: HTMLElement): number {
+    const rect = target.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    return this.dayStartHour + Math.floor(y / HOUR_HEIGHT_PX);
+  }
+
   render() {
     const hours = this.hours;
     const days = this.days;
     const totalHeight = hours.length * HOUR_HEIGHT_PX;
+    const today = new Date();
 
     return html`
       <div
@@ -115,38 +147,49 @@ export class HacTimeGrid extends LitElement {
         style="--hac-hour-height:${HOUR_HEIGHT_PX}px"
       >
         <div class="corner"></div>
-        ${days.map(
-          (d) => html`
-            <div class="day-head">
-              ${d.toLocaleDateString(undefined, {
-                weekday: "short",
-                month: "short",
-                day: "numeric",
-              })}
+        ${days.map((d) => {
+          const isToday = sameDay(d, today);
+          return html`
+            <div class="day-head" data-today=${isToday ? "true" : "false"}>
+              <span
+                >${d.toLocaleDateString(undefined, {
+                  weekday: "short",
+                })}</span
+              >
+              <span class="num">${d.getDate()}</span>
             </div>
-          `
-        )}
+          `;
+        })}
 
         <div class="hours" style="height:${totalHeight}px">
           ${hours.map(
-            (h) => html`<div class="hour-label">${String(h).padStart(2, "0")}:00</div>`
+            (h) =>
+              html`<div class="hour-label">
+                ${String(h).padStart(2, "0")}:00
+              </div>`
           )}
         </div>
 
-        ${days.map(
-          (day) => html`
+        ${days.map((day) => {
+          const isToday = sameDay(day, today);
+          const nowTop = this.nowLineTop(day);
+          return html`
             <div
               class="day-col"
+              data-today=${isToday ? "true" : "false"}
               style="height:${totalHeight}px"
               @dblclick=${(e: MouseEvent) => {
-                const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                const y = e.clientY - rect.top;
-                const hour =
-                  this.dayStartHour + Math.floor(y / HOUR_HEIGHT_PX);
-                this.onSlotDblClick(day, hour);
+                const hour = this.hourFromPointer(
+                  e,
+                  e.currentTarget as HTMLElement
+                );
+                this.onSlotCreate(day, hour);
               }}
             >
               ${hours.map(() => html`<div class="hour-line"></div>`)}
+              ${nowTop !== null
+                ? html`<div class="now-line" style="top:${nowTop}px"></div>`
+                : nothing}
               ${this.events.map((ev) => {
                 const style = this.eventStyle(ev, day);
                 if (!style) return nothing;
@@ -155,9 +198,17 @@ export class HacTimeGrid extends LitElement {
                   <div
                     class="event-block"
                     style=${style}
+                    role="button"
+                    tabindex="0"
                     @click=${(e: Event) => {
                       e.stopPropagation();
                       this.onEventClick(ev);
+                    }}
+                    @keydown=${(e: KeyboardEvent) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        this.onEventClick(ev);
+                      }
                     }}
                   >
                     <strong>${ev.summary}</strong>
@@ -166,8 +217,8 @@ export class HacTimeGrid extends LitElement {
                 `;
               })}
             </div>
-          `
-        )}
+          `;
+        })}
       </div>
     `;
   }

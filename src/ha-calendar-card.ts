@@ -8,7 +8,7 @@ import {
   PLACEHOLDER_CALENDARS,
 } from "./const";
 import { CalendarApi } from "./api/calendar-api";
-import { cardStyles } from "./styles/shared";
+import { FONT_STYLESHEET_HREF, cardStyles } from "./styles/shared";
 import type {
   CalendarEvent,
   CalendarViewMode,
@@ -51,8 +51,10 @@ export class HaCalendarCard extends LitElement {
   @state() private status = `HA Calendar Card v${CARD_VERSION}`;
   @state() private statusKind: "info" | "error" | "warn" = "info";
   @state() private loading = false;
+  @state() private loadFailed = false;
   @state() private pendingDuplicate: PendingDuplicate | null = null;
   @state() private loadGeneration = 0;
+  @state() private hasLoadedOnce = false;
 
   public setConfig(config: HaCalendarCardConfig): void {
     if (!config) {
@@ -81,6 +83,21 @@ export class HaCalendarCard extends LitElement {
 
   public getCardSize(): number {
     return 8;
+  }
+
+  connectedCallback(): void {
+    super.connectedCallback();
+    this.ensureFonts();
+  }
+
+  private ensureFonts(): void {
+    const id = "ha-calendar-card-fonts";
+    if (document.getElementById(id)) return;
+    const link = document.createElement("link");
+    link.id = id;
+    link.rel = "stylesheet";
+    link.href = FONT_STYLESHEET_HREF;
+    document.head.appendChild(link);
   }
 
   protected updated(changed: Map<string, unknown>): void {
@@ -120,6 +137,8 @@ export class HaCalendarCard extends LitElement {
 
     if (!this.hass) {
       this.events = this.demoEvents();
+      this.loadFailed = false;
+      this.hasLoadedOnce = true;
       this.status = "Preview mode — demo events (no hass)";
       this.statusKind = "info";
       return;
@@ -133,6 +152,9 @@ export class HaCalendarCard extends LitElement {
     try {
       const result = await api.getEvents(entityIds, start, end);
       if (generation !== this.loadGeneration) return;
+
+      this.loadFailed = false;
+      this.hasLoadedOnce = true;
 
       if (result.events.length) {
         this.events = result.events;
@@ -154,14 +176,17 @@ export class HaCalendarCard extends LitElement {
         this.events = this.config.show_demo_when_empty
           ? this.demoEvents()
           : [];
+        this.loadFailed = !this.config.show_demo_when_empty;
         this.status = result.errors.length
           ? `Could not load: ${result.errors.join(", ")} — check entity ids`
           : "No calendars loaded";
-        this.statusKind = "warn";
+        this.statusKind = "error";
       }
     } catch (err) {
       if (generation !== this.loadGeneration) return;
       this.events = [];
+      this.loadFailed = true;
+      this.hasLoadedOnce = true;
       this.status = `Load failed: ${err instanceof Error ? err.message : String(err)}`;
       this.statusKind = "error";
     } finally {
@@ -319,11 +344,34 @@ export class HaCalendarCard extends LitElement {
     this.statusKind = "warn";
   }
 
+  private rangeLabel(): string {
+    const { start, end } = this.range();
+    if (this.view === "day") {
+      return start.toLocaleDateString(undefined, {
+        weekday: "long",
+        month: "short",
+        day: "numeric",
+      });
+    }
+    const last = new Date(end);
+    last.setDate(last.getDate() - 1);
+    const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
+    return `${start.toLocaleDateString(undefined, opts)} – ${last.toLocaleDateString(undefined, opts)}`;
+  }
+
   protected render() {
     const title = this.config.title ?? "HA Calendar";
     const calendars = this.entities();
     const showEmpty =
-      !this.loading && this.events.length === 0 && Boolean(this.hass);
+      this.hasLoadedOnce &&
+      !this.loading &&
+      !this.loadFailed &&
+      this.events.length === 0 &&
+      Boolean(this.hass) &&
+      !this.config.show_demo_when_empty;
+    const showError =
+      this.hasLoadedOnce && !this.loading && this.loadFailed && !this.formOpen;
+    const showLoadingVeil = this.loading && this.hasLoadedOnce;
 
     return html`
       <div class="shell">
@@ -352,68 +400,127 @@ export class HaCalendarCard extends LitElement {
 
         <header class="toolbar">
           <h1 class="brand">${title}</h1>
-          <button
-            class="nav-btn"
-            type="button"
-            @click=${() => this.shift(this.view === "day" ? -1 : -7)}
-          >
-            ‹
-          </button>
-          <button
-            class="nav-btn"
-            type="button"
-            @click=${() => {
-              this.anchorDate = new Date();
-            }}
-          >
-            Today
-          </button>
-          <button
-            class="nav-btn"
-            type="button"
-            @click=${() => this.shift(this.view === "day" ? 1 : 7)}
-          >
-            ›
-          </button>
-          <div class="view-toggle" role="group" aria-label="View">
+          <div class="toolbar-controls">
+            <div class="nav-group">
+              <button
+                class="nav-btn"
+                type="button"
+                aria-label="Previous"
+                @click=${() => this.shift(this.view === "day" ? -1 : -7)}
+              >
+                ‹
+              </button>
+              <button
+                class="nav-btn"
+                type="button"
+                @click=${() => {
+                  this.anchorDate = new Date();
+                }}
+              >
+                Today
+              </button>
+              <button
+                class="nav-btn"
+                type="button"
+                aria-label="Next"
+                @click=${() => this.shift(this.view === "day" ? 1 : 7)}
+              >
+                ›
+              </button>
+            </div>
+            <div class="view-toggle" role="group" aria-label="View">
+              <button
+                type="button"
+                aria-pressed=${this.view === "day"}
+                @click=${() => {
+                  this.view = "day";
+                }}
+              >
+                Day
+              </button>
+              <button
+                type="button"
+                aria-pressed=${this.view === "week"}
+                @click=${() => {
+                  this.view = "week";
+                }}
+              >
+                Week
+              </button>
+            </div>
             <button
+              class="primary-btn"
               type="button"
-              aria-pressed=${this.view === "day"}
-              @click=${() => {
-                this.view = "day";
-              }}
+              @click=${() => this.openCreate()}
             >
-              Day
-            </button>
-            <button
-              type="button"
-              aria-pressed=${this.view === "week"}
-              @click=${() => {
-                this.view = "week";
-              }}
-            >
-              Week
+              New
             </button>
           </div>
-          <button
-            class="primary-btn"
-            type="button"
-            @click=${() => this.openCreate()}
-          >
-            New
-          </button>
         </header>
 
         <div class="grid-wrap">
-          ${showEmpty
-            ? html`<div class="empty-hint">
-                No events in this range. Double-click a time slot or press New.
-              </div>`
+          ${this.loading && !this.hasLoadedOnce
+            ? html`
+                <div class="state-panel" data-kind="loading">
+                  <div class="spinner" style="width:1.4rem;height:1.4rem;border:2px solid var(--hac-line-strong);border-top-color:var(--hac-accent);border-radius:50%;animation:spin 0.7s linear infinite"></div>
+                  <h2>Loading calendar</h2>
+                  <p>Fetching events for ${this.rangeLabel()}.</p>
+                </div>
+              `
             : nothing}
+          ${showLoadingVeil ? html`<div class="loading-veil"></div>` : nothing}
+          ${showError
+            ? html`
+                <div class="state-panel" data-kind="error">
+                  <div class="state-mark" aria-hidden="true"></div>
+                  <h2>Couldn’t load calendars</h2>
+                  <p>${this.status}</p>
+                  <div class="state-actions">
+                    <button
+                      class="primary-btn"
+                      type="button"
+                      @click=${() => void this.refreshEvents()}
+                    >
+                      Retry
+                    </button>
+                    <button
+                      class="ghost-btn"
+                      type="button"
+                      @click=${() => this.openCreate()}
+                    >
+                      New event anyway
+                    </button>
+                  </div>
+                </div>
+              `
+            : nothing}
+          ${showEmpty
+            ? html`
+                <div class="state-panel" data-kind="empty">
+                  <div class="state-mark" aria-hidden="true"></div>
+                  <h2>Nothing scheduled</h2>
+                  <p>
+                    ${this.rangeLabel()} is clear. Tap New, or double-click a
+                    time slot on larger screens.
+                  </p>
+                  <div class="state-actions">
+                    <button
+                      class="primary-btn"
+                      type="button"
+                      @click=${() => this.openCreate()}
+                    >
+                      New event
+                    </button>
+                  </div>
+                </div>
+              `
+            : nothing}
+
           <hac-time-grid
             .mode=${this.view}
             .anchorDate=${this.anchorDate}
             .events=${this.events}
+            .calendars=${calendars}
             .dayStartHour=${this.config.day_start_hour ?? DAY_START_HOUR}
             .dayEndHour=${this.config.day_end_hour ?? DAY_END_HOUR}
             @event-select=${(e: CustomEvent<CalendarEvent>) =>
@@ -440,7 +547,20 @@ export class HaCalendarCard extends LitElement {
         </div>
 
         <div class="status" data-kind=${this.statusKind}>
-          ${this.loading ? "Loading… · " : ""}${this.status}
+          ${this.loading
+            ? html`<span class="spinner" aria-hidden="true"></span>`
+            : nothing}
+          <span>${this.status}</span>
+          ${this.statusKind === "error" && !showError
+            ? html`<button
+                class="ghost-btn"
+                type="button"
+                style="min-height:1.75rem;padding:0.2rem 0.6rem;font-size:0.78rem"
+                @click=${() => void this.refreshEvents()}
+              >
+                Retry
+              </button>`
+            : nothing}
         </div>
       </div>
     `;
