@@ -12,6 +12,11 @@ export interface EventFormSaveDetail {
   input: CalendarEventInput;
   /** Original event when editing (for move detection) */
   original?: CalendarEvent;
+  /**
+   * True when editing and the Calendar dropdown differs from the event's
+   * current calendar.* entity — card must run create→confirm→delete.
+   */
+  crossCalendarMove?: boolean;
   /** Reminder form state when integration hooks are active */
   reminder?: ReminderFormState;
 }
@@ -20,6 +25,7 @@ export interface EventFormSaveDetail {
 export class HacEventForm extends LitElement {
   static styles = formStyles;
 
+  /** Writable calendars from card config (any source ↔ any target). */
   @property({ attribute: false }) calendars: string[] = [];
   @property({ attribute: false }) event: CalendarEvent | null = null;
   @property({ attribute: false }) defaults: {
@@ -47,25 +53,40 @@ export class HacEventForm extends LitElement {
   @state() private reminderMinutes = 30;
   @state() private reminderNotify = "notify.mobile_app_phone";
   @state() private reminderMessage = "";
+  /** Prevents reminder/async prop updates from wiping calendar selection */
+  @state() private hydrateKey = "";
 
   connectedCallback(): void {
     super.connectedCallback();
-    this.hydrate();
+    this.hydrateEventFields(true);
+    this.applyReminderFields(true);
   }
 
   protected updated(changed: Map<string, unknown>): void {
-    if (
-      changed.has("event") ||
-      changed.has("defaults") ||
-      changed.has("calendars") ||
+    if (changed.has("event") || changed.has("defaults")) {
+      this.hydrateEventFields();
+      this.applyReminderFields(true);
+    } else if (
       changed.has("reminder") ||
       changed.has("reminderDefaults")
     ) {
-      this.hydrate();
+      // Do NOT reset summary/calendar — that previously cancelled cross-calendar moves
+      this.applyReminderFields(false);
     }
   }
 
-  private hydrate(): void {
+  private eventKey(): string {
+    if (this.event) {
+      return `edit:${this.event.calendar}:${this.event.uid}`;
+    }
+    return `create:${this.defaults.start ?? ""}:${this.defaults.end ?? ""}:${this.defaults.calendar ?? ""}`;
+  }
+
+  private hydrateEventFields(force = false): void {
+    const key = this.eventKey();
+    if (!force && key === this.hydrateKey) return;
+    this.hydrateKey = key;
+
     if (this.event) {
       this.summary = this.event.summary;
       this.description = this.event.description ?? "";
@@ -84,23 +105,41 @@ export class HacEventForm extends LitElement {
         this.defaults.end ??
           new Date(Date.now() + 60 * 60 * 1000).toISOString()
       );
-      this.calendar =
-        this.defaults.calendar ?? this.calendars[0] ?? "calendar.family";
+      this.calendar = this.defaults.calendar ?? this.calendars[0] ?? "";
     }
     this.moveNote = "";
+  }
 
-    const minutes =
-      this.reminder?.minutes_before ??
-      this.reminderDefaults.minutes_before ??
-      30;
-    const notify =
-      this.reminder?.notify_service ||
-      this.reminderDefaults.notify_service ||
-      "notify.mobile_app_phone";
-    this.reminderEnabled = Boolean(this.reminder?.enabled);
-    this.reminderMinutes = minutes;
-    this.reminderNotify = notify;
-    this.reminderMessage = this.reminder?.message ?? "";
+  private applyReminderFields(resetIfEmpty: boolean): void {
+    if (this.reminder) {
+      this.reminderEnabled = Boolean(this.reminder.enabled);
+      this.reminderMinutes = this.reminder.minutes_before;
+      this.reminderNotify = this.reminder.notify_service;
+      this.reminderMessage = this.reminder.message ?? "";
+      return;
+    }
+    if (!resetIfEmpty) return;
+    this.reminderEnabled = false;
+    this.reminderMinutes = this.reminderDefaults.minutes_before ?? 30;
+    this.reminderNotify =
+      this.reminderDefaults.notify_service || "notify.mobile_app_phone";
+    this.reminderMessage = "";
+  }
+
+  /** Config calendars plus current event calendar if missing from config. */
+  private get calendarOptions(): string[] {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    const push = (id: string | undefined) => {
+      if (!id || seen.has(id)) return;
+      seen.add(id);
+      out.push(id);
+    };
+    // Keep current selection/source first when editing so the dropdown always shows it
+    if (this.event?.calendar) push(this.event.calendar);
+    if (this.calendar) push(this.calendar);
+    for (const id of this.calendars) push(id);
+    return out;
   }
 
   private toLocalInput(isoOrDate: string): string {
@@ -120,12 +159,14 @@ export class HacEventForm extends LitElement {
     return Boolean(this.event?.recurring || this.event?.rrule);
   }
 
-  private get calendarMoveBlocked(): boolean {
-    return (
-      this.isRecurring &&
-      Boolean(this.event) &&
-      this.calendar !== this.event!.calendar
+  private get isCrossCalendarMove(): boolean {
+    return Boolean(
+      this.event && this.calendar && this.calendar !== this.event.calendar
     );
+  }
+
+  private get calendarMoveBlocked(): boolean {
+    return this.isRecurring && this.isCrossCalendarMove;
   }
 
   private onCalendarChange(e: Event): void {
@@ -134,10 +175,10 @@ export class HacEventForm extends LitElement {
     if (this.event && next !== this.event.calendar) {
       if (this.isRecurring) {
         this.moveNote =
-          "Recurring events cannot change calendars yet (phase 1). Keep the original calendar or recreate as a one-off.";
+          "Recurring events cannot change calendars yet. Keep the original calendar or recreate as a one-off.";
       } else {
         this.moveNote =
-          "Calendar change uses create-on-new then delete-from-old so the event is never lost first.";
+          "Home Assistant cannot move events across calendars — Save will create on the new calendar, then delete from the old one.";
       }
     } else {
       this.moveNote = "";
@@ -167,10 +208,12 @@ export class HacEventForm extends LitElement {
       end: this.fromLocalInput(this.end),
       calendar: this.calendar,
     };
+    const crossCalendarMove = this.isCrossCalendarMove;
     const detail: EventFormSaveDetail = {
       mode: this.event ? "edit" : "create",
       input,
       original: this.event ?? undefined,
+      crossCalendarMove,
       reminder: this.remindersAvailable
         ? {
             enabled: this.reminderEnabled,
@@ -191,6 +234,7 @@ export class HacEventForm extends LitElement {
 
   render() {
     const title = this.event ? "Edit event" : "New event";
+    const options = this.calendarOptions;
 
     return html`
       <div class="form-backdrop" @click=${this.close}>
@@ -203,7 +247,7 @@ export class HacEventForm extends LitElement {
           <h2>${title}</h2>
           <p class="form-sub">
             ${this.event
-              ? "Edit details, calendar, or reminder."
+              ? "Edit details, change calendar (create+delete move), or reminder."
               : "Add a one-off event to a configured calendar."}
           </p>
 
@@ -220,14 +264,24 @@ export class HacEventForm extends LitElement {
           <label for="calendar">Calendar</label>
           <select
             id="calendar"
-            .value=${this.calendar}
-            ?disabled=${this.busy}
+            ?disabled=${this.busy || options.length === 0}
             @change=${this.onCalendarChange}
           >
-            ${this.calendars.map(
-              (id) => html`<option value=${id}>${id}</option>`
+            ${options.map(
+              (id) => html`
+                <option value=${id} ?selected=${id === this.calendar}>
+                  ${id}
+                </option>
+              `
             )}
           </select>
+          ${this.event
+            ? html`<p class="hint">
+                Changing calendar moves the event to any other configured
+                writable calendar via create-on-new, then delete-from-old (HA
+                cannot move across calendars in place).
+              </p>`
+            : nothing}
 
           <div class="row-2">
             <div>
@@ -373,7 +427,11 @@ export class HacEventForm extends LitElement {
               ?disabled=${this.busy || this.calendarMoveBlocked}
               @click=${this.save}
             >
-              ${this.busy ? "Saving…" : "Save"}
+              ${this.busy
+                ? "Saving…"
+                : this.isCrossCalendarMove
+                  ? "Move & save"
+                  : "Save"}
             </button>
           </div>
         </div>

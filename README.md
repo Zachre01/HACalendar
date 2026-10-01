@@ -6,7 +6,7 @@ Inspired by Daylight/Skylight aesthetics — **own codebase**, not a fork of tho
 
 ## Status
 
-- **Card v0.5.0** — day/week views, create/edit, safe calendar moves, polish, HACS plugin packaging, reminder UI hooks
+- **Card v0.5.1** — day/week views, create/edit, safe cross-calendar moves (any config calendar → any other), polish, HACS plugin packaging, reminder UI hooks
 - **Integration v0.1.0** — `custom_components/ha_calendar_reminders` scaffold (storage + services + best-effort scheduler)
 - Notify delivery is **best-effort** until validated on your stack. Recurring calendar moves remain blocked.
 
@@ -30,7 +30,7 @@ Private / custom-repo install — not yet in the HACS default store.
 
 ```yaml
 resources:
-  - url: /local/ha-calendar-card.js?v=0.5.0
+  - url: /local/ha-calendar-card.js?v=0.5.1
     type: module
 ```
 
@@ -80,8 +80,8 @@ initial_view: week
 ```bash
 npm ci
 npm run release:check
-git tag v0.5.0
-git push origin v0.5.0  # .github/workflows/release.yml attaches JS assets
+git tag v0.5.1
+git push origin v0.5.1  # .github/workflows/release.yml attaches JS assets
 ```
 
 HACS plugin assets: `ha-calendar-card.js`, `HACalendar.js` (repo-name match). No `zip_release`.
@@ -95,13 +95,16 @@ npm run watch
 npm run typecheck
 ```
 
-## Calendar move safety
+## Cross-calendar moves (HA limitation)
 
-1. Create on the target calendar  
-2. Confirm via refetch → uid  
-3. Delete from the source  
+Home Assistant **cannot** move an event from one `calendar.*` entity to another in place. The card does it for you on **any** configured source → **any** other configured target (not a special pair):
 
-Delete-fail keeps both copies + **Remove old copy** banner. Recurring moves blocked.
+1. Edit an event → change the **Calendar** dropdown → **Move & save**
+2. Card **creates** the event on the target calendar  
+3. Confirms the new copy (refetch → uid)  
+4. **Deletes** from the source calendar  
+
+Never delete-first. If delete fails after create, both copies remain and a **Remove old copy** banner appears. Recurring moves stay blocked.
 
 ## License
 

@@ -7,6 +7,9 @@ import type {
   RawCalendarApiEvent,
 } from "../types";
 
+/** HA CalendarEntityFeature.CREATE_EVENT */
+const FEATURE_CREATE_EVENT = 1;
+
 function getCalendarDate(
   value: RawCalendarApiEvent["start"] | undefined
 ): string | undefined {
@@ -86,11 +89,35 @@ export class CalendarApi {
 
   listCalendarEntities(configured?: string[]): string[] {
     if (configured?.length) {
-      return configured;
+      return [...configured];
     }
     return Object.keys(this.hass.states)
       .filter((id) => id.startsWith("calendar."))
       .sort();
+  }
+
+  /**
+   * Calendars from card config that can accept creates (cross-calendar move targets).
+   * Unknown/missing entities are kept so placeholders still appear in the dropdown.
+   * No hard-coded entity names — only the configured list (order preserved).
+   */
+  listWritableCalendars(configured: string[]): string[] {
+    return configured.filter((entityId) => {
+      const state = this.hass.states[entityId];
+      if (!state) return true;
+      const features = state.attributes.supported_features;
+      if (typeof features !== "number") return true;
+      return (features & FEATURE_CREATE_EVENT) !== 0;
+    });
+  }
+
+  /** True when entity reports DELETE_EVENT support (or features unknown). */
+  canDelete(entityId: string): boolean {
+    const state = this.hass.states[entityId];
+    if (!state) return true;
+    const features = state.attributes.supported_features;
+    if (typeof features !== "number") return true;
+    return (features & 2) !== 0; // DELETE_EVENT
   }
 
   /**
@@ -296,8 +323,12 @@ export class CalendarApi {
   }
 
   /**
-   * Safe calendar move: create on target, confirm via refetch, then delete source.
-   * Never deletes first. Non-recurring only.
+   * Cross-calendar “move” for any configured source → any other configured target.
+   *
+   * Home Assistant cannot move an event between calendar.* entities in place, so
+   * we always: CREATE on target → confirm via refetch → DELETE from source.
+   * Never update-in-place across calendars. Never delete-first.
+   * Recurring events are blocked.
    */
   async moveEventToCalendar(
     event: CalendarEvent,
@@ -308,7 +339,7 @@ export class CalendarApi {
       return {
         status: "blocked_recurring",
         reason:
-          "Moving recurring events is disabled in phase 1 — change calendars only for one-off events.",
+          "Moving recurring events is disabled — change calendars only for one-off events.",
       };
     }
     if (event.calendar === targetCalendar) {
@@ -325,16 +356,11 @@ export class CalendarApi {
       calendar: targetCalendar,
     };
 
+    // 1) Create on target first — source untouched if this fails
     let newUid: string | undefined;
     try {
       const created = await this.createEvent(snapshot);
-      newUid = created.uid;
-      if (!newUid) {
-        // Create succeeded but uid unresolved — still treat as confirmed enough to delete
-        // only if refetch found nothing? Prefer requiring a match.
-        const found = await this.findCreatedEvent(snapshot);
-        newUid = found?.uid;
-      }
+      newUid = created.uid ?? (await this.findCreatedEvent(snapshot))?.uid;
       if (!newUid) {
         return {
           status: "create_failed",
@@ -349,6 +375,7 @@ export class CalendarApi {
       };
     }
 
+    // 2) Delete from source only after confirmed create
     try {
       await this.deleteEvent(event.calendar, event.uid, event.recurrence_id);
       return { status: "moved", newUid };
@@ -356,7 +383,7 @@ export class CalendarApi {
       const duplicate: PendingDuplicate = {
         entityId: event.calendar,
         uid: event.uid,
-        summary: event.summary,
+        summary: patched?.summary ?? event.summary,
         targetCalendar,
         newUid,
       };

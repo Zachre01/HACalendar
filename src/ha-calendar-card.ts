@@ -116,8 +116,25 @@ export class HaCalendarCard extends LitElement {
 
   private entities(): string[] {
     return this.config.entities?.length
-      ? this.config.entities
+      ? [...this.config.entities]
       : [...PLACEHOLDER_CALENDARS];
+  }
+
+  /**
+   * Dropdown options: every writable calendar from card config.
+   * Always includes the event's current calendar when editing.
+   * No hard-coded entity names — purely config (+ current source).
+   */
+  private formCalendars(): string[] {
+    const configured = this.entities();
+    const writable = this.hass
+      ? new CalendarApi(this.hass).listWritableCalendars(configured)
+      : configured;
+    const current = this.editing?.calendar;
+    if (current && !writable.includes(current)) {
+      return [current, ...writable];
+    }
+    return writable;
   }
 
   private range(): { start: Date; end: Date } {
@@ -330,7 +347,7 @@ export class HaCalendarCard extends LitElement {
   private async onFormSave(
     e: CustomEvent<EventFormSaveDetail>
   ): Promise<void> {
-    const { mode, input, original, reminder } = e.detail;
+    const { mode, input, original, reminder, crossCalendarMove } = e.detail;
 
     if (!this.hass) {
       this.formError = "No Home Assistant connection — cannot save.";
@@ -341,6 +358,14 @@ export class HaCalendarCard extends LitElement {
     this.formError = "";
     const api = new CalendarApi(this.hass);
     let reminderNote: string | null = null;
+
+    // Any configured source → any other configured target should move.
+    // Never update-in-place across calendar.* entities (HA cannot do that).
+    const mustMove = Boolean(
+      original &&
+        (crossCalendarMove ||
+          (input.calendar && input.calendar !== original.calendar))
+    );
 
     try {
       if (mode === "create") {
@@ -362,7 +387,7 @@ export class HaCalendarCard extends LitElement {
           reminderNote ? ` · ${reminderNote}` : ""
         }`;
         this.statusKind = "info";
-      } else if (original && input.calendar !== original.calendar) {
+      } else if (mustMove && original) {
         if (original.recurring || original.rrule) {
           this.formError =
             "Recurring events cannot change calendars yet. Keep the original calendar.";
@@ -373,7 +398,6 @@ export class HaCalendarCard extends LitElement {
           calendar: input.calendar,
         });
         if (moved.status === "moved") {
-          // Reminder keyed by calendar+uid — clear old, set on new uid if present
           if (this.remindersAvailable()) {
             try {
               await new ReminderApi(this.hass).clearReminder(
@@ -395,7 +419,7 @@ export class HaCalendarCard extends LitElement {
           }
           this.formOpen = false;
           this.pendingDuplicate = null;
-          this.status = `Moved “${input.summary}” → ${input.calendar}${
+          this.status = `Moved “${input.summary}” ${original.calendar} → ${input.calendar}${
             reminderNote ? ` · ${reminderNote}` : ""
           }`;
           this.statusKind = "info";
@@ -414,6 +438,7 @@ export class HaCalendarCard extends LitElement {
           return;
         }
       } else if (original) {
+        // Same calendar only — never pass a different entity_id here
         await api.updateEvent(
           original.calendar,
           original.uid,
@@ -655,7 +680,7 @@ export class HaCalendarCard extends LitElement {
           ${this.formOpen
             ? html`
                 <hac-event-form
-                  .calendars=${calendars}
+                  .calendars=${this.formCalendars()}
                   .event=${this.editing}
                   .defaults=${this.formDefaults}
                   .busy=${this.formBusy}
