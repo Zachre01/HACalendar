@@ -1,0 +1,7 @@
+{
+  "name": "HA Calendar Card",
+  "filename": "ha-calendar-card.js",
+  "render_readme": true,
+  "hide_default_branch": false,
+  "homeassistant": "2024.1.0"
+}
