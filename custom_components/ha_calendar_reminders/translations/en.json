@@ -1,0 +1,20 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "HA Calendar Reminders",
+        "description": "Optional defaults used by the Lovelace card when attaching reminders. Notify delivery is best-effort.",
+        "data": {
+          "default_notify_service": "Default notify service (e.g. notify.mobile_app_phone)",
+          "default_minutes_before": "Default minutes before event"
+        }
+      }
+    },
+    "error": {
+      "invalid_notify": "Use domain.service form, e.g. notify.mobile_app_phone"
+    },
+    "abort": {
+      "already_configured": "HA Calendar Reminders is already configured"
+    }
+  }
+}

@@ -804,4 +804,40 @@ export const formStyles = css`
     border-radius: 10px;
     padding: 0.55rem 0.7rem;
   }
+
+  .reminder-block {
+    margin-top: 1rem;
+    padding: 0.75rem 0.8rem;
+    border: 1px solid var(--hac-line);
+    border-radius: 12px;
+    background: #f3f8fa;
+  }
+
+  .reminder-block h3 {
+    font-family: var(--hac-font-display);
+    font-size: 1rem;
+    margin: 0 0 0.25rem;
+  }
+
+  .reminder-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.55rem 0 0.25rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--hac-ink);
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  .reminder-toggle input {
+    width: auto;
+    min-height: auto;
+  }
+
+  .reminder-fields[data-disabled="true"] {
+    opacity: 0.45;
+    pointer-events: none;
+  }
 `;

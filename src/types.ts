@@ -11,6 +11,42 @@ export interface HaCalendarCardConfig {
   day_end_hour?: number;
   /** When true, show demo blocks if HA returns no events (dev only) */
   show_demo_when_empty?: boolean;
+  /** Default notify.* target for Phase 2 reminder hooks */
+  reminder_notify_service?: string;
+  /** Default minutes-before for new reminders */
+  reminder_minutes_before?: number;
+}
+
+/** Per-event reminder rule (ha_calendar_reminders integration) */
+export interface ReminderRule {
+  rule_id: string;
+  calendar_entity_id: string;
+  event_uid: string;
+  event_start: string;
+  event_summary: string;
+  minutes_before: number;
+  notify_service: string;
+  message: string;
+  enabled: boolean;
+  last_fired?: string | null;
+}
+
+export interface ReminderRuleInput {
+  calendar_entity_id: string;
+  event_uid: string;
+  event_start: string;
+  event_summary?: string;
+  minutes_before: number;
+  notify_service: string;
+  message?: string;
+  enabled?: boolean;
+}
+
+export interface ReminderFormState {
+  enabled: boolean;
+  minutes_before: number;
+  notify_service: string;
+  message: string;
 }
 
 /** Minimal HA event shape used by the card */
@@ -80,6 +116,7 @@ export interface HassEntity {
 
 export interface HomeAssistant {
   states: Record<string, HassEntity>;
+  services?: Record<string, Record<string, unknown>>;
   callService: (
     domain: string,
     service: string,

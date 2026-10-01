@@ -8,6 +8,7 @@ import {
   PLACEHOLDER_CALENDARS,
 } from "./const";
 import { CalendarApi } from "./api/calendar-api";
+import { ReminderApi } from "./api/reminder-api";
 import { FONT_STYLESHEET_HREF, cardStyles } from "./styles/shared";
 import type {
   CalendarEvent,
@@ -15,6 +16,7 @@ import type {
   HaCalendarCardConfig,
   HomeAssistant,
   PendingDuplicate,
+  ReminderFormState,
 } from "./types";
 import type { EventFormSaveDetail } from "./components/event-form";
 import "./components/time-grid";
@@ -55,6 +57,7 @@ export class HaCalendarCard extends LitElement {
   @state() private pendingDuplicate: PendingDuplicate | null = null;
   @state() private loadGeneration = 0;
   @state() private hasLoadedOnce = false;
+  @state() private formReminder: ReminderFormState | null = null;
 
   public setConfig(config: HaCalendarCardConfig): void {
     if (!config) {
@@ -232,10 +235,26 @@ export class HaCalendarCard extends LitElement {
     this.anchorDate = next;
   }
 
+  private remindersAvailable(): boolean {
+    return Boolean(this.hass && new ReminderApi(this.hass).isAvailable());
+  }
+
+  private reminderDefaults(): {
+    minutes_before?: number;
+    notify_service?: string;
+  } {
+    return {
+      minutes_before: this.config.reminder_minutes_before ?? 30,
+      notify_service:
+        this.config.reminder_notify_service ?? "notify.mobile_app_phone",
+    };
+  }
+
   private openCreate(detail?: { start: Date; end: Date }): void {
     this.editing = null;
     this.formError = "";
     this.formBusy = false;
+    this.formReminder = null;
     this.formDefaults = {
       start: (detail?.start ?? new Date()).toISOString(),
       end: (detail?.end ?? new Date(Date.now() + 3600000)).toISOString(),
@@ -249,13 +268,69 @@ export class HaCalendarCard extends LitElement {
     this.formError = "";
     this.formBusy = false;
     this.formDefaults = {};
+    this.formReminder = null;
     this.formOpen = true;
+    void this.loadReminderForEvent(ev);
+  }
+
+  private async loadReminderForEvent(ev: CalendarEvent): Promise<void> {
+    if (!this.hass || !this.remindersAvailable()) return;
+    try {
+      const rule = await new ReminderApi(this.hass).getReminder(
+        ev.calendar,
+        ev.uid
+      );
+      if (!this.formOpen || this.editing?.uid !== ev.uid) return;
+      if (rule) {
+        this.formReminder = {
+          enabled: rule.enabled,
+          minutes_before: rule.minutes_before,
+          notify_service: rule.notify_service,
+          message: rule.message ?? "",
+        };
+      } else {
+        this.formReminder = null;
+      }
+    } catch {
+      // Integration may be missing mid-session; form still works without hooks
+    }
+  }
+
+  private async syncReminder(opts: {
+    calendar: string;
+    uid: string;
+    start: string;
+    summary: string;
+    reminder?: ReminderFormState;
+  }): Promise<string | null> {
+    if (!this.hass || !opts.reminder || !this.remindersAvailable()) {
+      return null;
+    }
+    const api = new ReminderApi(this.hass);
+    if (!opts.reminder.enabled) {
+      await api.clearReminder(opts.calendar, opts.uid);
+      return "reminder cleared";
+    }
+    if (!opts.reminder.notify_service.trim()) {
+      throw new Error("Reminder notify service is required");
+    }
+    await api.setReminder({
+      calendar_entity_id: opts.calendar,
+      event_uid: opts.uid,
+      event_start: opts.start,
+      event_summary: opts.summary,
+      minutes_before: opts.reminder.minutes_before,
+      notify_service: opts.reminder.notify_service.trim(),
+      message: opts.reminder.message,
+      enabled: true,
+    });
+    return "reminder saved";
   }
 
   private async onFormSave(
     e: CustomEvent<EventFormSaveDetail>
   ): Promise<void> {
-    const { mode, input, original } = e.detail;
+    const { mode, input, original, reminder } = e.detail;
 
     if (!this.hass) {
       this.formError = "No Home Assistant connection — cannot save.";
@@ -265,12 +340,27 @@ export class HaCalendarCard extends LitElement {
     this.formBusy = true;
     this.formError = "";
     const api = new CalendarApi(this.hass);
+    let reminderNote: string | null = null;
 
     try {
       if (mode === "create") {
-        await api.createEvent(input);
+        const created = await api.createEvent(input);
+        if (created.uid && reminder?.enabled) {
+          reminderNote = await this.syncReminder({
+            calendar: input.calendar,
+            uid: created.uid,
+            start: input.start,
+            summary: input.summary,
+            reminder,
+          });
+        } else if (reminder?.enabled && !created.uid) {
+          reminderNote =
+            "event created; reminder skipped (no confirmed event uid yet)";
+        }
         this.formOpen = false;
-        this.status = `Created “${input.summary}” on ${input.calendar}`;
+        this.status = `Created “${input.summary}” on ${input.calendar}${
+          reminderNote ? ` · ${reminderNote}` : ""
+        }`;
         this.statusKind = "info";
       } else if (original && input.calendar !== original.calendar) {
         if (original.recurring || original.rrule) {
@@ -283,9 +373,31 @@ export class HaCalendarCard extends LitElement {
           calendar: input.calendar,
         });
         if (moved.status === "moved") {
+          // Reminder keyed by calendar+uid — clear old, set on new uid if present
+          if (this.remindersAvailable()) {
+            try {
+              await new ReminderApi(this.hass).clearReminder(
+                original.calendar,
+                original.uid
+              );
+            } catch {
+              /* best-effort */
+            }
+          }
+          if (reminder) {
+            reminderNote = await this.syncReminder({
+              calendar: input.calendar,
+              uid: moved.newUid,
+              start: input.start,
+              summary: input.summary,
+              reminder,
+            });
+          }
           this.formOpen = false;
           this.pendingDuplicate = null;
-          this.status = `Moved “${input.summary}” → ${input.calendar}`;
+          this.status = `Moved “${input.summary}” → ${input.calendar}${
+            reminderNote ? ` · ${reminderNote}` : ""
+          }`;
           this.statusKind = "info";
         } else if (moved.status === "create_failed") {
           this.formError = `Move aborted (create failed): ${moved.error}`;
@@ -308,8 +420,19 @@ export class HaCalendarCard extends LitElement {
           { ...input, calendar: original.calendar },
           original.recurrence_id
         );
+        if (reminder) {
+          reminderNote = await this.syncReminder({
+            calendar: original.calendar,
+            uid: original.uid,
+            start: input.start,
+            summary: input.summary,
+            reminder,
+          });
+        }
         this.formOpen = false;
-        this.status = `Updated “${input.summary}”`;
+        this.status = `Updated “${input.summary}”${
+          reminderNote ? ` · ${reminderNote}` : ""
+        }`;
         this.statusKind = "info";
       }
       await this.refreshEvents();
@@ -537,6 +660,9 @@ export class HaCalendarCard extends LitElement {
                   .defaults=${this.formDefaults}
                   .busy=${this.formBusy}
                   .errorMessage=${this.formError}
+                  .remindersAvailable=${this.remindersAvailable()}
+                  .reminderDefaults=${this.reminderDefaults()}
+                  .reminder=${this.formReminder}
                   @form-cancel=${() => {
                     if (!this.formBusy) this.formOpen = false;
                   }}

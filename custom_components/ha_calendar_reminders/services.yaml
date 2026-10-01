@@ -1,0 +1,79 @@
+set_reminder:
+  name: Set reminder
+  description: Create or update a per-event reminder rule (card → integration contract).
+  fields:
+    calendar_entity_id:
+      required: true
+      example: calendar.family
+      selector:
+        entity:
+          domain: calendar
+    event_uid:
+      required: true
+      example: abc-123
+      selector:
+        text:
+    event_start:
+      required: true
+      example: "2026-10-02T15:00:00+00:00"
+      selector:
+        text:
+    event_summary:
+      example: School pickup
+      selector:
+        text:
+    minutes_before:
+      default: 30
+      example: 30
+      selector:
+        number:
+          min: 0
+          max: 10080
+          unit_of_measurement: min
+          mode: box
+    notify_service:
+      required: true
+      example: notify.mobile_app_phone
+      selector:
+        text:
+    message:
+      example: Leave soon
+      selector:
+        text:
+    enabled:
+      default: true
+      selector:
+        boolean:
+
+clear_reminder:
+  name: Clear reminder
+  description: Remove a reminder by rule_id or calendar_entity_id + event_uid.
+  fields:
+    rule_id:
+      selector:
+        text:
+    calendar_entity_id:
+      selector:
+        entity:
+          domain: calendar
+    event_uid:
+      selector:
+        text:
+
+get_reminder:
+  name: Get reminder
+  description: Return the reminder rule for a calendar event (response only).
+  fields:
+    calendar_entity_id:
+      required: true
+      selector:
+        entity:
+          domain: calendar
+    event_uid:
+      required: true
+      selector:
+        text:
+
+list_reminders:
+  name: List reminders
+  description: Return all stored reminder rules (response only).

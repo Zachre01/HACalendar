@@ -1,13 +1,19 @@
-import { LitElement, html } from "lit";
+import { LitElement, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { formStyles } from "../styles/shared";
-import type { CalendarEvent, CalendarEventInput } from "../types";
+import type {
+  CalendarEvent,
+  CalendarEventInput,
+  ReminderFormState,
+} from "../types";
 
 export interface EventFormSaveDetail {
   mode: "create" | "edit";
   input: CalendarEventInput;
   /** Original event when editing (for move detection) */
   original?: CalendarEvent;
+  /** Reminder form state when integration hooks are active */
+  reminder?: ReminderFormState;
 }
 
 @customElement("hac-event-form")
@@ -23,6 +29,12 @@ export class HacEventForm extends LitElement {
   } = {};
   @property({ type: Boolean }) busy = false;
   @property({ type: String }) errorMessage = "";
+  @property({ type: Boolean }) remindersAvailable = false;
+  @property({ attribute: false }) reminderDefaults: {
+    minutes_before?: number;
+    notify_service?: string;
+  } = {};
+  @property({ attribute: false }) reminder: ReminderFormState | null = null;
 
   @state() private summary = "";
   @state() private description = "";
@@ -31,6 +43,10 @@ export class HacEventForm extends LitElement {
   @state() private end = "";
   @state() private calendar = "";
   @state() private moveNote = "";
+  @state() private reminderEnabled = false;
+  @state() private reminderMinutes = 30;
+  @state() private reminderNotify = "notify.mobile_app_phone";
+  @state() private reminderMessage = "";
 
   connectedCallback(): void {
     super.connectedCallback();
@@ -41,7 +57,9 @@ export class HacEventForm extends LitElement {
     if (
       changed.has("event") ||
       changed.has("defaults") ||
-      changed.has("calendars")
+      changed.has("calendars") ||
+      changed.has("reminder") ||
+      changed.has("reminderDefaults")
     ) {
       this.hydrate();
     }
@@ -70,6 +88,19 @@ export class HacEventForm extends LitElement {
         this.defaults.calendar ?? this.calendars[0] ?? "calendar.family";
     }
     this.moveNote = "";
+
+    const minutes =
+      this.reminder?.minutes_before ??
+      this.reminderDefaults.minutes_before ??
+      30;
+    const notify =
+      this.reminder?.notify_service ||
+      this.reminderDefaults.notify_service ||
+      "notify.mobile_app_phone";
+    this.reminderEnabled = Boolean(this.reminder?.enabled);
+    this.reminderMinutes = minutes;
+    this.reminderNotify = notify;
+    this.reminderMessage = this.reminder?.message ?? "";
   }
 
   private toLocalInput(isoOrDate: string): string {
@@ -140,6 +171,14 @@ export class HacEventForm extends LitElement {
       mode: this.event ? "edit" : "create",
       input,
       original: this.event ?? undefined,
+      reminder: this.remindersAvailable
+        ? {
+            enabled: this.reminderEnabled,
+            minutes_before: this.reminderMinutes,
+            notify_service: this.reminderNotify.trim(),
+            message: this.reminderMessage.trim(),
+          }
+        : undefined,
     };
     this.dispatchEvent(
       new CustomEvent("form-save", {
@@ -164,7 +203,7 @@ export class HacEventForm extends LitElement {
           <h2>${title}</h2>
           <p class="form-sub">
             ${this.event
-              ? "Edit details or move to another calendar."
+              ? "Edit details, calendar, or reminder."
               : "Add a one-off event to a configured calendar."}
           </p>
 
@@ -236,6 +275,78 @@ export class HacEventForm extends LitElement {
               this.description = (e.target as HTMLTextAreaElement).value;
             }}
           ></textarea>
+
+          ${this.remindersAvailable
+            ? html`
+                <div class="reminder-block">
+                  <h3>Reminder</h3>
+                  <p class="hint" style="margin-top:0">
+                    Stored by the HA Calendar Reminders integration. Notify
+                    delivery is best-effort until you validate it.
+                  </p>
+                  <label class="reminder-toggle">
+                    <input
+                      type="checkbox"
+                      .checked=${this.reminderEnabled}
+                      ?disabled=${this.busy}
+                      @change=${(e: Event) => {
+                        this.reminderEnabled = (
+                          e.target as HTMLInputElement
+                        ).checked;
+                      }}
+                    />
+                    Remind me before this event
+                  </label>
+                  <div
+                    class="reminder-fields"
+                    data-disabled=${this.reminderEnabled ? "false" : "true"}
+                  >
+                    <div class="row-2">
+                      <div>
+                        <label for="rem-min">Minutes before</label>
+                        <input
+                          id="rem-min"
+                          type="number"
+                          min="0"
+                          max="10080"
+                          .value=${String(this.reminderMinutes)}
+                          ?disabled=${this.busy || !this.reminderEnabled}
+                          @input=${(e: Event) => {
+                            this.reminderMinutes =
+                              Number((e.target as HTMLInputElement).value) || 0;
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label for="rem-notify">Notify service</label>
+                        <input
+                          id="rem-notify"
+                          placeholder="notify.mobile_app_phone"
+                          .value=${this.reminderNotify}
+                          ?disabled=${this.busy || !this.reminderEnabled}
+                          @input=${(e: Event) => {
+                            this.reminderNotify = (
+                              e.target as HTMLInputElement
+                            ).value;
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <label for="rem-msg">Message (optional)</label>
+                    <input
+                      id="rem-msg"
+                      .value=${this.reminderMessage}
+                      ?disabled=${this.busy || !this.reminderEnabled}
+                      @input=${(e: Event) => {
+                        this.reminderMessage = (
+                          e.target as HTMLInputElement
+                        ).value;
+                      }}
+                    />
+                  </div>
+                </div>
+              `
+            : nothing}
 
           ${this.isRecurring
             ? html`<p class="hint warn">

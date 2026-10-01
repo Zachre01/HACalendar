@@ -1,51 +1,53 @@
-# HA Calendar Card
+# HA Calendar
 
-Custom Home Assistant Lovelace card with day/week time-slot views, event create/edit, and safe calendar moves (create-on-new → delete-from-old).
+Home Assistant calendar project: custom Lovelace card + companion reminders integration.
 
 Inspired by Daylight/Skylight aesthetics — **own codebase**, not a fork of those products.
 
 ## Status
 
-Phase 1 **v0.4.0**: read/write/move + polish + HACS packaging docs/workflows. Recurring calendar moves remain blocked. Phase 2 (per-event reminders) is not started.
+- **Card v0.5.0** — day/week views, create/edit, safe calendar moves, polish, HACS plugin packaging, reminder UI hooks
+- **Integration v0.1.0** — `custom_components/ha_calendar_reminders` scaffold (storage + services + best-effort scheduler)
+- Notify delivery is **best-effort** until validated on your stack. Recurring calendar moves remain blocked.
 
-## Install via HACS (custom repository)
+## Install the card via HACS (custom repository)
 
 Private / custom-repo install — not yet in the HACS default store.
 
-1. In Home Assistant: **HACS → Frontend** (Dashboard) → **⋮ → Custom repositories**
-2. Add repository URL: `https://github.com/Zachre01/HACalendar`
+1. **HACS → Frontend** (Dashboard) → **⋮ → Custom repositories**
+2. URL: `https://github.com/Zachre01/HACalendar`
 3. Category: **Dashboard** (plugin)
-4. Download **HA Calendar Card**
-5. Restart Home Assistant (or at least clear frontend cache / refresh Lovelace)
-6. HACS registers a Lovelace resource pointing at the downloaded JS (typically under `/hacsfiles/...`)
-7. Add the card (see [Card YAML](#card-yaml))
+4. Download **HA Calendar Card**, refresh Lovelace
+5. Add the card (see [Card YAML](#card-yaml))
 
-### What HACS downloads
+`hacs.json` targets the **card plugin only**. The integration is installed separately (below).
 
-| Source | Behavior |
-| --- | --- |
-| **GitHub Release** (preferred) | Latest release assets; looks for `ha-calendar-card.js` (`hacs.json` → `filename`) |
-| **`dist/` on default branch** | Used when no release exists yet (`hide_default_branch` is `false`) |
+### Manual card install (`/config/www`)
 
-`hacs.json` uses the **basename** `ha-calendar-card.js` (not `dist/...`). GitHub Release assets are uploaded without a `dist/` prefix. Do **not** use `zip_release` for plugins.
-
-## Install manually (`/config/www`)
-
-1. Get the built file:
-   - From a [GitHub Release](https://github.com/Zachre01/HACalendar/releases) asset `ha-calendar-card.js`, or
-   - Build locally: `npm ci && npm run build` → `dist/ha-calendar-card.js`
-2. Copy to Home Assistant: `config/www/ha-calendar-card.js`
-3. Add a Lovelace resource (**Settings → Dashboards → ⋮ → Resources**, or YAML):
+1. Take `ha-calendar-card.js` from a [Release](https://github.com/Zachre01/HACalendar/releases) or `npm ci && npm run build`
+2. Copy to `config/www/ha-calendar-card.js`
+3. Lovelace resource:
 
 ```yaml
 resources:
-  - url: /local/ha-calendar-card.js?v=0.4.0
+  - url: /local/ha-calendar-card.js?v=0.5.0
     type: module
 ```
 
-Bump the `?v=` query when you update the file so browsers reload it.
+## Install the reminders integration
 
-4. Add the card YAML below.
+Phase 2 companion — owns per-event reminder rules and firing. Card stays the UI.
+
+1. Copy `custom_components/ha_calendar_reminders/` → `config/custom_components/ha_calendar_reminders/`
+2. Restart Home Assistant
+3. **Settings → Devices & services → Add integration → HA Calendar Reminders**
+4. Optional: default `notify.*` service + minutes-before
+5. Open an event in the card — a **Reminder** section appears when services are available
+
+Service contract: [`docs/reminders-api.md`](docs/reminders-api.md)  
+Component notes: [`custom_components/ha_calendar_reminders/README.md`](custom_components/ha_calendar_reminders/README.md)
+
+> Delivery uses in-process timers + `notify` calls. Do **not** treat this as guaranteed notification reliability yet.
 
 ## Card YAML
 
@@ -59,9 +61,8 @@ entities:
   - calendar.personal
   - calendar.work
 initial_view: week
-# day_start_hour: 6
-# day_end_hour: 22
-# show_demo_when_empty: false
+# reminder_notify_service: notify.mobile_app_phone
+# reminder_minutes_before: 30
 ```
 
 | Option | Default | Notes |
@@ -70,49 +71,37 @@ initial_view: week
 | `entities` | placeholders | List of `calendar.*` entity ids |
 | `initial_view` | `week` | `day` or `week` |
 | `day_start_hour` / `day_end_hour` | `6` / `22` | Visible hour range |
+| `reminder_notify_service` | `notify.mobile_app_phone` | Prefill for reminder form |
+| `reminder_minutes_before` | `30` | Prefill for reminder form |
 | `show_demo_when_empty` | `false` | Dev-only demo blocks |
 
-## Cutting a release (maintainers)
-
-HACS (and manual users) should get a **GitHub Release** that includes the built JS as an **asset** — tags alone are not enough.
+## Cutting a card release (maintainers)
 
 ```bash
 npm ci
-npm run release:check   # build + typecheck + verify dist artifacts
-git tag v0.4.0
-git push origin v0.4.0  # triggers .github/workflows/release.yml
+npm run release:check
+git tag v0.5.0
+git push origin v0.5.0  # .github/workflows/release.yml attaches JS assets
 ```
 
-Or run the **Release** workflow via `workflow_dispatch` and pass a tag.
+HACS plugin assets: `ha-calendar-card.js`, `HACalendar.js` (repo-name match). No `zip_release`.
 
-The workflow attaches:
-
-- `ha-calendar-card.js` — primary asset (`hacs.json` `filename`)
-- `HACalendar.js` — same bytes; satisfies HACS “JS matches repository name” rule
-- `ha-calendar-card.js.map` — source map (optional for users)
-
-## Develop
+## Develop (card)
 
 ```bash
 npm install
-npm run build       # → dist/ha-calendar-card.js (+ dist/HACalendar.js)
+npm run build
 npm run watch
 npm run typecheck
 ```
 
 ## Calendar move safety
 
-Changing an event’s calendar:
-
 1. Create on the target calendar  
-2. Confirm the new event via refetch (match summary/start/end → uid)  
+2. Confirm via refetch → uid  
 3. Delete from the source  
 
-If delete fails, both copies remain and a banner offers **Remove old copy**. Recurring moves are blocked in phase 1.
-
-## Phase 2 (not started)
-
-Custom integration for per-event reminder rules — designed for later; not part of this card packaging milestone.
+Delete-fail keeps both copies + **Remove old copy** banner. Recurring moves blocked.
 
 ## License
 
