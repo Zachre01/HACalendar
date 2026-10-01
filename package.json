@@ -1,0 +1,30 @@
+{
+  "name": "ha-calendar-card",
+  "version": "0.1.0",
+  "description": "Custom Home Assistant Lovelace calendar card with day/week time-slot views",
+  "type": "module",
+  "main": "dist/ha-calendar-card.js",
+  "scripts": {
+    "build": "rollup -c",
+    "watch": "rollup -c --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "home-assistant",
+    "lovelace",
+    "calendar",
+    "custom-card"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@rollup/plugin-node-resolve": "^15.3.0",
+    "@rollup/plugin-terser": "^0.4.4",
+    "@rollup/plugin-typescript": "^12.1.2",
+    "rollup": "^4.34.8",
+    "tslib": "^2.8.1",
+    "typescript": "^5.7.3"
+  },
+  "dependencies": {
+    "lit": "^3.2.1"
+  }
+}
