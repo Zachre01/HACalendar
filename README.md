@@ -6,7 +6,7 @@ Inspired by Daylight/Skylight aesthetics — **own codebase**, not a fork of tho
 
 ## Status
 
-- **Card v0.5.1** — day/week views, create/edit, safe cross-calendar moves (any config calendar → any other), polish, HACS plugin packaging, reminder UI hooks
+- **Card v0.5.2** — day/week views, create/edit, safe cross-calendar moves (any config calendar → any other), panel full-height layout, polish, HACS plugin packaging, reminder UI hooks
 - **Integration v0.1.0** — `custom_components/ha_calendar_reminders` scaffold (storage + services + best-effort scheduler)
 - Notify delivery is **best-effort** until validated on your stack. Recurring calendar moves remain blocked.
 
@@ -30,7 +30,7 @@ Private / custom-repo install — not yet in the HACS default store.
 
 ```yaml
 resources:
-  - url: /local/ha-calendar-card.js?v=0.5.1
+  - url: /local/ha-calendar-card.js?v=0.5.2
     type: module
 ```
 
@@ -51,7 +51,26 @@ Component notes: [`custom_components/ha_calendar_reminders/README.md`](custom_co
 
 ## Card YAML
 
-Placeholder `calendar.*` entity ids are fine until you point at real calendars:
+**Full-screen dashboard tip:** use a Lovelace view with `type: panel` so the calendar fills width **and** height (toolbar stays put; the week/day grid scrolls inside). Masonry / sections views still work — the card keeps a sensible min-height there.
+
+```yaml
+# View (recommended for a dedicated calendar dashboard)
+title: Calendar
+path: calendar
+type: panel
+cards:
+  - type: custom:ha-calendar-card
+    title: Family
+    entities:
+      - calendar.family
+      - calendar.personal
+      - calendar.work
+    initial_view: week
+    # reminder_notify_service: notify.mobile_app_phone
+    # reminder_minutes_before: 30
+```
+
+Card-only snippet (e.g. masonry):
 
 ```yaml
 type: custom:ha-calendar-card
@@ -80,8 +99,8 @@ initial_view: week
 ```bash
 npm ci
 npm run release:check
-git tag v0.5.1
-git push origin v0.5.1  # .github/workflows/release.yml attaches JS assets
+git tag v0.5.2
+git push origin v0.5.2  # .github/workflows/release.yml attaches JS assets
 ```
 
 HACS plugin assets: `ha-calendar-card.js`, `HACalendar.js` (repo-name match). No `zip_release`.
