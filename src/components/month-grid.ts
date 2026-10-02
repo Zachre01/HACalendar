@@ -49,15 +49,14 @@ export class HacMonthGrid extends LitElement {
       display: block;
       width: 100%;
       height: 100%;
-      min-height: 100%;
+      /* Join shell → grid-wrap flex cascade; data-fill still shrinks month rows */
+      min-height: 0;
+      overflow: auto;
+      overscroll-behavior: contain;
       box-sizing: border-box;
       font-family: var(--hac-font-body, "Nunito", "Avenir Next", "Segoe UI", sans-serif);
       color: var(--hac-ink, #2c3340);
       background: var(--hac-surface, #fff);
-    }
-
-    :host([data-fill]) {
-      min-height: 0;
     }
 
     .month {

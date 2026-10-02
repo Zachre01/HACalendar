@@ -8,6 +8,7 @@ Inspired by Daylight/Skylight aesthetics — **own codebase**, not a fork of tho
 
 ## Status
 
+- **Card v0.8.1** — day/week time grids join the panel flex cascade (`min-height: 0`) so only one body scrollport remains (same sizing idea as the v0.7.1 month/panel fix)
 - **Card v0.8.0** — dark/light/auto theme toggle (localStorage + `theme` config), clickable month/year picker, friendlier weather header chips; keeps HA calendar colors, panel single-scroll, recurring, and Skylight layout
 - **Integration v0.1.0** — `custom_components/ha_calendar_reminders` scaffold (storage + services + best-effort scheduler)
 - Notify delivery is **best-effort** until validated on your stack. Recurring **cross-calendar moves** remain blocked (prefer clear UX over partial series copies).
@@ -34,7 +35,7 @@ Private / custom-repo install — not yet in the HACS default store.
 
 ```yaml
 resources:
-  - url: /local/ha-calendar-card.js?v=0.8.0
+  - url: /local/ha-calendar-card.js?v=0.8.1
     type: module
 ```
 
@@ -55,7 +56,7 @@ Component notes: [`custom_components/ha_calendar_reminders/README.md`](custom_co
 
 ## Card YAML
 
-**Full-screen dashboard tip:** use a Lovelace view with `type: panel` so the calendar fills width **and** height. The HA page should not scroll — only the month/week/day body under the header chrome scrolls when content overflows. Masonry / sections views still work — the card keeps a sensible min-height there.
+**Full-screen dashboard tip:** use a Lovelace view with `type: panel` so the calendar fills width **and** height. The HA page should not scroll — month fits the body when possible; day/week scroll only inside the time grid (hours). Masonry / sections views still work — the card keeps a sensible min-height there.
 
 ```yaml
 # View (recommended for a dedicated calendar dashboard)

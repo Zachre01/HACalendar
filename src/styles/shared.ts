@@ -590,28 +590,35 @@ export const cardStyles = css`
     margin-left: auto;
   }
 
-  /* Sole vertical scroll context for month/week/day bodies */
+  /*
+   * Body chrome → one scrollport:
+   * .shell (overflow:hidden, min-height:0)
+   *   → .grid-wrap (flex fill, min-height:0, overflow:hidden)
+   *     → hac-time-grid / hac-month-grid (flex fill, min-height:0, overflow:auto)
+   * Day/week hours scroll inside the time grid; month usually fits via data-fill.
+   * Avoid nested page + wrap + grid scrollbars (especially on type: panel).
+   */
   .grid-wrap {
     flex: 1 1 auto;
     min-height: 0;
-    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     overscroll-behavior: contain;
     position: relative;
-    -webkit-overflow-scrolling: touch;
     background: var(--hac-surface);
   }
 
   hac-time-grid,
   hac-month-grid {
     display: block;
+    flex: 1 1 auto;
+    width: 100%;
     height: 100%;
-    min-height: 100%;
-  }
-
-  /* Month fits the panel body when possible; week/day still grow with hours */
-  :host([data-layout="panel"]) hac-month-grid,
-  :host-context(hui-panel-view) hac-month-grid {
     min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
   }
 
   .status {
@@ -868,7 +875,11 @@ export const gridStyles = css`
     display: block;
     width: 100%;
     height: 100%;
-    min-height: 100%;
+    /* Join shell → grid-wrap → time-grid flex shrink cascade */
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
     box-sizing: border-box;
     --hac-event: var(--hac-accent, #3d9b8f);
     --hac-event-text: #fff;
@@ -880,6 +891,8 @@ export const gridStyles = css`
   .time-grid {
     display: grid;
     min-width: 100%;
+    /* Content (hours) defines height; :host scrolls — do not force 100% here */
+    box-sizing: border-box;
     position: relative;
   }
 
