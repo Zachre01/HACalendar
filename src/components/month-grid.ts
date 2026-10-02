@@ -189,6 +189,12 @@ export class HacMonthGrid extends LitElement {
       margin-right: 0.2rem;
     }
 
+    .chip .recur {
+      font-weight: 800;
+      opacity: 0.95;
+      margin-right: 0.15rem;
+    }
+
     .more {
       font-size: 0.65rem;
       font-weight: 700;
@@ -325,10 +331,16 @@ export class HacMonthGrid extends LitElement {
                         type="button"
                         class="chip"
                         style="background:${this.calendarColor(ev.calendar)}"
-                        title=${ev.summary}
+                        title=${ev.rrule || ev.recurring
+                          ? `${ev.summary} (repeats)`
+                          : ev.summary}
                         @click=${(e: Event) => this.onEventClick(ev, e)}
                       >
-                        <span class="t">${formatEventTime(ev)}</span>${ev.summary}
+                        ${ev.rrule || ev.recurring
+                          ? html`<span class="recur" aria-hidden="true">↻</span>`
+                          : nothing}<span class="t"
+                          >${formatEventTime(ev)}</span
+                        >${ev.summary}
                       </button>
                     `
                   )}

@@ -1013,14 +1013,27 @@ export const formStyles = css`
     padding: 0.75rem 0.8rem;
     border: 1px solid var(--hac-line);
     border-radius: 12px;
-    background: #f7f8fa;
+    background: #f7faf9;
   }
 
+  .recur-block {
+    margin-top: 1rem;
+    padding: 0.75rem 0.8rem;
+    border: 1px solid var(--hac-line);
+    border-radius: 12px;
+    background: #f8f9fb;
+  }
+
+  .recur-block h3,
   .reminder-block h3 {
+    margin: 0 0 0.35rem;
     font-family: var(--hac-font-display);
-    font-size: 1rem;
-    margin: 0 0 0.25rem;
+    font-size: 0.95rem;
     font-weight: 800;
+  }
+
+  .recur-block code {
+    font-size: 0.78em;
   }
 
   .reminder-toggle {

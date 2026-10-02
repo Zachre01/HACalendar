@@ -6,6 +6,14 @@ import type {
   CalendarEventInput,
   ReminderFormState,
 } from "../types";
+import {
+  buildRrule,
+  parseRruleFreq,
+  parseRruleUntil,
+  rruleShortLabel,
+  type RecurrenceEditScope,
+  type RecurrenceFreq,
+} from "../utils/rrule";
 
 export interface EventFormSaveDetail {
   mode: "create" | "edit";
@@ -19,6 +27,8 @@ export interface EventFormSaveDetail {
   crossCalendarMove?: boolean;
   /** Reminder form state when integration hooks are active */
   reminder?: ReminderFormState;
+  /** Recurring edit scope (ignored for create / one-off) */
+  recurrenceScope?: RecurrenceEditScope;
 }
 
 @customElement("hac-event-form")
@@ -55,6 +65,9 @@ export class HacEventForm extends LitElement {
   @state() private reminderMessage = "";
   /** Prevents reminder/async prop updates from wiping calendar selection */
   @state() private hydrateKey = "";
+  @state() private recurFreq: RecurrenceFreq = "none";
+  @state() private recurUntil = "";
+  @state() private recurScope: RecurrenceEditScope = "this";
 
   connectedCallback(): void {
     super.connectedCallback();
@@ -77,7 +90,7 @@ export class HacEventForm extends LitElement {
 
   private eventKey(): string {
     if (this.event) {
-      return `edit:${this.event.calendar}:${this.event.uid}`;
+      return `edit:${this.event.calendar}:${this.event.uid}:${this.event.recurrence_id ?? ""}`;
     }
     return `create:${this.defaults.start ?? ""}:${this.defaults.end ?? ""}:${this.defaults.calendar ?? ""}`;
   }
@@ -94,6 +107,9 @@ export class HacEventForm extends LitElement {
       this.start = this.toLocalInput(this.event.start);
       this.end = this.toLocalInput(this.event.end);
       this.calendar = this.event.calendar;
+      this.recurFreq = parseRruleFreq(this.event.rrule);
+      this.recurUntil = parseRruleUntil(this.event.rrule);
+      this.recurScope = this.event.recurrence_id ? "this" : "series";
     } else {
       this.summary = "";
       this.description = "";
@@ -106,6 +122,9 @@ export class HacEventForm extends LitElement {
           new Date(Date.now() + 60 * 60 * 1000).toISOString()
       );
       this.calendar = this.defaults.calendar ?? this.calendars[0] ?? "";
+      this.recurFreq = "none";
+      this.recurUntil = "";
+      this.recurScope = "this";
     }
     this.moveNote = "";
   }
@@ -169,13 +188,20 @@ export class HacEventForm extends LitElement {
     return this.isRecurring && this.isCrossCalendarMove;
   }
 
+  /** Changing rrule on a single instance is not supported — force series/future. */
+  private get recurrenceRuleEditable(): boolean {
+    if (!this.event) return true;
+    if (!this.isRecurring) return true;
+    return this.recurScope === "series" || this.recurScope === "future";
+  }
+
   private onCalendarChange(e: Event): void {
     const next = (e.target as HTMLSelectElement).value;
     this.calendar = next;
     if (this.event && next !== this.event.calendar) {
       if (this.isRecurring) {
         this.moveNote =
-          "Recurring events cannot change calendars yet. Keep the original calendar or recreate as a one-off.";
+          "Recurring series cannot change calendars (avoids partial/orphan instances). Keep the original calendar or recreate as a one-off.";
       } else {
         this.moveNote =
           "Home Assistant cannot move events across calendars — Save will create on the new calendar, then delete from the old one.";
@@ -200,13 +226,28 @@ export class HacEventForm extends LitElement {
     if (this.calendarMoveBlocked) {
       return;
     }
+
+    const startIso = this.fromLocalInput(this.start);
+    let rrule: string | null | undefined;
+    if (this.recurrenceRuleEditable) {
+      rrule = buildRrule({
+        freq: this.recurFreq,
+        startIso,
+        untilDate: this.recurUntil || undefined,
+      });
+    } else if (this.isRecurring) {
+      // This-instance edit: do not send rrule changes
+      rrule = undefined;
+    }
+
     const input: CalendarEventInput = {
       summary: this.summary.trim(),
       description: this.description.trim() || undefined,
       location: this.location.trim() || undefined,
-      start: this.fromLocalInput(this.start),
+      start: startIso,
       end: this.fromLocalInput(this.end),
       calendar: this.calendar,
+      rrule: rrule ?? undefined,
     };
     const crossCalendarMove = this.isCrossCalendarMove;
     const detail: EventFormSaveDetail = {
@@ -214,6 +255,7 @@ export class HacEventForm extends LitElement {
       input,
       original: this.event ?? undefined,
       crossCalendarMove,
+      recurrenceScope: this.isRecurring ? this.recurScope : undefined,
       reminder: this.remindersAvailable
         ? {
             enabled: this.reminderEnabled,
@@ -235,6 +277,9 @@ export class HacEventForm extends LitElement {
   render() {
     const title = this.event ? "Edit event" : "New event";
     const options = this.calendarOptions;
+    const seriesLabel = this.event?.rrule
+      ? rruleShortLabel(this.event.rrule)
+      : "";
 
     return html`
       <div class="form-backdrop" @click=${this.close}>
@@ -247,8 +292,10 @@ export class HacEventForm extends LitElement {
           <h2>${title}</h2>
           <p class="form-sub">
             ${this.event
-              ? "Edit details, change calendar (create+delete move), or reminder."
-              : "Add a one-off event to a configured calendar."}
+              ? this.isRecurring
+                ? `Recurring series${seriesLabel ? ` · ${seriesLabel}` : ""}. Choose edit scope below.`
+                : "Edit details, change calendar (create+delete move), or reminder."
+              : "Add an event — optionally set it to repeat."}
           </p>
 
           <label for="summary">Title</label>
@@ -279,7 +326,8 @@ export class HacEventForm extends LitElement {
             ? html`<p class="hint">
                 Changing calendar moves the event to any other configured
                 writable calendar via create-on-new, then delete-from-old (HA
-                cannot move across calendars in place).
+                cannot move across calendars in place). Recurring series stay
+                blocked.
               </p>`
             : nothing}
 
@@ -329,6 +377,90 @@ export class HacEventForm extends LitElement {
               this.description = (e.target as HTMLTextAreaElement).value;
             }}
           ></textarea>
+
+          <div class="recur-block">
+            <h3>Repeat</h3>
+            ${this.isRecurring
+              ? html`
+                  <label for="recur-scope">Edit scope</label>
+                  <select
+                    id="recur-scope"
+                    ?disabled=${this.busy}
+                    @change=${(e: Event) => {
+                      this.recurScope = (e.target as HTMLSelectElement)
+                        .value as RecurrenceEditScope;
+                    }}
+                  >
+                    <option value="this" ?selected=${this.recurScope === "this"}>
+                      This occurrence only
+                    </option>
+                    <option
+                      value="future"
+                      ?selected=${this.recurScope === "future"}
+                    >
+                      This and future
+                    </option>
+                    <option
+                      value="series"
+                      ?selected=${this.recurScope === "series"}
+                    >
+                      Entire series
+                    </option>
+                  </select>
+                `
+              : nothing}
+            <label for="recur-freq">Frequency</label>
+            <select
+              id="recur-freq"
+              ?disabled=${this.busy || !this.recurrenceRuleEditable}
+              @change=${(e: Event) => {
+                this.recurFreq = (e.target as HTMLSelectElement)
+                  .value as RecurrenceFreq;
+              }}
+            >
+              <option value="none" ?selected=${this.recurFreq === "none"}>
+                Does not repeat
+              </option>
+              <option value="daily" ?selected=${this.recurFreq === "daily"}>
+                Daily
+              </option>
+              <option value="weekly" ?selected=${this.recurFreq === "weekly"}>
+                Weekly
+              </option>
+              <option value="monthly" ?selected=${this.recurFreq === "monthly"}>
+                Monthly
+              </option>
+              <option value="yearly" ?selected=${this.recurFreq === "yearly"}>
+                Yearly
+              </option>
+            </select>
+            ${this.recurFreq !== "none" && this.recurrenceRuleEditable
+              ? html`
+                  <label for="recur-until">Until (optional)</label>
+                  <input
+                    id="recur-until"
+                    type="date"
+                    .value=${this.recurUntil}
+                    ?disabled=${this.busy}
+                    @input=${(e: Event) => {
+                      this.recurUntil = (e.target as HTMLInputElement).value;
+                    }}
+                  />
+                  <p class="hint">
+                    Uses Home Assistant calendar websocket
+                    <code>rrule</code> (local calendars and other backends that
+                    support CREATE/UPDATE with recurrence). Weekly repeats on
+                    the weekday of the start date.
+                  </p>
+                `
+              : this.isRecurring && this.recurScope === "this"
+                ? html`<p class="hint">
+                    This occurrence only — change times/title here. To change
+                    the repeat rule, choose “This and future” or “Entire
+                    series”.
+                  </p>`
+                : nothing}
+          </div>
 
           ${this.remindersAvailable
             ? html`
@@ -402,10 +534,10 @@ export class HacEventForm extends LitElement {
               `
             : nothing}
 
-          ${this.isRecurring
+          ${this.calendarMoveBlocked
             ? html`<p class="hint warn">
-                This is a recurring event. Same-calendar edits are sent to HA;
-                changing calendars is blocked until recurring moves are designed.
+                Recurring events cannot change calendars. Keep the original
+                calendar to avoid orphaning series instances.
               </p>`
             : null}
           ${this.moveNote

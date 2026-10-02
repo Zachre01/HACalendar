@@ -219,6 +219,10 @@ export class HacTimeGrid extends LitElement {
                     style=${style}
                     role="button"
                     tabindex="0"
+                    data-recurring=${ev.rrule || ev.recurring ? "true" : "false"}
+                    title=${ev.rrule || ev.recurring
+                      ? `${ev.summary} (repeats)`
+                      : ev.summary}
                     @click=${(e: Event) => {
                       e.stopPropagation();
                       this.onEventClick(ev);
@@ -230,7 +234,9 @@ export class HacTimeGrid extends LitElement {
                       }
                     }}
                   >
-                    <strong>${ev.summary}</strong>
+                    <strong
+                      >${ev.rrule || ev.recurring ? "↻ " : ""}${ev.summary}</strong
+                    >
                     <span class="time-tag">${this.formatTime(ev)}</span>
                     <span class="cal-tag">${calShort}</span>
                   </div>

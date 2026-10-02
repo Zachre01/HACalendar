@@ -10,7 +10,7 @@ import {
   EVENT_POLL_MS,
   PLACEHOLDER_CALENDARS,
 } from "./const";
-import { CalendarApi } from "./api/calendar-api";
+import { CalendarApi, recurrenceParams } from "./api/calendar-api";
 import { ReminderApi } from "./api/reminder-api";
 import { FONT_STYLESHEET_HREF, cardStyles } from "./styles/shared";
 import type {
@@ -20,10 +20,17 @@ import type {
   HomeAssistant,
   PendingDuplicate,
   ReminderFormState,
+  WeatherDay,
   WeatherSummary,
 } from "./types";
 import type { EventFormSaveDetail } from "./components/event-form";
-import { readWeatherSummary, weatherGlyph, weatherLabel } from "./utils/weather";
+import {
+  fetchWeatherForecast,
+  readWeatherSummary,
+  resolveWeatherEntityId,
+  weatherGlyph,
+  weatherLabel,
+} from "./utils/weather";
 import "./components/time-grid";
 import "./components/month-grid";
 import "./components/event-form";
@@ -68,15 +75,20 @@ export class HaCalendarCard extends LitElement {
   @state() private hiddenCalendars: string[] = [];
   /** Clock tick — UI only, does not refetch events */
   @state() private nowTick = Date.now();
+  /** Forecast rows from weather.get_forecasts (modern HA has no state attribute) */
+  @state() private weatherForecast: WeatherDay[] = [];
 
   private pollTimer: number | null = null;
   private clockTimer: number | null = null;
   private hadHass = false;
+  private weatherEntityLoaded: string | null = null;
+  private weatherFetchInFlight = false;
 
   public setConfig(config: HaCalendarCardConfig): void {
     if (!config) {
       throw new Error("Invalid configuration");
     }
+    const weatherEntity = resolveWeatherEntityId(config);
     this.config = {
       title: "Calendar",
       entities: [...PLACEHOLDER_CALENDARS],
@@ -85,6 +97,8 @@ export class HaCalendarCard extends LitElement {
       day_end_hour: DAY_END_HOUR,
       show_demo_when_empty: false,
       ...config,
+      // Canonicalize: accept alias `weather` → `weather_entity`
+      weather_entity: weatherEntity,
       type: config.type ?? `custom:${CARD_NAME}`,
     };
     this.view = this.config.initial_view ?? "month";
@@ -130,6 +144,7 @@ export class HaCalendarCard extends LitElement {
     }, CLOCK_TICK_MS);
     this.pollTimer = window.setInterval(() => {
       void this.refreshEvents({ silent: true });
+      void this.refreshWeatherForecast(true);
     }, EVENT_POLL_MS);
   }
 
@@ -149,6 +164,7 @@ export class HaCalendarCard extends LitElement {
     // Weather chips still re-render from live hass.states without refetching calendars.
     if (changed.has("config") || changed.has("anchorDate") || changed.has("view")) {
       void this.refreshEvents();
+      void this.refreshWeatherForecast(true);
       return;
     }
     if (changed.has("hass")) {
@@ -156,8 +172,12 @@ export class HaCalendarCard extends LitElement {
       if (hasHass && !this.hadHass) {
         this.hadHass = true;
         void this.refreshEvents();
+        void this.refreshWeatherForecast(true);
       } else if (!hasHass) {
         this.hadHass = false;
+      } else {
+        // Re-fetch forecast occasionally when entity id changes or cache empty
+        void this.refreshWeatherForecast(false);
       }
     }
   }
@@ -354,8 +374,43 @@ export class HaCalendarCard extends LitElement {
     };
   }
 
+  private weatherEntityId(): string | undefined {
+    return resolveWeatherEntityId(this.config);
+  }
+
   private weather(): WeatherSummary | null {
-    return readWeatherSummary(this.hass, this.config.weather_entity);
+    return readWeatherSummary(
+      this.hass,
+      this.weatherEntityId(),
+      this.weatherForecast
+    );
+  }
+
+  private async refreshWeatherForecast(force = false): Promise<void> {
+    const entityId = this.weatherEntityId();
+    if (!this.hass || !entityId) {
+      this.weatherForecast = [];
+      this.weatherEntityLoaded = null;
+      return;
+    }
+    if (
+      !force &&
+      this.weatherEntityLoaded === entityId &&
+      this.weatherForecast.length
+    ) {
+      return;
+    }
+    if (this.weatherFetchInFlight) return;
+    this.weatherFetchInFlight = true;
+    try {
+      const list = await fetchWeatherForecast(this.hass, entityId);
+      this.weatherForecast = list;
+      this.weatherEntityLoaded = entityId;
+    } catch {
+      // Keep prior forecast if any; entity state still shows current temp
+    } finally {
+      this.weatherFetchInFlight = false;
+    }
   }
 
   private openCreate(detail?: { start: Date; end: Date }): void {
@@ -438,7 +493,14 @@ export class HaCalendarCard extends LitElement {
   private async onFormSave(
     e: CustomEvent<EventFormSaveDetail>
   ): Promise<void> {
-    const { mode, input, original, reminder, crossCalendarMove } = e.detail;
+    const {
+      mode,
+      input,
+      original,
+      reminder,
+      crossCalendarMove,
+      recurrenceScope,
+    } = e.detail;
 
     if (!this.hass) {
       this.formError = "No Home Assistant connection — cannot save.";
@@ -473,18 +535,19 @@ export class HaCalendarCard extends LitElement {
         }
         this.formOpen = false;
         this.status = `Created “${input.summary}” on ${input.calendar}${
-          reminderNote ? ` · ${reminderNote}` : ""
-        }`;
+          input.rrule ? " (recurring)" : ""
+        }${reminderNote ? ` · ${reminderNote}` : ""}`;
         this.statusKind = "info";
       } else if (mustMove && original) {
         if (original.recurring || original.rrule) {
           this.formError =
-            "Recurring events cannot change calendars yet. Keep the original calendar.";
+            "Recurring events cannot change calendars. Keep the original calendar or recreate as a one-off.";
           return;
         }
         const moved = await api.moveEventToCalendar(original, input.calendar, {
           ...input,
           calendar: input.calendar,
+          rrule: undefined,
         });
         if (moved.status === "moved") {
           if (this.remindersAvailable()) {
@@ -527,11 +590,16 @@ export class HaCalendarCard extends LitElement {
           return;
         }
       } else if (original) {
+        const { recurrenceId, recurrenceRange } = recurrenceParams(
+          original,
+          recurrenceScope ?? "this"
+        );
         await api.updateEvent(
           original.calendar,
           original.uid,
           { ...input, calendar: original.calendar },
-          original.recurrence_id
+          recurrenceId,
+          recurrenceRange
         );
         if (reminder) {
           reminderNote = await this.syncReminder({
@@ -544,8 +612,10 @@ export class HaCalendarCard extends LitElement {
         }
         this.formOpen = false;
         this.status = `Updated “${input.summary}”${
-          reminderNote ? ` · ${reminderNote}` : ""
-        }`;
+          original.rrule || input.rrule
+            ? ` · ${recurrenceScope ?? "this"}`
+            : ""
+        }${reminderNote ? ` · ${reminderNote}` : ""}`;
         this.statusKind = "info";
       }
       await this.refreshEvents();
@@ -678,7 +748,7 @@ export class HaCalendarCard extends LitElement {
                   <div class="cond">${weatherLabel(weather.state)}</div>
                 `
               : html`<div class="weather-stub">
-                  ${this.config.weather_entity
+                  ${this.weatherEntityId()
                     ? "Weather unavailable"
                     : "Add weather_entity"}
                 </div>`}

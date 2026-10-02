@@ -11,8 +11,13 @@ export interface HaCalendarCardConfig {
   day_end_hour?: number;
   /** When true, show demo blocks if HA returns no events (dev only) */
   show_demo_when_empty?: boolean;
-  /** Optional weather.* entity for header + day chips */
+  /**
+   * Optional weather.* entity for header + month chips.
+   * Canonical key. Alias: `weather`.
+   */
   weather_entity?: string;
+  /** Alias for `weather_entity` (accepted for convenience). */
+  weather?: string;
   /** Default notify.* target for Phase 2 reminder hooks */
   reminder_notify_service?: string;
   /** Default minutes-before for new reminders */
@@ -74,6 +79,8 @@ export interface CalendarEventInput {
   end: string;
   all_day?: boolean;
   calendar: string;
+  /** RFC 5545 RRULE without prefix, e.g. FREQ=WEEKLY;BYDAY=MO */
+  rrule?: string | null;
 }
 
 /** Raw event from REST /api/calendars or get_events */
