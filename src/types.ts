@@ -1,4 +1,4 @@
-export type CalendarViewMode = "day" | "week";
+export type CalendarViewMode = "day" | "week" | "month";
 
 export interface HaCalendarCardConfig {
   type: string;
@@ -11,6 +11,8 @@ export interface HaCalendarCardConfig {
   day_end_hour?: number;
   /** When true, show demo blocks if HA returns no events (dev only) */
   show_demo_when_empty?: boolean;
+  /** Optional weather.* entity for header + day chips */
+  weather_entity?: string;
   /** Default notify.* target for Phase 2 reminder hooks */
   reminder_notify_service?: string;
   /** Default minutes-before for new reminders */
@@ -112,6 +114,8 @@ export interface HassEntity {
   entity_id: string;
   state: string;
   attributes: Record<string, unknown>;
+  last_changed?: string;
+  last_updated?: string;
 }
 
 export interface HomeAssistant {
@@ -132,6 +136,22 @@ export interface HomeAssistant {
     data?: unknown
   ) => Promise<T>;
   locale?: { language?: string };
+}
+
+export interface WeatherDay {
+  datetime: string;
+  condition: string;
+  temperature?: number;
+  templow?: number;
+}
+
+export interface WeatherSummary {
+  entityId: string;
+  state: string;
+  temperature?: number;
+  unit?: string;
+  humidity?: number;
+  forecast: WeatherDay[];
 }
 
 declare global {

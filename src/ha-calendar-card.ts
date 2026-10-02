@@ -1,10 +1,13 @@
-import { LitElement, html, nothing } from "lit";
+import { LitElement, html, css, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import {
+  CALENDAR_COLORS,
   CARD_NAME,
   CARD_VERSION,
+  CLOCK_TICK_MS,
   DAY_END_HOUR,
   DAY_START_HOUR,
+  EVENT_POLL_MS,
   PLACEHOLDER_CALENDARS,
 } from "./const";
 import { CalendarApi } from "./api/calendar-api";
@@ -17,21 +20,31 @@ import type {
   HomeAssistant,
   PendingDuplicate,
   ReminderFormState,
+  WeatherSummary,
 } from "./types";
 import type { EventFormSaveDetail } from "./components/event-form";
+import { readWeatherSummary, weatherGlyph, weatherLabel } from "./utils/weather";
 import "./components/time-grid";
+import "./components/month-grid";
 import "./components/event-form";
 
 @customElement(CARD_NAME)
 export class HaCalendarCard extends LitElement {
-  static styles = cardStyles;
+  static styles = [
+    cardStyles,
+    css`
+      :host {
+        position: relative;
+      }
+    `,
+  ];
 
   @property({ attribute: false }) public hass?: HomeAssistant;
 
   @state() private config: HaCalendarCardConfig = {
     type: `custom:${CARD_NAME}`,
   };
-  @state() private view: CalendarViewMode = "week";
+  @state() private view: CalendarViewMode = "month";
   @state() private anchorDate = new Date();
   @state() private events: CalendarEvent[] = [];
   @state() private formOpen = false;
@@ -51,44 +64,53 @@ export class HaCalendarCard extends LitElement {
   @state() private loadGeneration = 0;
   @state() private hasLoadedOnce = false;
   @state() private formReminder: ReminderFormState | null = null;
+  /** Calendar entity ids currently hidden by filter pills */
+  @state() private hiddenCalendars: string[] = [];
+  /** Clock tick — UI only, does not refetch events */
+  @state() private nowTick = Date.now();
+
+  private pollTimer: number | null = null;
+  private clockTimer: number | null = null;
+  private hadHass = false;
 
   public setConfig(config: HaCalendarCardConfig): void {
     if (!config) {
       throw new Error("Invalid configuration");
     }
     this.config = {
-      title: "HA Calendar",
+      title: "Calendar",
       entities: [...PLACEHOLDER_CALENDARS],
-      initial_view: "week",
+      initial_view: "month",
       day_start_hour: DAY_START_HOUR,
       day_end_hour: DAY_END_HOUR,
       show_demo_when_empty: false,
       ...config,
       type: config.type ?? `custom:${CARD_NAME}`,
     };
-    this.view = this.config.initial_view ?? "week";
+    this.view = this.config.initial_view ?? "month";
   }
 
   public static getStubConfig(): Partial<HaCalendarCardConfig> {
     return {
-      title: "HA Calendar",
+      title: "Calendar",
       entities: [...PLACEHOLDER_CALENDARS],
-      initial_view: "week",
+      initial_view: "month",
     };
   }
 
   public getCardSize(): number {
-    return 8;
+    return 10;
   }
 
   connectedCallback(): void {
     super.connectedCallback();
     this.ensureFonts();
-    this.syncPanelLayout();
+    this.startTimers();
   }
 
-  protected firstUpdated(): void {
-    this.syncPanelLayout();
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this.clearTimers();
   }
 
   private ensureFonts(): void {
@@ -101,29 +123,42 @@ export class HaCalendarCard extends LitElement {
     document.head.appendChild(link);
   }
 
-  /**
-   * Lovelace `type: panel` hosts the card in `hui-panel-view` with a real
-   * height. Mark the host so CSS can fill that viewport without forcing
-   * masonry / sections cards to stretch.
-   */
-  private syncPanelLayout(): void {
-    const inPanel = Boolean(this.closest("hui-panel-view"));
-    if (inPanel) {
-      this.setAttribute("data-layout", "panel");
-    } else {
-      this.removeAttribute("data-layout");
+  private startTimers(): void {
+    this.clearTimers();
+    this.clockTimer = window.setInterval(() => {
+      this.nowTick = Date.now();
+    }, CLOCK_TICK_MS);
+    this.pollTimer = window.setInterval(() => {
+      void this.refreshEvents({ silent: true });
+    }, EVENT_POLL_MS);
+  }
+
+  private clearTimers(): void {
+    if (this.clockTimer != null) {
+      window.clearInterval(this.clockTimer);
+      this.clockTimer = null;
+    }
+    if (this.pollTimer != null) {
+      window.clearInterval(this.pollTimer);
+      this.pollTimer = null;
     }
   }
 
   protected updated(changed: Map<string, unknown>): void {
-    this.syncPanelLayout();
-    if (
-      changed.has("hass") ||
-      changed.has("config") ||
-      changed.has("anchorDate") ||
-      changed.has("view")
-    ) {
+    // Do NOT refresh on every hass churn — Lovelace replaces hass ~1–2s and caused flicker.
+    // Weather chips still re-render from live hass.states without refetching calendars.
+    if (changed.has("config") || changed.has("anchorDate") || changed.has("view")) {
       void this.refreshEvents();
+      return;
+    }
+    if (changed.has("hass")) {
+      const hasHass = Boolean(this.hass);
+      if (hasHass && !this.hadHass) {
+        this.hadHass = true;
+        void this.refreshEvents();
+      } else if (!hasHass) {
+        this.hadHass = false;
+      }
     }
   }
 
@@ -133,11 +168,6 @@ export class HaCalendarCard extends LitElement {
       : [...PLACEHOLDER_CALENDARS];
   }
 
-  /**
-   * Dropdown options: every writable calendar from card config.
-   * Always includes the event's current calendar when editing.
-   * No hard-coded entity names — purely config (+ current source).
-   */
   private formCalendars(): string[] {
     const configured = this.entities();
     const writable = this.hass
@@ -150,6 +180,29 @@ export class HaCalendarCard extends LitElement {
     return writable;
   }
 
+  private calendarColor(entityId: string): string {
+    const idx = Math.max(0, this.entities().indexOf(entityId));
+    return CALENDAR_COLORS[idx % CALENDAR_COLORS.length];
+  }
+
+  private calendarLabel(entityId: string): string {
+    return entityId.replace(/^calendar\./, "").replace(/_/g, " ");
+  }
+
+  private filteredEvents(): CalendarEvent[] {
+    if (!this.hiddenCalendars.length) return this.events;
+    const hidden = new Set(this.hiddenCalendars);
+    return this.events.filter((ev) => !hidden.has(ev.calendar));
+  }
+
+  private toggleCalendarFilter(entityId: string): void {
+    if (this.hiddenCalendars.includes(entityId)) {
+      this.hiddenCalendars = this.hiddenCalendars.filter((id) => id !== entityId);
+    } else {
+      this.hiddenCalendars = [...this.hiddenCalendars, entityId];
+    }
+  }
+
   private range(): { start: Date; end: Date } {
     const start = new Date(this.anchorDate);
     start.setHours(0, 0, 0, 0);
@@ -158,6 +211,14 @@ export class HaCalendarCard extends LitElement {
       end.setDate(end.getDate() + 1);
       return { start, end };
     }
+    if (this.view === "month") {
+      const monthStart = new Date(start.getFullYear(), start.getMonth(), 1);
+      const weekday = (monthStart.getDay() + 6) % 7;
+      monthStart.setDate(monthStart.getDate() - weekday);
+      const end = new Date(monthStart);
+      end.setDate(end.getDate() + 42);
+      return { start: monthStart, end };
+    }
     const weekday = (start.getDay() + 6) % 7;
     start.setDate(start.getDate() - weekday);
     const end = new Date(start);
@@ -165,19 +226,23 @@ export class HaCalendarCard extends LitElement {
     return { start, end };
   }
 
-  private async refreshEvents(): Promise<void> {
+  private async refreshEvents(opts?: { silent?: boolean }): Promise<void> {
     const generation = ++this.loadGeneration;
+    const silent = Boolean(opts?.silent) && this.hasLoadedOnce;
 
     if (!this.hass) {
       this.events = this.demoEvents();
       this.loadFailed = false;
       this.hasLoadedOnce = true;
+      this.loading = false;
       this.status = "Preview mode — demo events (no hass)";
       this.statusKind = "info";
       return;
     }
 
-    this.loading = true;
+    if (!silent) {
+      this.loading = true;
+    }
     const api = new CalendarApi(this.hass);
     const { start, end } = this.range();
     const entityIds = this.entities();
@@ -205,7 +270,6 @@ export class HaCalendarCard extends LitElement {
           : "No events in this range";
         this.statusKind = "info";
       } else {
-        // All configured entities failed (often placeholders not on this HA)
         this.events = this.config.show_demo_when_empty
           ? this.demoEvents()
           : [];
@@ -229,22 +293,23 @@ export class HaCalendarCard extends LitElement {
     }
   }
 
-  /** Preview-only demo data when hass is missing */
   private demoEvents(): CalendarEvent[] {
     const day = new Date(this.anchorDate);
     day.setHours(0, 0, 0, 0);
     const mk = (
+      dayOffset: number,
       hour: number,
       durationH: number,
       summary: string,
       calendar: string
     ): CalendarEvent => {
       const start = new Date(day);
+      start.setDate(start.getDate() + dayOffset);
       start.setHours(hour, 0, 0, 0);
       const end = new Date(start);
       end.setHours(hour + durationH, 0, 0, 0);
       return {
-        uid: `demo-${summary}-${hour}`,
+        uid: `demo-${summary}-${dayOffset}-${hour}`,
         summary,
         start: start.toISOString(),
         end: end.toISOString(),
@@ -253,15 +318,24 @@ export class HaCalendarCard extends LitElement {
     };
     const cals = this.entities();
     return [
-      mk(9, 1, "Morning standup", cals[0] ?? "calendar.family"),
-      mk(11, 2, "Deep work", cals[1] ?? "calendar.personal"),
-      mk(14, 1, "School pickup", cals[0] ?? "calendar.family"),
+      mk(0, 9, 1, "Morning standup", cals[0] ?? "calendar.family"),
+      mk(0, 11, 2, "Deep work", cals[1] ?? "calendar.personal"),
+      mk(1, 14, 1, "School pickup", cals[0] ?? "calendar.family"),
+      mk(2, 10, 1, "Dentist", cals[2] ?? "calendar.work"),
+      mk(4, 16, 2, "Soccer practice", cals[0] ?? "calendar.family"),
+      mk(5, 12, 1, "Lunch with Sam", cals[1] ?? "calendar.personal"),
     ];
   }
 
-  private shift(days: number): void {
+  private shift(amount: number): void {
     const next = new Date(this.anchorDate);
-    next.setDate(next.getDate() + days);
+    if (this.view === "month") {
+      next.setMonth(next.getMonth() + amount);
+    } else if (this.view === "day") {
+      next.setDate(next.getDate() + amount);
+    } else {
+      next.setDate(next.getDate() + amount * 7);
+    }
     this.anchorDate = next;
   }
 
@@ -278,6 +352,10 @@ export class HaCalendarCard extends LitElement {
       notify_service:
         this.config.reminder_notify_service ?? "notify.mobile_app_phone",
     };
+  }
+
+  private weather(): WeatherSummary | null {
+    return readWeatherSummary(this.hass, this.config.weather_entity);
   }
 
   private openCreate(detail?: { start: Date; end: Date }): void {
@@ -372,8 +450,6 @@ export class HaCalendarCard extends LitElement {
     const api = new CalendarApi(this.hass);
     let reminderNote: string | null = null;
 
-    // Any configured source → any other configured target should move.
-    // Never update-in-place across calendar.* entities (HA cannot do that).
     const mustMove = Boolean(
       original &&
         (crossCalendarMove ||
@@ -451,7 +527,6 @@ export class HaCalendarCard extends LitElement {
           return;
         }
       } else if (original) {
-        // Same calendar only — never pass a different entity_id here
         await api.updateEvent(
           original.calendar,
           original.uid,
@@ -506,6 +581,12 @@ export class HaCalendarCard extends LitElement {
   }
 
   private rangeLabel(): string {
+    if (this.view === "month") {
+      return this.anchorDate.toLocaleDateString(undefined, {
+        month: "long",
+        year: "numeric",
+      });
+    }
     const { start, end } = this.range();
     if (this.view === "day") {
       return start.toLocaleDateString(undefined, {
@@ -520,18 +601,39 @@ export class HaCalendarCard extends LitElement {
     return `${start.toLocaleDateString(undefined, opts)} – ${last.toLocaleDateString(undefined, opts)}`;
   }
 
+  private clockDateLabel(): string {
+    void this.nowTick;
+    return new Date().toLocaleDateString(undefined, {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+    });
+  }
+
+  private clockTimeLabel(): string {
+    void this.nowTick;
+    return new Date().toLocaleTimeString(undefined, {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  }
+
   protected render() {
-    const title = this.config.title ?? "HA Calendar";
+    const title = this.config.title ?? "Calendar";
     const calendars = this.entities();
+    const visibleEvents = this.filteredEvents();
+    const weather = this.weather();
+    const forecast = weather?.forecast?.slice(0, 7) ?? [];
     const showEmpty =
       this.hasLoadedOnce &&
       !this.loading &&
       !this.loadFailed &&
-      this.events.length === 0 &&
+      visibleEvents.length === 0 &&
       Boolean(this.hass) &&
       !this.config.show_demo_when_empty;
     const showError =
       this.hasLoadedOnce && !this.loading && this.loadFailed && !this.formOpen;
+    // Only veil on intentional (non-silent) loads after first paint
     const showLoadingVeil = this.loading && this.hasLoadedOnce;
 
     return html`
@@ -559,15 +661,83 @@ export class HaCalendarCard extends LitElement {
             `
           : nothing}
 
-        <header class="toolbar">
+        <section class="info-bar" aria-label="Date and weather">
+          <div class="clock-block">
+            <div class="clock-date">${this.clockDateLabel()}</div>
+            <div class="clock-time">${this.clockTimeLabel()}</div>
+          </div>
+          <div class="weather-now">
+            ${weather
+              ? html`
+                  <div class="temp">
+                    ${weatherGlyph(weather.state)}
+                    ${weather.temperature != null
+                      ? `${Math.round(weather.temperature)}${weather.unit ?? "°"}`
+                      : ""}
+                  </div>
+                  <div class="cond">${weatherLabel(weather.state)}</div>
+                `
+              : html`<div class="weather-stub">
+                  ${this.config.weather_entity
+                    ? "Weather unavailable"
+                    : "Add weather_entity"}
+                </div>`}
+          </div>
+          <div class="forecast-strip" aria-label="Forecast">
+            ${forecast.length
+              ? forecast.map((day) => {
+                  const d = new Date(day.datetime);
+                  return html`
+                    <div class="forecast-day">
+                      <span class="d"
+                        >${d.toLocaleDateString(undefined, {
+                          weekday: "short",
+                        })}</span
+                      >
+                      <span class="g">${weatherGlyph(day.condition)}</span>
+                      <span class="t"
+                        >${day.temperature != null
+                          ? `${Math.round(day.temperature)}°`
+                          : "—"}</span
+                      >
+                    </div>
+                  `;
+                })
+              : nothing}
+          </div>
+        </section>
+
+        <div class="title-row">
           <h1 class="brand">${title}</h1>
+          <div class="filters" role="group" aria-label="Calendar filters">
+            ${calendars.map((id) => {
+              const pressed = !this.hiddenCalendars.includes(id);
+              return html`
+                <button
+                  type="button"
+                  class="pill"
+                  aria-pressed=${pressed ? "true" : "false"}
+                  @click=${() => this.toggleCalendarFilter(id)}
+                >
+                  <span
+                    class="dot"
+                    style="background:${this.calendarColor(id)}"
+                  ></span>
+                  ${this.calendarLabel(id)}
+                </button>
+              `;
+            })}
+          </div>
+        </div>
+
+        <header class="toolbar">
           <div class="toolbar-controls">
             <div class="nav-group">
               <button
                 class="nav-btn"
                 type="button"
                 aria-label="Previous"
-                @click=${() => this.shift(this.view === "day" ? -1 : -7)}
+                @click=${() => this.shift(-1)}
               >
                 ‹
               </button>
@@ -584,11 +754,12 @@ export class HaCalendarCard extends LitElement {
                 class="nav-btn"
                 type="button"
                 aria-label="Next"
-                @click=${() => this.shift(this.view === "day" ? 1 : 7)}
+                @click=${() => this.shift(1)}
               >
                 ›
               </button>
             </div>
+            <div class="range-label">${this.rangeLabel()}</div>
             <div class="view-toggle" role="group" aria-label="View">
               <button
                 type="button"
@@ -608,22 +779,34 @@ export class HaCalendarCard extends LitElement {
               >
                 Week
               </button>
+              <button
+                type="button"
+                aria-pressed=${this.view === "month"}
+                @click=${() => {
+                  this.view = "month";
+                }}
+              >
+                Month
+              </button>
             </div>
-            <button
-              class="primary-btn"
-              type="button"
-              @click=${() => this.openCreate()}
-            >
-              New
-            </button>
           </div>
+          <button
+            class="primary-btn add-btn"
+            type="button"
+            @click=${() => this.openCreate()}
+          >
+            + Add Event
+          </button>
         </header>
 
         <div class="grid-wrap">
           ${this.loading && !this.hasLoadedOnce
             ? html`
                 <div class="state-panel" data-kind="loading">
-                  <div class="spinner" style="width:1.4rem;height:1.4rem;border:2px solid var(--hac-line-strong);border-top-color:var(--hac-accent);border-radius:50%;animation:spin 0.7s linear infinite"></div>
+                  <div
+                    class="spinner"
+                    style="width:1.4rem;height:1.4rem;border:2px solid var(--hac-line-strong);border-top-color:var(--hac-accent);border-radius:50%;animation:spin 0.7s linear infinite"
+                  ></div>
                   <h2>Loading calendar</h2>
                   <p>Fetching events for ${this.rangeLabel()}.</p>
                 </div>
@@ -655,14 +838,14 @@ export class HaCalendarCard extends LitElement {
                 </div>
               `
             : nothing}
-          ${showEmpty
+          ${showEmpty && this.view !== "month"
             ? html`
                 <div class="state-panel" data-kind="empty">
                   <div class="state-mark" aria-hidden="true"></div>
                   <h2>Nothing scheduled</h2>
                   <p>
-                    ${this.rangeLabel()} is clear. Tap New, or double-click a
-                    time slot on larger screens.
+                    ${this.rangeLabel()} is clear. Tap + Add Event, or
+                    double-click a time slot on larger screens.
                   </p>
                   <div class="state-actions">
                     <button
@@ -670,25 +853,43 @@ export class HaCalendarCard extends LitElement {
                       type="button"
                       @click=${() => this.openCreate()}
                     >
-                      New event
+                      + Add Event
                     </button>
                   </div>
                 </div>
               `
             : nothing}
 
-          <hac-time-grid
-            .mode=${this.view}
-            .anchorDate=${this.anchorDate}
-            .events=${this.events}
-            .calendars=${calendars}
-            .dayStartHour=${this.config.day_start_hour ?? DAY_START_HOUR}
-            .dayEndHour=${this.config.day_end_hour ?? DAY_END_HOUR}
-            @event-select=${(e: CustomEvent<CalendarEvent>) =>
-              this.openEdit(e.detail)}
-            @slot-create=${(e: CustomEvent<{ start: Date; end: Date }>) =>
-              this.openCreate(e.detail)}
-          ></hac-time-grid>
+          ${this.view === "month"
+            ? html`
+                <hac-month-grid
+                  .anchorDate=${this.anchorDate}
+                  .events=${visibleEvents}
+                  .calendars=${calendars}
+                  .weather=${weather}
+                  @event-select=${(e: CustomEvent<CalendarEvent>) =>
+                    this.openEdit(e.detail)}
+                  @slot-create=${(
+                    e: CustomEvent<{ start: Date; end: Date }>
+                  ) => this.openCreate(e.detail)}
+                ></hac-month-grid>
+              `
+            : html`
+                <hac-time-grid
+                  .mode=${this.view}
+                  .anchorDate=${this.anchorDate}
+                  .events=${visibleEvents}
+                  .calendars=${calendars}
+                  .dayStartHour=${this.config.day_start_hour ?? DAY_START_HOUR}
+                  .dayEndHour=${this.config.day_end_hour ?? DAY_END_HOUR}
+                  .nowTick=${this.nowTick}
+                  @event-select=${(e: CustomEvent<CalendarEvent>) =>
+                    this.openEdit(e.detail)}
+                  @slot-create=${(
+                    e: CustomEvent<{ start: Date; end: Date }>
+                  ) => this.openCreate(e.detail)}
+                ></hac-time-grid>
+              `}
 
           ${this.formOpen
             ? html`
@@ -736,7 +937,7 @@ window.customCards.push({
   type: CARD_NAME,
   name: "HA Calendar Card",
   description:
-    "Day/week time-slot calendar with create/edit and safe calendar moves",
+    "Skylight-style month/week/day calendar with create/edit and safe calendar moves",
   preview: true,
 });
 
@@ -748,6 +949,6 @@ declare global {
 
 console.info(
   `%c HA-CALENDAR-CARD %c ${CARD_VERSION} `,
-  "background:#0d7a6f;color:#fff;padding:2px 4px;border-radius:4px 0 0 4px",
-  "background:#1a2b33;color:#fff;padding:2px 4px;border-radius:0 4px 4px 0"
+  "background:#3d9b8f;color:#fff;padding:2px 4px;border-radius:4px 0 0 4px",
+  "background:#2c3340;color:#fff;padding:2px 4px;border-radius:0 4px 4px 0"
 );
