@@ -8,10 +8,11 @@ Inspired by Daylight/Skylight aesthetics — **own codebase**, not a fork of tho
 
 ## Status
 
-- **Card v0.7.1** — panel/mobile single-scroll layout (card fills the view; only the month/week/day body scrolls), plus v0.7.0 weather config fix (`weather` / `weather_entity` + `weather.get_forecasts`), recurring create/edit (RRULE), Skylight-style wall-tablet UI, safe cross-calendar moves (one-off only), HACS packaging, optional reminder hooks
+- **Card v0.7.2** — filter pills, event chips, and form calendar indicators use each calendar’s Home Assistant color (entity registry `options.calendar.color`); built-in palette only when HA has none. Includes v0.7.1 panel/mobile single-scroll layout, weather config alias, recurring RRULE, Skylight-style UI, safe cross-calendar moves (one-off), HACS packaging, optional reminder hooks
 - **Integration v0.1.0** — `custom_components/ha_calendar_reminders` scaffold (storage + services + best-effort scheduler)
 - Notify delivery is **best-effort** until validated on your stack. Recurring **cross-calendar moves** remain blocked (prefer clear UX over partial series copies).
 - Event notifications can stay on your existing HA automations — the reminder integration is optional.
+- Calendar colors: set under **Settings → Entities → calendar.*** (or the calendar entity more-info color control). After changing a color in HA, the card picks it up on refresh / entity-registry update.
 
 ## Install the card via HACS (custom repository)
 
@@ -33,7 +34,7 @@ Private / custom-repo install — not yet in the HACS default store.
 
 ```yaml
 resources:
-  - url: /local/ha-calendar-card.js?v=0.7.1
+  - url: /local/ha-calendar-card.js?v=0.7.2
     type: module
 ```
 
@@ -122,13 +123,17 @@ Forecasts prefer the entity’s `forecast` attribute when present; on modern Hom
 
 Events reload on **visible range / view change**, **after create/edit/move**, and on a **gentle 60s interval**. The card no longer refetches on every Home Assistant `hass` update (that previously caused ~2s flicker). The clock ticks independently; weather condition/temp reads live from `hass.states`, and forecasts refresh on the same gentle interval (or via `get_forecasts` when needed).
 
+### Calendar colors
+
+Filter pills, month/week event chips, and the event-form calendar indicators use each calendar’s color from Home Assistant (entity registry `options.calendar.color`, same source as the built-in calendar card). If HA has no color set, the card falls back to a deterministic pastel palette by config order. Registry updates (including changing a calendar color in HA) refresh the card colors without a full page reload when the websocket event is available.
+
 ## Cutting a card release (maintainers)
 
 ```bash
 npm ci
 npm run release:check
-git tag v0.7.1
-git push origin v0.7.1  # .github/workflows/release.yml attaches JS assets
+git tag v0.7.2
+git push origin v0.7.2  # .github/workflows/release.yml attaches JS assets
 ```
 
 HACS plugin assets: `ha-calendar-card.js`, `HACalendar.js` (repo-name match). No `zip_release`.

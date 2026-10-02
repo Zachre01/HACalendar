@@ -1,7 +1,6 @@
 import { LitElement, html, css, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import {
-  CALENDAR_COLORS,
   CARD_NAME,
   CARD_VERSION,
   CLOCK_TICK_MS,
@@ -24,6 +23,12 @@ import type {
   WeatherSummary,
 } from "./types";
 import type { EventFormSaveDetail } from "./components/event-form";
+import {
+  buildCalendarColorMap,
+  fallbackCalendarColor,
+  fetchCalendarColorsFromRegistry,
+  type CalendarColorMap,
+} from "./utils/calendar-colors";
 import {
   fetchWeatherForecast,
   readWeatherSummary,
@@ -77,12 +82,17 @@ export class HaCalendarCard extends LitElement {
   @state() private nowTick = Date.now();
   /** Forecast rows from weather.get_forecasts (modern HA has no state attribute) */
   @state() private weatherForecast: WeatherDay[] = [];
+  /** Resolved CSS colors per calendar.* (HA registry first, palette fallback) */
+  @state() private calendarColors: CalendarColorMap = {};
 
   private pollTimer: number | null = null;
   private clockTimer: number | null = null;
   private hadHass = false;
   private weatherEntityLoaded: string | null = null;
   private weatherFetchInFlight = false;
+  private registryUnsub: (() => void) | null = null;
+  private colorLoadGeneration = 0;
+  private subscribedConnection: HomeAssistant["connection"] | null = null;
   /** Ancestors we styled for panel height cascading — cleared on leave/disconnect */
   private panelStyledAncestors: HTMLElement[] = [];
   private panelResizeObserver: ResizeObserver | null = null;
@@ -125,6 +135,8 @@ export class HaCalendarCard extends LitElement {
     this.ensureFonts();
     this.startTimers();
     this.syncPanelLayout();
+    void this.refreshCalendarColors();
+    this.subscribeRegistryColors();
   }
 
   protected firstUpdated(): void {
@@ -135,6 +147,7 @@ export class HaCalendarCard extends LitElement {
     super.disconnectedCallback();
     this.clearTimers();
     this.clearPanelLayout();
+    this.unsubscribeRegistryColors();
   }
 
   private ensureFonts(): void {
@@ -270,6 +283,10 @@ export class HaCalendarCard extends LitElement {
     if (changed.has("config") || changed.has("anchorDate") || changed.has("view")) {
       void this.refreshEvents();
       void this.refreshWeatherForecast(true);
+      if (changed.has("config")) {
+        void this.refreshCalendarColors();
+        this.subscribeRegistryColors();
+      }
       return;
     }
     if (changed.has("hass")) {
@@ -278,11 +295,16 @@ export class HaCalendarCard extends LitElement {
         this.hadHass = true;
         void this.refreshEvents();
         void this.refreshWeatherForecast(true);
+        void this.refreshCalendarColors();
+        this.subscribeRegistryColors();
       } else if (!hasHass) {
         this.hadHass = false;
+        this.unsubscribeRegistryColors();
       } else {
         // Re-fetch forecast occasionally when entity id changes or cache empty
         void this.refreshWeatherForecast(false);
+        // Keep registry subscription alive if connection was replaced
+        this.subscribeRegistryColors();
       }
     }
   }
@@ -306,8 +328,73 @@ export class HaCalendarCard extends LitElement {
   }
 
   private calendarColor(entityId: string): string {
-    const idx = Math.max(0, this.entities().indexOf(entityId));
-    return CALENDAR_COLORS[idx % CALENDAR_COLORS.length];
+    if (this.calendarColors[entityId]) {
+      return this.calendarColors[entityId];
+    }
+    const entities = this.entities();
+    const idx = Math.max(0, entities.indexOf(entityId));
+    return fallbackCalendarColor(idx);
+  }
+
+  private async refreshCalendarColors(): Promise<void> {
+    const entities = this.entities();
+    const generation = ++this.colorLoadGeneration;
+
+    // Immediate palette / display-color map so UI never flashes empty
+    const immediate = buildCalendarColorMap(entities, {}, this.hass);
+    this.calendarColors = immediate;
+
+    if (!this.hass) return;
+
+    const fromRegistry = await fetchCalendarColorsFromRegistry(
+      this.hass,
+      entities
+    );
+    if (generation !== this.colorLoadGeneration) return;
+
+    this.calendarColors = buildCalendarColorMap(
+      entities,
+      fromRegistry,
+      this.hass
+    );
+  }
+
+  private subscribeRegistryColors(): void {
+    const conn = this.hass?.connection;
+    if (!conn?.subscribeEvents) return;
+    // Avoid churn: Lovelace replaces hass often; keep one live subscription
+    if (this.registryUnsub && this.subscribedConnection === conn) return;
+
+    this.unsubscribeRegistryColors();
+    this.subscribedConnection = conn;
+    void conn
+      .subscribeEvents(() => {
+        void this.refreshCalendarColors();
+      }, "entity_registry_updated")
+      .then((unsub) => {
+        // Drop if hass/connection changed while awaiting
+        if (this.hass?.connection !== conn) {
+          unsub();
+          return;
+        }
+        this.registryUnsub = unsub;
+        this.subscribedConnection = conn;
+      })
+      .catch(() => {
+        // Subscription optional — colors still load on connect/config
+      });
+  }
+
+  private unsubscribeRegistryColors(): void {
+    if (this.registryUnsub) {
+      try {
+        this.registryUnsub();
+      } catch {
+        // already closed
+      }
+      this.registryUnsub = null;
+    }
+    this.subscribedConnection = null;
   }
 
   private calendarLabel(entityId: string): string {
@@ -1042,6 +1129,7 @@ export class HaCalendarCard extends LitElement {
                   .anchorDate=${this.anchorDate}
                   .events=${visibleEvents}
                   .calendars=${calendars}
+                  .calendarColors=${this.calendarColors}
                   .weather=${weather}
                   @event-select=${(e: CustomEvent<CalendarEvent>) =>
                     this.openEdit(e.detail)}
@@ -1056,6 +1144,7 @@ export class HaCalendarCard extends LitElement {
                   .anchorDate=${this.anchorDate}
                   .events=${visibleEvents}
                   .calendars=${calendars}
+                  .calendarColors=${this.calendarColors}
                   .dayStartHour=${this.config.day_start_hour ?? DAY_START_HOUR}
                   .dayEndHour=${this.config.day_end_hour ?? DAY_END_HOUR}
                   .nowTick=${this.nowTick}
@@ -1071,6 +1160,7 @@ export class HaCalendarCard extends LitElement {
             ? html`
                 <hac-event-form
                   .calendars=${this.formCalendars()}
+                  .calendarColors=${this.calendarColors}
                   .event=${this.editing}
                   .defaults=${this.formDefaults}
                   .busy=${this.formBusy}

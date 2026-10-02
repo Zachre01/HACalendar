@@ -1,11 +1,12 @@
 import { LitElement, html, nothing } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import {
-  CALENDAR_COLORS,
   DAY_END_HOUR,
   DAY_START_HOUR,
   HOUR_HEIGHT_PX,
 } from "../const";
+import { fallbackCalendarColor } from "../utils/calendar-colors";
+import type { CalendarColorMap } from "../utils/calendar-colors";
 import { gridStyles } from "../styles/shared";
 import type { CalendarEvent, CalendarViewMode } from "../types";
 
@@ -45,6 +46,7 @@ export class HacTimeGrid extends LitElement {
   @property({ attribute: false }) anchorDate: Date = new Date();
   @property({ attribute: false }) events: CalendarEvent[] = [];
   @property({ attribute: false }) calendars: string[] = [];
+  @property({ attribute: false }) calendarColors: CalendarColorMap = {};
   @property({ type: Number }) dayStartHour = DAY_START_HOUR;
   @property({ type: Number }) dayEndHour = DAY_END_HOUR;
   /** Tick from parent clock — refreshes now-line without event refetch */
@@ -69,8 +71,11 @@ export class HacTimeGrid extends LitElement {
   }
 
   private calendarColor(entityId: string): string {
+    if (this.calendarColors[entityId]) {
+      return this.calendarColors[entityId];
+    }
     const idx = Math.max(0, this.calendars.indexOf(entityId));
-    return CALENDAR_COLORS[idx % CALENDAR_COLORS.length];
+    return fallbackCalendarColor(idx);
   }
 
   private eventStyle(ev: CalendarEvent, day: Date): string | null {

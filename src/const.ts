@@ -1,4 +1,4 @@
-export const CARD_VERSION = "0.7.1";
+export const CARD_VERSION = "0.7.2";
 export const CARD_NAME = "ha-calendar-card";
 export const CARD_EDITOR_NAME = "ha-calendar-card-editor";
 
@@ -19,7 +19,10 @@ export const PLACEHOLDER_CALENDARS = [
   "calendar.work",
 ] as const;
 
-/** Soft pastel person/calendar colors (Skylight-like wall tablet) */
+/**
+ * Deterministic palette used only when Home Assistant has no per-calendar
+ * color in entity registry options (`options.calendar.color`).
+ */
 export const CALENDAR_COLORS = [
   "#E07A5F", // coral
   "#3D9B8F", // teal

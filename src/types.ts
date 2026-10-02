@@ -125,8 +125,29 @@ export interface HassEntity {
   last_updated?: string;
 }
 
+/** Minimal entity-registry display entry (HA frontend `hass.entities`). */
+export interface HassEntityDisplay {
+  entity_id?: string;
+  name?: string;
+  icon?: string;
+  hidden?: boolean;
+  /** Present on some HA builds; calendar color usually lives in registry options. */
+  color?: string;
+  display?: { color?: string };
+}
+
+export interface HassConnection {
+  subscribeEvents: (
+    callback: (event: unknown) => void,
+    eventType?: string
+  ) => Promise<() => void>;
+}
+
 export interface HomeAssistant {
   states: Record<string, HassEntity>;
+  /** Compact entity registry display map (may omit calendar color). */
+  entities?: Record<string, HassEntityDisplay>;
+  connection?: HassConnection;
   services?: Record<string, Record<string, unknown>>;
   callService: (
     domain: string,

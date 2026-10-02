@@ -1,6 +1,7 @@
 import { LitElement, html, nothing, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
-import { CALENDAR_COLORS } from "../const";
+import { fallbackCalendarColor } from "../utils/calendar-colors";
+import type { CalendarColorMap } from "../utils/calendar-colors";
 import type { CalendarEvent, WeatherSummary } from "../types";
 import { forecastForDate, weatherGlyph } from "../utils/weather";
 
@@ -241,6 +242,7 @@ export class HacMonthGrid extends LitElement {
   @property({ attribute: false }) anchorDate: Date = new Date();
   @property({ attribute: false }) events: CalendarEvent[] = [];
   @property({ attribute: false }) calendars: string[] = [];
+  @property({ attribute: false }) calendarColors: CalendarColorMap = {};
   @property({ attribute: false }) weather: WeatherSummary | null = null;
   @property({ type: Number }) maxVisible = 3;
 
@@ -258,8 +260,11 @@ export class HacMonthGrid extends LitElement {
   }
 
   private calendarColor(entityId: string): string {
+    if (this.calendarColors[entityId]) {
+      return this.calendarColors[entityId];
+    }
     const idx = Math.max(0, this.calendars.indexOf(entityId));
-    return CALENDAR_COLORS[idx % CALENDAR_COLORS.length];
+    return fallbackCalendarColor(idx);
   }
 
   private eventsForDay(day: Date): CalendarEvent[] {
