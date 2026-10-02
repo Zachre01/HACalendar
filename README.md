@@ -4,6 +4,8 @@ Home Assistant calendar project: custom Lovelace card + companion reminders inte
 
 Inspired by Daylight/Skylight aesthetics — **own codebase**, not a fork of those products.
 
+![HA Calendar Card month view](docs/screenshot-month.png)
+
 ## Status
 
 - **Card v0.6.0** — Skylight-style wall-tablet UI (month primary + week/day), clock/weather header, calendar filter pills, calmer refresh (no ~2s flicker), create/edit, safe cross-calendar moves, panel full-height, HACS packaging, optional reminder hooks
