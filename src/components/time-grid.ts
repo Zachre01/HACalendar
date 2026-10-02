@@ -1,6 +1,11 @@
 import { LitElement, html, nothing } from "lit";
 import { customElement, property } from "lit/decorators.js";
-import { DAY_END_HOUR, DAY_START_HOUR, HOUR_HEIGHT_PX } from "../const";
+import {
+  CALENDAR_COLORS,
+  DAY_END_HOUR,
+  DAY_START_HOUR,
+  HOUR_HEIGHT_PX,
+} from "../const";
 import { gridStyles } from "../styles/shared";
 import type { CalendarEvent, CalendarViewMode } from "../types";
 
@@ -42,6 +47,8 @@ export class HacTimeGrid extends LitElement {
   @property({ attribute: false }) calendars: string[] = [];
   @property({ type: Number }) dayStartHour = DAY_START_HOUR;
   @property({ type: Number }) dayEndHour = DAY_END_HOUR;
+  /** Tick from parent clock — refreshes now-line without event refetch */
+  @property({ type: Number }) nowTick = 0;
 
   private get days(): Date[] {
     const base = startOfDay(this.anchorDate);
@@ -63,7 +70,7 @@ export class HacTimeGrid extends LitElement {
 
   private calendarColor(entityId: string): string {
     const idx = Math.max(0, this.calendars.indexOf(entityId));
-    return `var(--hac-cal-${idx % 5})`;
+    return CALENDAR_COLORS[idx % CALENDAR_COLORS.length];
   }
 
   private eventStyle(ev: CalendarEvent, day: Date): string | null {
@@ -94,14 +101,26 @@ export class HacTimeGrid extends LitElement {
   }
 
   private nowLineTop(day: Date): number | null {
+    void this.nowTick;
     const now = new Date();
     if (!sameDay(now, day)) return null;
-    if (now.getHours() < this.dayStartHour || now.getHours() >= this.dayEndHour) {
+    if (
+      now.getHours() < this.dayStartHour ||
+      now.getHours() >= this.dayEndHour
+    ) {
       return null;
     }
     const minutes =
       (now.getHours() - this.dayStartHour) * 60 + now.getMinutes();
     return (minutes / 60) * HOUR_HEIGHT_PX;
+  }
+
+  private formatTime(ev: CalendarEvent): string {
+    if (ev.all_day || /^\d{4}-\d{2}-\d{2}$/.test(ev.start)) return "All day";
+    return parseEventDate(ev.start).toLocaleTimeString(undefined, {
+      hour: "numeric",
+      minute: "2-digit",
+    });
   }
 
   private onEventClick(ev: CalendarEvent): void {
@@ -143,7 +162,7 @@ export class HacTimeGrid extends LitElement {
     return html`
       <div
         class="time-grid"
-        data-mode=${this.mode}
+        data-mode=${this.mode === "month" ? "week" : this.mode}
         style="--hac-hour-height:${HOUR_HEIGHT_PX}px"
       >
         <div class="corner"></div>
@@ -212,6 +231,7 @@ export class HacTimeGrid extends LitElement {
                     }}
                   >
                     <strong>${ev.summary}</strong>
+                    <span class="time-tag">${this.formatTime(ev)}</span>
                     <span class="cal-tag">${calShort}</span>
                   </div>
                 `;

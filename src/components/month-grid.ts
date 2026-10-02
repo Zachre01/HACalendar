@@ -1,0 +1,355 @@
+import { LitElement, html, nothing, css } from "lit";
+import { customElement, property } from "lit/decorators.js";
+import { CALENDAR_COLORS } from "../const";
+import type { CalendarEvent, WeatherSummary } from "../types";
+import { forecastForDate, weatherGlyph } from "../utils/weather";
+
+function startOfDay(d: Date): Date {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+function addDays(d: Date, n: number): Date {
+  const x = new Date(d);
+  x.setDate(x.getDate() + n);
+  return x;
+}
+
+function sameDay(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+function parseEventDate(value: string): Date {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [y, m, day] = value.split("-").map(Number);
+    return new Date(y, m - 1, day);
+  }
+  return new Date(value);
+}
+
+function formatEventTime(ev: CalendarEvent): string {
+  if (ev.all_day || /^\d{4}-\d{2}-\d{2}$/.test(ev.start)) return "All day";
+  const start = parseEventDate(ev.start);
+  return start.toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+@customElement("hac-month-grid")
+export class HacMonthGrid extends LitElement {
+  static styles = css`
+    :host {
+      display: block;
+      width: 100%;
+      height: 100%;
+      min-height: 100%;
+      box-sizing: border-box;
+      --hac-ink: #2c3340;
+      --hac-muted: #8a93a3;
+      --hac-line: #e8ebf0;
+      --hac-today: #f08a5a;
+      --hac-font-body: "Nunito", "Avenir Next", "Segoe UI", sans-serif;
+      font-family: var(--hac-font-body);
+      color: var(--hac-ink);
+      background: #fff;
+    }
+
+    .month {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+    }
+
+    .dow {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      border-bottom: 1px solid var(--hac-line);
+      background: #fafbfc;
+    }
+
+    .dow span {
+      text-align: center;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--hac-muted);
+      padding: 0.55rem 0.25rem;
+    }
+
+    .cells {
+      flex: 1 1 auto;
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      grid-auto-rows: minmax(5.5rem, 1fr);
+      min-height: 0;
+    }
+
+    .cell {
+      border-right: 1px solid var(--hac-line);
+      border-bottom: 1px solid var(--hac-line);
+      padding: 0.35rem 0.35rem 0.4rem;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      background: #fff;
+      cursor: pointer;
+      transition: background 140ms ease;
+    }
+
+    .cell:nth-child(7n) {
+      border-right: 0;
+    }
+
+    .cell:hover {
+      background: #f7fafc;
+    }
+
+    .cell[data-outside="true"] {
+      background: #fbfcfd;
+      color: #b0b7c3;
+    }
+
+    .cell[data-today="true"] {
+      background: #fffaf7;
+    }
+
+    .cell-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.25rem;
+      min-height: 1.4rem;
+    }
+
+    .num {
+      font-size: 0.85rem;
+      font-weight: 700;
+      width: 1.5rem;
+      height: 1.5rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+    }
+
+    .cell[data-today="true"] .num {
+      background: var(--hac-today);
+      color: #fff;
+    }
+
+    .wx {
+      font-size: 0.68rem;
+      color: var(--hac-muted);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .events {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .chip {
+      border: 0;
+      border-radius: 6px;
+      padding: 0.12rem 0.35rem;
+      font: inherit;
+      font-size: 0.68rem;
+      font-weight: 700;
+      line-height: 1.25;
+      color: #fff;
+      text-align: left;
+      cursor: pointer;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      transition: filter 120ms ease, transform 120ms ease;
+    }
+
+    .chip:hover {
+      filter: brightness(1.05);
+      transform: translateY(-0.5px);
+    }
+
+    .chip .t {
+      font-weight: 600;
+      opacity: 0.92;
+      margin-right: 0.2rem;
+    }
+
+    .more {
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--hac-muted);
+      padding: 0.05rem 0.2rem;
+    }
+
+    .empty {
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: #c2c8d2;
+      padding: 0.1rem 0.15rem;
+    }
+
+    @media (max-width: 720px) {
+      .cells {
+        grid-auto-rows: minmax(4.75rem, 1fr);
+      }
+
+      .chip {
+        font-size: 0.62rem;
+        padding: 0.1rem 0.28rem;
+      }
+
+      .empty {
+        display: none;
+      }
+    }
+  `;
+
+  @property({ attribute: false }) anchorDate: Date = new Date();
+  @property({ attribute: false }) events: CalendarEvent[] = [];
+  @property({ attribute: false }) calendars: string[] = [];
+  @property({ attribute: false }) weather: WeatherSummary | null = null;
+  @property({ type: Number }) maxVisible = 3;
+
+  private get monthStart(): Date {
+    const d = startOfDay(this.anchorDate);
+    d.setDate(1);
+    return d;
+  }
+
+  private get cells(): Date[] {
+    const first = this.monthStart;
+    const weekday = (first.getDay() + 6) % 7;
+    const gridStart = addDays(first, -weekday);
+    return Array.from({ length: 42 }, (_, i) => addDays(gridStart, i));
+  }
+
+  private calendarColor(entityId: string): string {
+    const idx = Math.max(0, this.calendars.indexOf(entityId));
+    return CALENDAR_COLORS[idx % CALENDAR_COLORS.length];
+  }
+
+  private eventsForDay(day: Date): CalendarEvent[] {
+    return this.events
+      .filter((ev) => {
+        const start = parseEventDate(ev.start);
+        const end = parseEventDate(ev.end);
+        const dayStart = startOfDay(day);
+        const dayEnd = addDays(dayStart, 1);
+        return start < dayEnd && end > dayStart;
+      })
+      .sort(
+        (a, b) =>
+          parseEventDate(a.start).getTime() - parseEventDate(b.start).getTime()
+      );
+  }
+
+  private onEventClick(ev: CalendarEvent, e: Event): void {
+    e.stopPropagation();
+    this.dispatchEvent(
+      new CustomEvent("event-select", {
+        detail: ev,
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+
+  private onDayCreate(day: Date): void {
+    const start = new Date(day);
+    start.setHours(9, 0, 0, 0);
+    const end = new Date(start);
+    end.setHours(10, 0, 0, 0);
+    this.dispatchEvent(
+      new CustomEvent("slot-create", {
+        detail: { start, end },
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+
+  render() {
+    const today = new Date();
+    const month = this.monthStart.getMonth();
+    const dows = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+    return html`
+      <div class="month">
+        <div class="dow">
+          ${dows.map((d) => html`<span>${d}</span>`)}
+        </div>
+        <div class="cells">
+          ${this.cells.map((day) => {
+            const outside = day.getMonth() !== month;
+            const isToday = sameDay(day, today);
+            const dayEvents = this.eventsForDay(day);
+            const visible = dayEvents.slice(0, this.maxVisible);
+            const overflow = dayEvents.length - visible.length;
+            const wx = forecastForDate(this.weather, day);
+            return html`
+              <div
+                class="cell"
+                data-outside=${outside ? "true" : "false"}
+                data-today=${isToday ? "true" : "false"}
+                @dblclick=${() => this.onDayCreate(day)}
+              >
+                <div class="cell-top">
+                  <span class="num">${day.getDate()}</span>
+                  ${wx
+                    ? html`<span class="wx"
+                        >${weatherGlyph(wx.condition)}${wx.temperature != null
+                          ? ` ${Math.round(wx.temperature)}°`
+                          : ""}</span
+                      >`
+                    : nothing}
+                </div>
+                <div class="events">
+                  ${visible.map(
+                    (ev) => html`
+                      <button
+                        type="button"
+                        class="chip"
+                        style="background:${this.calendarColor(ev.calendar)}"
+                        title=${ev.summary}
+                        @click=${(e: Event) => this.onEventClick(ev, e)}
+                      >
+                        <span class="t">${formatEventTime(ev)}</span>${ev.summary}
+                      </button>
+                    `
+                  )}
+                  ${overflow > 0
+                    ? html`<div class="more">+${overflow} more</div>`
+                    : nothing}
+                  ${!outside && dayEvents.length === 0
+                    ? html`<div class="empty">No events</div>`
+                    : nothing}
+                </div>
+              </div>
+            `;
+          })}
+        </div>
+      </div>
+    `;
+  }
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    "hac-month-grid": HacMonthGrid;
+  }
+}

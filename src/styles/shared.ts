@@ -1,41 +1,34 @@
 import { css } from "lit";
 
 /**
- * Daylight / wall-calendar inspired tokens.
- * Soft morning sky atmosphere — not purple gradients, not warm-cream+terracotta AI defaults.
+ * Skylight-inspired wall-tablet tokens.
+ * Light off-white surface, soft pastels, coral today accent — not purple / cream-AI defaults.
  */
 export const FONT_STYLESHEET_HREF =
-  "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Outfit:wght@400;500;600;700&display=swap";
+  "https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Nunito:wght@500;600;700;800&display=swap";
 
 export const cardStyles = css`
   :host {
-    --hac-sky-top: #f3f8fc;
-    --hac-sky-mid: #d9ebf5;
-    --hac-sky-deep: #b9d6e8;
-    --hac-sun: rgba(255, 196, 110, 0.45);
-    --hac-ink: #15252e;
-    --hac-muted: #5b7380;
-    --hac-accent: #0a6e78;
-    --hac-accent-hover: #085960;
-    --hac-accent-soft: #c5e6ea;
-    --hac-line: rgba(21, 37, 46, 0.1);
-    --hac-line-strong: rgba(21, 37, 46, 0.16);
-    --hac-event: #1a6f8a;
-    --hac-event-text: #f7fcfe;
-    --hac-danger: #a33a3a;
-    --hac-warn: #8a5a12;
-    --hac-warn-bg: #fff4df;
-    --hac-surface: rgba(255, 255, 255, 0.78);
-    --hac-surface-solid: #ffffff;
-    --hac-radius: 14px;
-    --hac-font-display: "Fraunces", "Iowan Old Style", "Palatino Linotype",
-      Palatino, serif;
-    --hac-font-body: "Outfit", "Avenir Next", "Segoe UI", sans-serif;
-    --hac-cal-0: #1a6f8a;
-    --hac-cal-1: #2f7d57;
-    --hac-cal-2: #b85c38;
-    --hac-cal-3: #3d6ea5;
-    --hac-cal-4: #7a5c2e;
+    --hac-bg: #f7f8fa;
+    --hac-surface: #ffffff;
+    --hac-ink: #2c3340;
+    --hac-muted: #8a93a3;
+    --hac-accent: #3d9b8f;
+    --hac-accent-hover: #318579;
+    --hac-today: #f08a5a;
+    --hac-line: #e8ebf0;
+    --hac-line-strong: #d8dde6;
+    --hac-danger: #c45c5c;
+    --hac-warn: #9a6b1f;
+    --hac-warn-bg: #fff6e8;
+    --hac-radius: 0;
+    --hac-font-display: "Manrope", "Avenir Next", "Segoe UI", sans-serif;
+    --hac-font-body: "Nunito", "Avenir Next", "Segoe UI", sans-serif;
+    --hac-cal-0: #e07a5f;
+    --hac-cal-1: #3d9b8f;
+    --hac-cal-2: #81b29a;
+    --hac-cal-3: #5b8db8;
+    --hac-cal-4: #e9b44c;
     --hac-hour-height: 56px;
 
     display: flex;
@@ -43,41 +36,29 @@ export const cardStyles = css`
     box-sizing: border-box;
     position: relative;
     width: 100%;
-    /* % height resolves in panel hosts; masonry parents stay auto + min-height */
     height: 100%;
     min-height: 440px;
     font-family: var(--hac-font-body);
     color: var(--hac-ink);
-    background:
-      radial-gradient(
-        120% 80% at 85% -10%,
-        var(--hac-sun) 0%,
-        transparent 55%
-      ),
-      linear-gradient(
-        165deg,
-        var(--hac-sky-top) 0%,
-        var(--hac-sky-mid) 48%,
-        var(--hac-sky-deep) 100%
-      );
-    border-radius: var(--hac-radius);
+    background: var(--hac-bg);
+    border-radius: 12px;
     overflow: hidden;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+    border: 1px solid var(--hac-line);
     animation: host-in 280ms ease;
   }
 
-  /* Lovelace type: panel — fill the view height, not only width */
   :host([data-layout="panel"]),
   :host-context(hui-panel-view) {
     height: 100%;
     min-height: calc(100vh - var(--header-height, 56px));
     min-height: calc(100dvh - var(--header-height, 56px));
     border-radius: 0;
+    border: 0;
   }
 
   @keyframes host-in {
     from {
-      opacity: 0.65;
+      opacity: 0.7;
       transform: translateY(4px);
     }
     to {
@@ -93,28 +74,184 @@ export const cardStyles = css`
     width: 100%;
     height: 100%;
     min-height: 0;
+    background: var(--hac-surface);
   }
 
-  header.toolbar {
+  .info-bar {
+    display: grid;
+    grid-template-columns: minmax(10rem, 1.1fr) minmax(8rem, 1fr) minmax(12rem, 1.2fr);
+    gap: 0.75rem 1rem;
+    align-items: center;
+    padding: 0.85rem 1.15rem 0.65rem;
+    border-bottom: 1px solid var(--hac-line);
+    background: linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%);
+  }
+
+  .clock-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.05rem;
+    min-width: 0;
+  }
+
+  .clock-date {
+    font-family: var(--hac-font-display);
+    font-size: clamp(0.95rem, 2.2vw, 1.15rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--hac-ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .clock-time {
+    font-family: var(--hac-font-display);
+    font-size: clamp(1.7rem, 4vw, 2.35rem);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    color: var(--hac-ink);
+  }
+
+  .weather-now {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 0.1rem;
+    min-width: 0;
+  }
+
+  .weather-now .temp {
+    font-family: var(--hac-font-display);
+    font-size: clamp(1.35rem, 3vw, 1.85rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+  }
+
+  .weather-now .cond {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--hac-muted);
+    text-transform: capitalize;
+  }
+
+  .weather-stub {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #b0b7c3;
+  }
+
+  .forecast-strip {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.35rem;
+    overflow: auto;
+    min-width: 0;
+  }
+
+  .forecast-day {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.1rem;
+    min-width: 2.6rem;
+    padding: 0.25rem 0.3rem;
+    border-radius: 10px;
+    background: #f4f6f8;
+  }
+
+  .forecast-day .d {
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--hac-muted);
+  }
+
+  .forecast-day .g {
+    font-size: 0.85rem;
+    line-height: 1;
+  }
+
+  .forecast-day .t {
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+
+  .title-row {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.55rem 0.65rem;
-    padding: 0.85rem 1rem 0.75rem;
-    border-bottom: 1px solid var(--hac-line);
-    background: var(--hac-surface);
-    backdrop-filter: blur(10px);
+    justify-content: center;
+    gap: 0.65rem 0.85rem;
+    padding: 0.55rem 1rem 0.35rem;
+    position: relative;
   }
 
   .brand {
     font-family: var(--hac-font-display);
-    font-size: clamp(1.25rem, 3.5vw, 1.55rem);
-    font-weight: 700;
+    font-size: clamp(1.35rem, 3vw, 1.75rem);
+    font-weight: 800;
     letter-spacing: -0.03em;
     margin: 0;
-    flex: 1 1 auto;
-    min-width: 8rem;
+    text-align: center;
+    width: 100%;
     line-height: 1.1;
+  }
+
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    width: 100%;
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border: 1px solid var(--hac-line-strong);
+    background: #fff;
+    color: var(--hac-ink);
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 0.32rem 0.7rem 0.32rem 0.55rem;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 140ms ease, border-color 140ms ease, opacity 140ms ease,
+      transform 120ms ease;
+  }
+
+  .pill:hover {
+    transform: translateY(-1px);
+  }
+
+  .pill[aria-pressed="false"] {
+    opacity: 0.42;
+    background: #f3f5f7;
+  }
+
+  .pill .dot {
+    width: 0.65rem;
+    height: 0.65rem;
+    border-radius: 50%;
+    flex: 0 0 auto;
+  }
+
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 0.75rem;
+    padding: 0.35rem 1rem 0.7rem;
   }
 
   .toolbar-controls {
@@ -122,7 +259,6 @@ export const cardStyles = css`
     flex-wrap: wrap;
     align-items: center;
     gap: 0.45rem;
-    margin-left: auto;
   }
 
   .nav-group {
@@ -131,28 +267,36 @@ export const cardStyles = css`
     gap: 0.25rem;
   }
 
+  .range-label {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--hac-ink);
+    min-width: 7rem;
+    text-align: center;
+  }
+
   .view-toggle {
     display: inline-flex;
     border: 1px solid var(--hac-line-strong);
     border-radius: 999px;
     overflow: hidden;
-    background: rgba(255, 255, 255, 0.7);
+    background: #f7f8fa;
   }
 
   .view-toggle button {
     font: inherit;
-    font-size: 0.85rem;
-    font-weight: 500;
+    font-size: 0.82rem;
+    font-weight: 700;
     border: 0;
     background: transparent;
     color: var(--hac-muted);
-    padding: 0.4rem 0.85rem;
+    padding: 0.38rem 0.8rem;
     cursor: pointer;
     transition: background 140ms ease, color 140ms ease;
   }
 
   .view-toggle button[aria-pressed="true"] {
-    background: var(--hac-accent);
+    background: var(--hac-ink);
     color: #fff;
   }
 
@@ -161,11 +305,11 @@ export const cardStyles = css`
   .ghost-btn {
     font: inherit;
     font-size: 0.85rem;
-    font-weight: 500;
+    font-weight: 700;
     border: 1px solid var(--hac-line-strong);
-    background: var(--hac-surface-solid);
+    background: #fff;
     color: var(--hac-ink);
-    padding: 0.4rem 0.75rem;
+    padding: 0.4rem 0.8rem;
     border-radius: 999px;
     cursor: pointer;
     min-height: 2.15rem;
@@ -176,12 +320,6 @@ export const cardStyles = css`
   .ghost-btn:hover,
   .primary-btn:hover {
     transform: translateY(-1px);
-  }
-
-  .nav-btn:active,
-  .ghost-btn:active,
-  .primary-btn:active {
-    transform: translateY(0);
   }
 
   .primary-btn {
@@ -198,16 +336,21 @@ export const cardStyles = css`
     background: transparent;
   }
 
+  .add-btn {
+    margin-left: auto;
+  }
+
   .grid-wrap {
     flex: 1 1 auto;
     min-height: 0;
     overflow: auto;
     position: relative;
     -webkit-overflow-scrolling: touch;
+    background: #fff;
   }
 
-  /* Time grid fills the flex area below the toolbar; hours scroll inside */
-  hac-time-grid {
+  hac-time-grid,
+  hac-month-grid {
     display: block;
     min-height: 100%;
   }
@@ -217,16 +360,17 @@ export const cardStyles = css`
     flex-wrap: wrap;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.55rem 1rem;
-    font-size: 0.82rem;
+    padding: 0.45rem 1rem;
+    font-size: 0.78rem;
+    font-weight: 600;
     color: var(--hac-muted);
     border-top: 1px solid var(--hac-line);
-    background: var(--hac-surface);
+    background: #fafbfc;
   }
 
   .status[data-kind="error"] {
     color: var(--hac-danger);
-    background: #fdf2f2;
+    background: #fdf4f4;
   }
 
   .status[data-kind="warn"] {
@@ -256,7 +400,7 @@ export const cardStyles = css`
     gap: 0.5rem 0.75rem;
     padding: 0.7rem 1rem;
     background: var(--hac-warn-bg);
-    border-bottom: 1px solid rgba(138, 90, 18, 0.22);
+    border-bottom: 1px solid rgba(154, 107, 31, 0.22);
     color: #5c3d00;
     font-size: 0.85rem;
     animation: banner-in 200ms ease;
@@ -275,7 +419,8 @@ export const cardStyles = css`
 
   .banner button {
     font: inherit;
-    border: 1px solid rgba(138, 90, 18, 0.35);
+    font-weight: 700;
+    border: 1px solid rgba(154, 107, 31, 0.35);
     background: #fff;
     color: #5c3d00;
     border-radius: 999px;
@@ -301,11 +446,7 @@ export const cardStyles = css`
     gap: 0.65rem;
     padding: 1.5rem;
     text-align: center;
-    background: linear-gradient(
-      180deg,
-      rgba(243, 248, 252, 0.55) 0%,
-      rgba(217, 235, 245, 0.82) 100%
-    );
+    background: rgba(255, 255, 255, 0.88);
     backdrop-filter: blur(2px);
     animation: fade-in 200ms ease;
     pointer-events: auto;
@@ -328,9 +469,9 @@ export const cardStyles = css`
     width: 3.25rem;
     height: 3.25rem;
     border-radius: 1rem;
-    background: linear-gradient(145deg, #fff 0%, var(--hac-accent-soft) 100%);
+    background: linear-gradient(145deg, #fff 0%, #e8f4f2 100%);
     border: 1px solid var(--hac-line);
-    box-shadow: 0 8px 20px rgba(21, 37, 46, 0.08);
+    box-shadow: 0 8px 20px rgba(44, 51, 64, 0.06);
     position: relative;
   }
 
@@ -351,14 +492,14 @@ export const cardStyles = css`
     right: 30%;
     height: 3px;
     border-radius: 2px;
-    background: rgba(21, 37, 46, 0.25);
+    background: rgba(44, 51, 64, 0.2);
   }
 
   .state-panel h2 {
     font-family: var(--hac-font-display);
     font-size: 1.2rem;
     margin: 0;
-    font-weight: 600;
+    font-weight: 800;
   }
 
   .state-panel p {
@@ -382,7 +523,7 @@ export const cardStyles = css`
     position: absolute;
     inset: 0;
     z-index: 3;
-    background: rgba(243, 248, 252, 0.35);
+    background: rgba(255, 255, 255, 0.28);
     pointer-events: none;
     animation: fade-in 160ms ease;
   }
@@ -396,13 +537,36 @@ export const cardStyles = css`
     }
   }
 
+  @media (max-width: 820px) {
+    .info-bar {
+      grid-template-columns: 1fr 1fr;
+      grid-template-areas:
+        "clock weather"
+        "forecast forecast";
+    }
+
+    .clock-block {
+      grid-area: clock;
+    }
+
+    .weather-now {
+      grid-area: weather;
+      align-items: flex-end;
+      text-align: right;
+    }
+
+    .forecast-strip {
+      grid-area: forecast;
+      justify-content: flex-start;
+    }
+  }
+
   @media (max-width: 640px) {
     :host {
       min-height: 380px;
       border-radius: 12px;
     }
 
-    /* Keep masonry compact on phones; panel still fills the view */
     :host([data-layout="panel"]),
     :host-context(hui-panel-view) {
       min-height: calc(100vh - var(--header-height, 56px));
@@ -410,28 +574,26 @@ export const cardStyles = css`
       border-radius: 0;
     }
 
-    header.toolbar {
-      padding: 0.75rem 0.75rem 0.65rem;
-      gap: 0.5rem;
+    .info-bar {
+      padding: 0.7rem 0.75rem 0.55rem;
     }
 
-    .brand {
-      flex: 1 1 100%;
+    .toolbar {
+      padding: 0.25rem 0.75rem 0.65rem;
     }
 
     .toolbar-controls {
       width: 100%;
-      margin-left: 0;
       justify-content: space-between;
     }
 
-    .view-toggle button {
-      padding: 0.4rem 0.7rem;
+    .add-btn {
+      margin-left: 0;
     }
 
     .status {
-      font-size: 0.78rem;
-      padding: 0.5rem 0.75rem;
+      font-size: 0.74rem;
+      padding: 0.45rem 0.75rem;
     }
   }
 `;
@@ -443,20 +605,22 @@ export const gridStyles = css`
     height: 100%;
     min-height: 100%;
     box-sizing: border-box;
-    --hac-line: rgba(21, 37, 46, 0.1);
-    --hac-line-strong: rgba(21, 37, 46, 0.16);
-    --hac-muted: #5b7380;
-    --hac-ink: #15252e;
-    --hac-event: #1a6f8a;
-    --hac-event-text: #f7fcfe;
-    --hac-accent: #0a6e78;
-    --hac-cal-0: #1a6f8a;
-    --hac-cal-1: #2f7d57;
-    --hac-cal-2: #b85c38;
-    --hac-cal-3: #3d6ea5;
-    --hac-cal-4: #7a5c2e;
-    --hac-font-body: "Outfit", "Avenir Next", "Segoe UI", sans-serif;
+    --hac-line: #e8ebf0;
+    --hac-line-strong: #d8dde6;
+    --hac-muted: #8a93a3;
+    --hac-ink: #2c3340;
+    --hac-event: #3d9b8f;
+    --hac-event-text: #fff;
+    --hac-accent: #3d9b8f;
+    --hac-today: #f08a5a;
+    --hac-cal-0: #e07a5f;
+    --hac-cal-1: #3d9b8f;
+    --hac-cal-2: #81b29a;
+    --hac-cal-3: #5b8db8;
+    --hac-cal-4: #e9b44c;
+    --hac-font-body: "Nunito", "Avenir Next", "Segoe UI", sans-serif;
     font-family: var(--hac-font-body);
+    background: #fff;
   }
 
   .time-grid {
@@ -478,7 +642,7 @@ export const gridStyles = css`
     position: sticky;
     top: 0;
     z-index: 2;
-    background: rgba(243, 248, 252, 0.92);
+    background: rgba(255, 255, 255, 0.96);
     backdrop-filter: blur(6px);
     border-bottom: 1px solid var(--hac-line-strong);
     padding: 0.55rem 0.3rem;
@@ -495,7 +659,7 @@ export const gridStyles = css`
     flex-direction: column;
     gap: 0.1rem;
     font-size: 0.72rem;
-    font-weight: 500;
+    font-weight: 700;
     color: var(--hac-muted);
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -503,14 +667,14 @@ export const gridStyles = css`
 
   .day-head .num {
     font-size: 1.05rem;
-    font-weight: 700;
+    font-weight: 800;
     color: var(--hac-ink);
     letter-spacing: 0;
     text-transform: none;
   }
 
   .day-head[data-today="true"] {
-    background: rgba(10, 110, 120, 0.1);
+    background: #fff6f1;
   }
 
   .day-head[data-today="true"] .num {
@@ -521,7 +685,7 @@ export const gridStyles = css`
     height: 1.7rem;
     margin: 0 auto;
     border-radius: 50%;
-    background: var(--hac-accent);
+    background: var(--hac-today);
     color: #fff;
   }
 
@@ -531,13 +695,13 @@ export const gridStyles = css`
     position: sticky;
     left: 0;
     z-index: 1;
-    background: rgba(243, 248, 252, 0.92);
+    background: rgba(255, 255, 255, 0.96);
   }
 
   .hour-label {
     height: var(--hac-hour-height, 56px);
     font-size: 0.68rem;
-    font-weight: 500;
+    font-weight: 700;
     color: var(--hac-muted);
     text-align: right;
     padding: 0.15rem 0.45rem 0 0;
@@ -548,17 +712,17 @@ export const gridStyles = css`
   .day-col {
     position: relative;
     border-left: 1px solid var(--hac-line);
-    background: rgba(255, 255, 255, 0.22);
+    background: #fff;
   }
 
   .day-col[data-today="true"] {
-    background: rgba(10, 110, 120, 0.05);
+    background: #fffaf7;
   }
 
   .hour-line {
     height: var(--hac-hour-height, 56px);
     box-sizing: border-box;
-    border-bottom: 1px dashed var(--hac-line);
+    border-bottom: 1px solid var(--hac-line);
   }
 
   .now-line {
@@ -566,10 +730,10 @@ export const gridStyles = css`
     left: 0;
     right: 0;
     height: 2px;
-    background: #d4553a;
+    background: var(--hac-today);
     z-index: 2;
     pointer-events: none;
-    box-shadow: 0 0 0 2px rgba(212, 85, 58, 0.15);
+    box-shadow: 0 0 0 2px rgba(240, 138, 90, 0.15);
   }
 
   .now-line::before {
@@ -580,7 +744,7 @@ export const gridStyles = css`
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #d4553a;
+    background: var(--hac-today);
   }
 
   .event-block {
@@ -592,11 +756,12 @@ export const gridStyles = css`
     border-radius: 8px;
     padding: 0.28rem 0.4rem;
     font-size: 0.74rem;
+    font-weight: 700;
     line-height: 1.25;
     overflow: hidden;
     cursor: pointer;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    box-shadow: 0 1px 0 rgba(21, 37, 46, 0.08);
+    border: 0;
+    box-shadow: 0 1px 0 rgba(44, 51, 64, 0.06);
     transition: transform 140ms ease, box-shadow 140ms ease, filter 140ms ease;
     -webkit-tap-highlight-color: transparent;
   }
@@ -604,21 +769,28 @@ export const gridStyles = css`
   .event-block:hover,
   .event-block:focus-visible {
     transform: translateY(-1px) scale(1.01);
-    box-shadow: 0 6px 14px rgba(21, 37, 46, 0.16);
+    box-shadow: 0 6px 14px rgba(44, 51, 64, 0.12);
     filter: brightness(1.04);
     outline: none;
   }
 
   .event-block strong {
     display: block;
-    font-weight: 600;
+    font-weight: 800;
   }
 
   .event-block .cal-tag {
     display: block;
-    opacity: 0.85;
+    opacity: 0.9;
     font-size: 0.64rem;
-    font-weight: 500;
+    font-weight: 600;
+  }
+
+  .event-block .time-tag {
+    display: block;
+    opacity: 0.9;
+    font-size: 0.64rem;
+    font-weight: 600;
   }
 
   @media (max-width: 720px) {
@@ -642,22 +814,22 @@ export const gridStyles = css`
 
 export const formStyles = css`
   :host {
-    --hac-ink: #15252e;
-    --hac-muted: #5b7380;
-    --hac-accent: #0a6e78;
-    --hac-accent-hover: #085960;
-    --hac-line: rgba(21, 37, 46, 0.12);
-    --hac-danger: #a33a3a;
-    --hac-warn: #8a5a12;
-    --hac-font-display: "Fraunces", "Iowan Old Style", Palatino, serif;
-    --hac-font-body: "Outfit", "Avenir Next", "Segoe UI", sans-serif;
+    --hac-ink: #2c3340;
+    --hac-muted: #8a93a3;
+    --hac-accent: #3d9b8f;
+    --hac-accent-hover: #318579;
+    --hac-line: #e8ebf0;
+    --hac-danger: #c45c5c;
+    --hac-warn: #9a6b1f;
+    --hac-font-display: "Manrope", "Avenir Next", "Segoe UI", sans-serif;
+    --hac-font-body: "Nunito", "Avenir Next", "Segoe UI", sans-serif;
     font-family: var(--hac-font-body);
   }
 
   .form-backdrop {
     position: absolute;
     inset: 0;
-    background: rgba(21, 37, 46, 0.38);
+    background: rgba(44, 51, 64, 0.34);
     display: flex;
     align-items: flex-end;
     justify-content: center;
@@ -689,14 +861,14 @@ export const formStyles = css`
     background: #fff;
     border-radius: 16px 16px 0 0;
     padding: 1.1rem 1.15rem 1.35rem;
-    box-shadow: 0 -10px 36px rgba(21, 37, 46, 0.22);
+    box-shadow: 0 -10px 36px rgba(44, 51, 64, 0.18);
     animation: slide-up 220ms ease;
   }
 
   @media (min-width: 640px) {
     .form-panel {
       border-radius: 16px;
-      box-shadow: 0 16px 40px rgba(21, 37, 46, 0.22);
+      box-shadow: 0 16px 40px rgba(44, 51, 64, 0.18);
     }
   }
 
@@ -716,6 +888,7 @@ export const formStyles = css`
     font-size: 1.28rem;
     margin: 0 0 0.35rem;
     letter-spacing: -0.02em;
+    font-weight: 800;
   }
 
   .form-sub {
@@ -727,7 +900,7 @@ export const formStyles = css`
   label {
     display: block;
     font-size: 0.72rem;
-    font-weight: 600;
+    font-weight: 800;
     letter-spacing: 0.03em;
     text-transform: uppercase;
     color: var(--hac-muted);
@@ -744,7 +917,7 @@ export const formStyles = css`
     padding: 0.55rem 0.65rem;
     border: 1px solid var(--hac-line);
     border-radius: 10px;
-    background: #f4f8fa;
+    background: #f7f8fa;
     color: var(--hac-ink);
     min-height: 2.5rem;
     transition: border-color 140ms ease, box-shadow 140ms ease;
@@ -755,7 +928,7 @@ export const formStyles = css`
   textarea:focus {
     outline: none;
     border-color: var(--hac-accent);
-    box-shadow: 0 0 0 3px rgba(10, 110, 120, 0.15);
+    box-shadow: 0 0 0 3px rgba(61, 155, 143, 0.15);
     background: #fff;
   }
 
@@ -791,7 +964,7 @@ export const formStyles = css`
 
   .form-actions button {
     font: inherit;
-    font-weight: 500;
+    font-weight: 700;
     border-radius: 999px;
     padding: 0.5rem 1rem;
     min-height: 2.4rem;
@@ -829,8 +1002,8 @@ export const formStyles = css`
 
   .hint.error {
     color: var(--hac-danger);
-    background: #fdf2f2;
-    border: 1px solid rgba(163, 58, 58, 0.2);
+    background: #fdf4f4;
+    border: 1px solid rgba(196, 92, 92, 0.2);
     border-radius: 10px;
     padding: 0.55rem 0.7rem;
   }
@@ -840,13 +1013,14 @@ export const formStyles = css`
     padding: 0.75rem 0.8rem;
     border: 1px solid var(--hac-line);
     border-radius: 12px;
-    background: #f3f8fa;
+    background: #f7f8fa;
   }
 
   .reminder-block h3 {
     font-family: var(--hac-font-display);
     font-size: 1rem;
     margin: 0 0 0.25rem;
+    font-weight: 800;
   }
 
   .reminder-toggle {
@@ -855,7 +1029,7 @@ export const formStyles = css`
     gap: 0.5rem;
     margin: 0.55rem 0 0.25rem;
     font-size: 0.9rem;
-    font-weight: 500;
+    font-weight: 700;
     color: var(--hac-ink);
     text-transform: none;
     letter-spacing: 0;
