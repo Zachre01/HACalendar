@@ -62,6 +62,9 @@ function toWsEventPayload(input: CalendarEventInput): Record<string, unknown> {
   };
   if (input.rrule) {
     payload.rrule = input.rrule;
+  } else if (input.rrule === null) {
+    // Explicit clear when editing series/future → Does not repeat
+    payload.rrule = null;
   }
   return payload;
 }

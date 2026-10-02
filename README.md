@@ -8,6 +8,7 @@ Inspired by Daylight/Skylight aesthetics — **own codebase**, not a fork of tho
 
 ## Status
 
+- **Card v0.9.0** — event form **Delete**; recurring Save/Delete always prompt for scope (**This occurrence** / **This and future** / **Entire series**) matching HA `recurrence_id` + `THISANDFUTURE`
 - **Card v0.8.1** — day/week time grids join the panel flex cascade (`min-height: 0`) so only one body scrollport remains (same sizing idea as the v0.7.1 month/panel fix)
 - **Card v0.8.0** — dark/light/auto theme toggle (localStorage + `theme` config), clickable month/year picker, friendlier weather header chips; keeps HA calendar colors, panel single-scroll, recurring, and Skylight layout
 - **Integration v0.1.0** — `custom_components/ha_calendar_reminders` scaffold (storage + services + best-effort scheduler)
@@ -35,7 +36,7 @@ Private / custom-repo install — not yet in the HACS default store.
 
 ```yaml
 resources:
-  - url: /local/ha-calendar-card.js?v=0.8.1
+  - url: /local/ha-calendar-card.js?v=0.9.0
     type: module
 ```
 
@@ -127,9 +128,9 @@ Forecasts prefer the entity’s `forecast` attribute when present; on modern Hom
 ### Recurring events
 
 - **Create** with Repeat: daily / weekly / monthly / yearly (optional until date). Sent as RFC 5545 `rrule` via websocket `calendar/event/create` (required — the REST `calendar.create_event` service does not accept `rrule`).
-- **Edit** a series with scope: this occurrence, this and future (`THISANDFUTURE`), or entire series.
+- **Edit / Delete** a series always opens a scope prompt before applying: **This occurrence only**, **This and future** (`recurrence_id` + `THISANDFUTURE`), or **Entire series** (uid only). One-off delete asks for a simple confirm.
 - Month/week/day mark repeating events with a **↻** indicator.
-- **Cross-calendar moves stay blocked** for recurring events (clear UX; avoids orphaning instances). Same-calendar edits work.
+- **Cross-calendar moves stay blocked** for recurring events (clear UX; avoids orphaning instances). Same-calendar edits work. One-off moves still use create→confirm→delete.
 
 ### Refresh behavior
 

@@ -33,6 +33,14 @@ export interface EventFormSaveDetail {
   recurrenceScope?: RecurrenceEditScope;
 }
 
+export interface EventFormDeleteDetail {
+  event: CalendarEvent;
+  /** Recurring delete scope (ignored for one-off) */
+  recurrenceScope?: RecurrenceEditScope;
+}
+
+type ScopePromptKind = "save" | "delete";
+
 @customElement("hac-event-form")
 export class HacEventForm extends LitElement {
   static styles = formStyles;
@@ -50,6 +58,8 @@ export class HacEventForm extends LitElement {
   @property({ type: Boolean }) busy = false;
   @property({ type: String }) errorMessage = "";
   @property({ type: Boolean }) remindersAvailable = false;
+  /** When false, hide Delete (calendar lacks DELETE_EVENT). */
+  @property({ type: Boolean }) canDelete = true;
   @property({ attribute: false }) reminderDefaults: {
     minutes_before?: number;
     notify_service?: string;
@@ -71,7 +81,10 @@ export class HacEventForm extends LitElement {
   @state() private hydrateKey = "";
   @state() private recurFreq: RecurrenceFreq = "none";
   @state() private recurUntil = "";
-  @state() private recurScope: RecurrenceEditScope = "this";
+  /** Modal: choose this / this+future / series before save or delete */
+  @state() private scopePrompt: ScopePromptKind | null = null;
+  /** Simple confirm for one-off delete */
+  @state() private confirmDelete = false;
 
   connectedCallback(): void {
     super.connectedCallback();
@@ -83,6 +96,8 @@ export class HacEventForm extends LitElement {
     if (changed.has("event") || changed.has("defaults")) {
       this.hydrateEventFields();
       this.applyReminderFields(true);
+      this.scopePrompt = null;
+      this.confirmDelete = false;
     } else if (
       changed.has("reminder") ||
       changed.has("reminderDefaults")
@@ -113,7 +128,6 @@ export class HacEventForm extends LitElement {
       this.calendar = this.event.calendar;
       this.recurFreq = parseRruleFreq(this.event.rrule);
       this.recurUntil = parseRruleUntil(this.event.rrule);
-      this.recurScope = this.event.recurrence_id ? "this" : "series";
     } else {
       this.summary = "";
       this.description = "";
@@ -128,7 +142,6 @@ export class HacEventForm extends LitElement {
       this.calendar = this.defaults.calendar ?? this.calendars[0] ?? "";
       this.recurFreq = "none";
       this.recurUntil = "";
-      this.recurScope = "this";
     }
     this.moveNote = "";
   }
@@ -179,7 +192,14 @@ export class HacEventForm extends LitElement {
   }
 
   private get isRecurring(): boolean {
-    return Boolean(this.event?.recurring || this.event?.rrule);
+    return Boolean(
+      this.event?.recurring || this.event?.rrule || this.event?.recurrence_id
+    );
+  }
+
+  /** Instance-level scopes need recurrence_id (HA THIS / THISANDFUTURE). */
+  private get canScopeInstance(): boolean {
+    return Boolean(this.event?.recurrence_id);
   }
 
   private get isCrossCalendarMove(): boolean {
@@ -190,13 +210,6 @@ export class HacEventForm extends LitElement {
 
   private get calendarMoveBlocked(): boolean {
     return this.isRecurring && this.isCrossCalendarMove;
-  }
-
-  /** Changing rrule on a single instance is not supported — force series/future. */
-  private get recurrenceRuleEditable(): boolean {
-    if (!this.event) return true;
-    if (!this.isRecurring) return true;
-    return this.recurScope === "series" || this.recurScope === "future";
   }
 
   private onCalendarChange(e: Event): void {
@@ -234,12 +247,25 @@ export class HacEventForm extends LitElement {
 
   private close(): void {
     if (this.busy) return;
+    if (this.scopePrompt || this.confirmDelete) {
+      this.scopePrompt = null;
+      this.confirmDelete = false;
+      return;
+    }
     this.dispatchEvent(
       new CustomEvent("form-cancel", { bubbles: true, composed: true })
     );
   }
 
-  private save(): void {
+  private dismissOverlays(e?: Event): void {
+    e?.stopPropagation();
+    if (this.busy) return;
+    this.scopePrompt = null;
+    this.confirmDelete = false;
+  }
+
+  /** Save click — always prompt for scope when editing a recurring event. */
+  private onSaveClick(): void {
     if (this.busy) return;
     if (!this.summary.trim() || !this.start || !this.end || !this.calendar) {
       return;
@@ -247,17 +273,68 @@ export class HacEventForm extends LitElement {
     if (this.calendarMoveBlocked) {
       return;
     }
+    if (this.event && this.isRecurring) {
+      this.confirmDelete = false;
+      this.scopePrompt = "save";
+      return;
+    }
+    this.emitSave(undefined);
+  }
 
+  private onDeleteClick(): void {
+    if (this.busy || !this.event || !this.canDelete) return;
+    if (this.isRecurring) {
+      this.confirmDelete = false;
+      this.scopePrompt = "delete";
+      return;
+    }
+    this.scopePrompt = null;
+    this.confirmDelete = true;
+  }
+
+  private chooseScope(scope: RecurrenceEditScope): void {
+    if (this.busy) return;
+    const kind = this.scopePrompt;
+    this.scopePrompt = null;
+    if (kind === "save") {
+      this.emitSave(scope);
+    } else if (kind === "delete") {
+      this.emitDelete(scope);
+    }
+  }
+
+  private confirmOneOffDelete(): void {
+    if (this.busy) return;
+    this.confirmDelete = false;
+    this.emitDelete(undefined);
+  }
+
+  private emitSave(scope: RecurrenceEditScope | undefined): void {
     const startIso = this.fromLocalInput(this.start);
+    // This-occurrence edits must not change the series RRULE
+    const allowRruleChange =
+      !this.event ||
+      !this.isRecurring ||
+      scope === "series" ||
+      scope === "future";
+
     let rrule: string | null | undefined;
-    if (this.recurrenceRuleEditable) {
+    if (allowRruleChange) {
       rrule = buildRrule({
         freq: this.recurFreq,
         startIso,
         untilDate: this.recurUntil || undefined,
       });
-    } else if (this.isRecurring) {
-      // This-instance edit: do not send rrule changes
+      // Explicit null clears recurrence when editing series/future → Does not repeat
+      if (
+        this.event &&
+        this.isRecurring &&
+        (scope === "series" || scope === "future") &&
+        this.recurFreq === "none"
+      ) {
+        rrule = null;
+      }
+    } else {
       rrule = undefined;
     }
 
@@ -268,7 +345,7 @@ export class HacEventForm extends LitElement {
       start: startIso,
       end: this.fromLocalInput(this.end),
       calendar: this.calendar,
-      rrule: rrule ?? undefined,
+      rrule: rrule === undefined ? undefined : rrule,
     };
     const crossCalendarMove = this.isCrossCalendarMove;
     const detail: EventFormSaveDetail = {
@@ -276,7 +353,7 @@ export class HacEventForm extends LitElement {
       input,
       original: this.event ?? undefined,
       crossCalendarMove,
-      recurrenceScope: this.isRecurring ? this.recurScope : undefined,
+      recurrenceScope: this.isRecurring ? scope : undefined,
       reminder: this.remindersAvailable
         ? {
             enabled: this.reminderEnabled,
@@ -295,12 +372,163 @@ export class HacEventForm extends LitElement {
     );
   }
 
+  private emitDelete(scope: RecurrenceEditScope | undefined): void {
+    if (!this.event) return;
+    const detail: EventFormDeleteDetail = {
+      event: this.event,
+      recurrenceScope: this.isRecurring ? scope : undefined,
+    };
+    this.dispatchEvent(
+      new CustomEvent("form-delete", {
+        detail,
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+
+  private scopeLabels(kind: ScopePromptKind): {
+    title: string;
+    subtitle: string;
+  } {
+    if (kind === "delete") {
+      return {
+        title: "Delete recurring event",
+        subtitle:
+          "Choose how much of the series to remove. Matches Home Assistant calendar delete scopes.",
+      };
+    }
+    return {
+      title: "Edit recurring event",
+      subtitle:
+        "Choose how far these changes apply. Matches Home Assistant calendar update scopes.",
+    };
+  }
+
+  private renderScopePrompt() {
+    if (!this.scopePrompt) return nothing;
+    const { title, subtitle } = this.scopeLabels(this.scopePrompt);
+    const isDelete = this.scopePrompt === "delete";
+    const instanceOk = this.canScopeInstance;
+
+    return html`
+      <div
+        class="scope-backdrop"
+        @click=${(e: Event) => this.dismissOverlays(e)}
+        role="presentation"
+      >
+        <div
+          class="scope-panel"
+          @click=${(e: Event) => e.stopPropagation()}
+          role="dialog"
+          aria-label=${title}
+        >
+          <h3>${title}</h3>
+          <p class="scope-sub">${subtitle}</p>
+          ${!instanceOk
+            ? html`<p class="hint warn">
+                This event has no occurrence id — only the entire series can be
+                changed safely.
+              </p>`
+            : nothing}
+          <div class="scope-choices">
+            <button
+              type="button"
+              class="scope-choice ${isDelete ? "danger-soft" : ""}"
+              ?disabled=${this.busy || !instanceOk}
+              @click=${() => this.chooseScope("this")}
+            >
+              <span class="scope-choice-title">This occurrence only</span>
+              <span class="scope-choice-desc"
+                >Affects just the selected date/time</span
+              >
+            </button>
+            <button
+              type="button"
+              class="scope-choice ${isDelete ? "danger-soft" : ""}"
+              ?disabled=${this.busy || !instanceOk}
+              @click=${() => this.chooseScope("future")}
+            >
+              <span class="scope-choice-title">This and future</span>
+              <span class="scope-choice-desc"
+                >This occurrence and all later ones (THISANDFUTURE)</span
+              >
+            </button>
+            <button
+              type="button"
+              class="scope-choice ${isDelete ? "danger-soft" : ""}"
+              ?disabled=${this.busy}
+              @click=${() => this.chooseScope("series")}
+            >
+              <span class="scope-choice-title">Entire series</span>
+              <span class="scope-choice-desc"
+                >Every occurrence in the series</span
+              >
+            </button>
+          </div>
+          <div class="scope-actions">
+            <button
+              type="button"
+              ?disabled=${this.busy}
+              @click=${(e: Event) => this.dismissOverlays(e)}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  private renderConfirmDelete() {
+    if (!this.confirmDelete || !this.event) return nothing;
+    return html`
+      <div
+        class="scope-backdrop"
+        @click=${(e: Event) => this.dismissOverlays(e)}
+        role="presentation"
+      >
+        <div
+          class="scope-panel"
+          @click=${(e: Event) => e.stopPropagation()}
+          role="dialog"
+          aria-label="Delete event"
+        >
+          <h3>Delete event?</h3>
+          <p class="scope-sub">
+            Remove “${this.event.summary}” from
+            ${this.calendarLabel(this.event.calendar)}. This cannot be undone.
+          </p>
+          <div class="scope-actions split">
+            <button
+              type="button"
+              ?disabled=${this.busy}
+              @click=${(e: Event) => this.dismissOverlays(e)}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="danger"
+              ?disabled=${this.busy}
+              @click=${() => this.confirmOneOffDelete()}
+            >
+              ${this.busy ? "Deleting…" : "Delete"}
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   render() {
     const title = this.event ? "Edit event" : "New event";
     const options = this.calendarOptions;
     const seriesLabel = this.event?.rrule
       ? rruleShortLabel(this.event.rrule)
-      : "";
+      : this.isRecurring
+        ? "Repeats"
+        : "";
 
     return html`
       <div class="form-backdrop" @click=${this.close}>
@@ -314,7 +542,7 @@ export class HacEventForm extends LitElement {
           <p class="form-sub">
             ${this.event
               ? this.isRecurring
-                ? `Recurring series${seriesLabel ? ` · ${seriesLabel}` : ""}. Choose edit scope below.`
+                ? `Recurring series${seriesLabel ? ` · ${seriesLabel}` : ""}. Save and Delete will ask how far to apply.`
                 : "Edit details, change calendar (create+delete move), or reminder."
               : "Add an event — optionally set it to repeat."}
           </p>
@@ -432,38 +660,17 @@ export class HacEventForm extends LitElement {
           <div class="recur-block">
             <h3>Repeat</h3>
             ${this.isRecurring
-              ? html`
-                  <label for="recur-scope">Edit scope</label>
-                  <select
-                    id="recur-scope"
-                    ?disabled=${this.busy}
-                    @change=${(e: Event) => {
-                      this.recurScope = (e.target as HTMLSelectElement)
-                        .value as RecurrenceEditScope;
-                    }}
-                  >
-                    <option value="this" ?selected=${this.recurScope === "this"}>
-                      This occurrence only
-                    </option>
-                    <option
-                      value="future"
-                      ?selected=${this.recurScope === "future"}
-                    >
-                      This and future
-                    </option>
-                    <option
-                      value="series"
-                      ?selected=${this.recurScope === "series"}
-                    >
-                      Entire series
-                    </option>
-                  </select>
-                `
+              ? html`<p class="hint" style="margin-top:0">
+                  Changing the repeat rule applies when you choose
+                  <strong>This and future</strong> or
+                  <strong>Entire series</strong> on Save. “This occurrence
+                  only” keeps the series rule and edits just this instance.
+                </p>`
               : nothing}
             <label for="recur-freq">Frequency</label>
             <select
               id="recur-freq"
-              ?disabled=${this.busy || !this.recurrenceRuleEditable}
+              ?disabled=${this.busy}
               @change=${(e: Event) => {
                 this.recurFreq = (e.target as HTMLSelectElement)
                   .value as RecurrenceFreq;
@@ -485,7 +692,7 @@ export class HacEventForm extends LitElement {
                 Yearly
               </option>
             </select>
-            ${this.recurFreq !== "none" && this.recurrenceRuleEditable
+            ${this.recurFreq !== "none"
               ? html`
                   <label for="recur-until">Until (optional)</label>
                   <input
@@ -504,13 +711,7 @@ export class HacEventForm extends LitElement {
                     the weekday of the start date.
                   </p>
                 `
-              : this.isRecurring && this.recurScope === "this"
-                ? html`<p class="hint">
-                    This occurrence only — change times/title here. To change
-                    the repeat rule, choose “This and future” or “Entire
-                    series”.
-                  </p>`
-                : nothing}
+              : nothing}
           </div>
 
           ${this.remindersAvailable
@@ -600,24 +801,39 @@ export class HacEventForm extends LitElement {
             ? html`<p class="hint error" role="alert">${this.errorMessage}</p>`
             : null}
 
-          <div class="form-actions">
-            <button type="button" ?disabled=${this.busy} @click=${this.close}>
-              Cancel
-            </button>
-            <button
-              type="button"
-              class="primary"
-              ?disabled=${this.busy || this.calendarMoveBlocked}
-              @click=${this.save}
-            >
-              ${this.busy
-                ? "Saving…"
-                : this.isCrossCalendarMove
-                  ? "Move & save"
-                  : "Save"}
-            </button>
+          <div class="form-actions ${this.event && this.canDelete ? "with-delete" : ""}">
+            ${this.event && this.canDelete
+              ? html`
+                  <button
+                    type="button"
+                    class="danger"
+                    ?disabled=${this.busy}
+                    @click=${() => this.onDeleteClick()}
+                  >
+                    Delete
+                  </button>
+                `
+              : nothing}
+            <div class="form-actions-end">
+              <button type="button" ?disabled=${this.busy} @click=${this.close}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                class="primary"
+                ?disabled=${this.busy || this.calendarMoveBlocked}
+                @click=${() => this.onSaveClick()}
+              >
+                ${this.busy
+                  ? "Saving…"
+                  : this.isCrossCalendarMove
+                    ? "Move & save"
+                    : "Save"}
+              </button>
+            </div>
           </div>
         </div>
+        ${this.renderScopePrompt()} ${this.renderConfirmDelete()}
       </div>
     `;
   }
