@@ -47,13 +47,21 @@ export const cardStyles = css`
     animation: host-in 280ms ease;
   }
 
+  /*
+   * Panel mode: fill the Lovelace panel host only.
+   * Do NOT use min-height: 100vh/dvh − header here — hui-view-container already
+   * pads for the HA header (border-box), so a viewport min-height double-counts
+   * and creates a page scrollbar + .grid-wrap scrollbar on phones/tablets.
+   */
   :host([data-layout="panel"]),
   :host-context(hui-panel-view) {
-    height: 100%;
-    min-height: calc(100vh - var(--header-height, 56px));
-    min-height: calc(100dvh - var(--header-height, 56px));
+    min-height: 0;
+    flex: 1 1 auto;
     border-radius: 0;
     border: 0;
+    /* Prefer measured panel height from JS; else fill the host */
+    height: var(--hac-panel-height, 100%);
+    max-height: var(--hac-panel-height, 100%);
   }
 
   @keyframes host-in {
@@ -74,6 +82,7 @@ export const cardStyles = css`
     width: 100%;
     height: 100%;
     min-height: 0;
+    overflow: hidden;
     background: var(--hac-surface);
   }
 
@@ -85,6 +94,7 @@ export const cardStyles = css`
     padding: 0.85rem 1.15rem 0.65rem;
     border-bottom: 1px solid var(--hac-line);
     background: linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%);
+    flex: 0 0 auto;
   }
 
   .clock-block {
@@ -190,6 +200,7 @@ export const cardStyles = css`
     gap: 0.65rem 0.85rem;
     padding: 0.55rem 1rem 0.35rem;
     position: relative;
+    flex: 0 0 auto;
   }
 
   .brand {
@@ -252,6 +263,7 @@ export const cardStyles = css`
     justify-content: space-between;
     gap: 0.5rem 0.75rem;
     padding: 0.35rem 1rem 0.7rem;
+    flex: 0 0 auto;
   }
 
   .toolbar-controls {
@@ -340,10 +352,12 @@ export const cardStyles = css`
     margin-left: auto;
   }
 
+  /* Sole vertical scroll context for month/week/day bodies */
   .grid-wrap {
     flex: 1 1 auto;
     min-height: 0;
     overflow: auto;
+    overscroll-behavior: contain;
     position: relative;
     -webkit-overflow-scrolling: touch;
     background: #fff;
@@ -352,7 +366,14 @@ export const cardStyles = css`
   hac-time-grid,
   hac-month-grid {
     display: block;
+    height: 100%;
     min-height: 100%;
+  }
+
+  /* Month fits the panel body when possible; week/day still grow with hours */
+  :host([data-layout="panel"]) hac-month-grid,
+  :host-context(hui-panel-view) hac-month-grid {
+    min-height: 0;
   }
 
   .status {
@@ -366,6 +387,7 @@ export const cardStyles = css`
     color: var(--hac-muted);
     border-top: 1px solid var(--hac-line);
     background: #fafbfc;
+    flex: 0 0 auto;
   }
 
   .status[data-kind="error"] {
@@ -404,6 +426,7 @@ export const cardStyles = css`
     color: #5c3d00;
     font-size: 0.85rem;
     animation: banner-in 200ms ease;
+    flex: 0 0 auto;
   }
 
   @keyframes banner-in {
@@ -569,8 +592,8 @@ export const cardStyles = css`
 
     :host([data-layout="panel"]),
     :host-context(hui-panel-view) {
-      min-height: calc(100vh - var(--header-height, 56px));
-      min-height: calc(100dvh - var(--header-height, 56px));
+      /* Keep fitting the panel — never force a second viewport min-height */
+      min-height: 0;
       border-radius: 0;
     }
 

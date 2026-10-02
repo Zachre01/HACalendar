@@ -83,6 +83,10 @@ export class HaCalendarCard extends LitElement {
   private hadHass = false;
   private weatherEntityLoaded: string | null = null;
   private weatherFetchInFlight = false;
+  /** Ancestors we styled for panel height cascading — cleared on leave/disconnect */
+  private panelStyledAncestors: HTMLElement[] = [];
+  private panelResizeObserver: ResizeObserver | null = null;
+  private panelHost: HTMLElement | null = null;
 
   public setConfig(config: HaCalendarCardConfig): void {
     if (!config) {
@@ -120,11 +124,17 @@ export class HaCalendarCard extends LitElement {
     super.connectedCallback();
     this.ensureFonts();
     this.startTimers();
+    this.syncPanelLayout();
+  }
+
+  protected firstUpdated(): void {
+    this.syncPanelLayout();
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
     this.clearTimers();
+    this.clearPanelLayout();
   }
 
   private ensureFonts(): void {
@@ -135,6 +145,100 @@ export class HaCalendarCard extends LitElement {
     link.rel = "stylesheet";
     link.href = FONT_STYLESHEET_HREF;
     document.head.appendChild(link);
+  }
+
+  /**
+   * Lovelace `type: panel` hosts the card in `hui-panel-view`.
+   * Mark the host and cascade height through `hui-card` so we fill the
+   * panel without a nested page + card scrollbar.
+   */
+  private syncPanelLayout(): void {
+    const panel = this.closest("hui-panel-view") as HTMLElement | null;
+    if (!panel) {
+      this.clearPanelLayout();
+      return;
+    }
+
+    this.setAttribute("data-layout", "panel");
+
+    const huiCard = this.closest("hui-card") as HTMLElement | null;
+    const targets = [panel, huiCard].filter(
+      (el): el is HTMLElement => Boolean(el)
+    );
+
+    // Reset previous ancestor styles if the host moved
+    if (this.panelHost !== panel) {
+      this.clearPanelAncestorStyles();
+      this.panelHost = panel;
+      for (const el of targets) {
+        this.stylePanelAncestor(el);
+        this.panelStyledAncestors.push(el);
+      }
+      this.panelResizeObserver?.disconnect();
+      this.panelResizeObserver = new ResizeObserver(() =>
+        this.applyPanelHeight()
+      );
+      this.panelResizeObserver.observe(panel);
+    }
+
+    this.applyPanelHeight();
+  }
+
+  private stylePanelAncestor(el: HTMLElement): void {
+    el.dataset.hacPanelStyled = "1";
+    el.style.setProperty("display", "flex");
+    el.style.setProperty("flex-direction", "column");
+    el.style.setProperty("flex", "1 1 auto");
+    el.style.setProperty("height", "100%");
+    el.style.setProperty("max-height", "100%");
+    el.style.setProperty("min-height", "0");
+    el.style.setProperty("overflow", "hidden");
+    el.style.setProperty("box-sizing", "border-box");
+  }
+
+  private applyPanelHeight(): void {
+    const panel = this.panelHost;
+    if (!panel) return;
+    const h = panel.clientHeight;
+    if (h > 0) {
+      this.style.setProperty("--hac-panel-height", `${h}px`);
+    } else {
+      // Parent % height not resolved yet — last-resort viewport fallback
+      // that still subtracts HA header + safe areas (not double-counted padding).
+      this.style.setProperty(
+        "--hac-panel-height",
+        "calc(100dvh - var(--header-height, 56px) - var(--safe-area-inset-top, 0px) - var(--safe-area-inset-bottom, 0px))"
+      );
+    }
+  }
+
+  private clearPanelAncestorStyles(): void {
+    for (const el of this.panelStyledAncestors) {
+      if (el.dataset.hacPanelStyled !== "1") continue;
+      delete el.dataset.hacPanelStyled;
+      for (const prop of [
+        "display",
+        "flex-direction",
+        "flex",
+        "height",
+        "max-height",
+        "min-height",
+        "overflow",
+        "box-sizing",
+      ]) {
+        el.style.removeProperty(prop);
+      }
+    }
+    this.panelStyledAncestors = [];
+  }
+
+  private clearPanelLayout(): void {
+    this.panelResizeObserver?.disconnect();
+    this.panelResizeObserver = null;
+    this.panelHost = null;
+    this.clearPanelAncestorStyles();
+    this.removeAttribute("data-layout");
+    this.style.removeProperty("--hac-panel-height");
   }
 
   private startTimers(): void {
@@ -160,6 +264,7 @@ export class HaCalendarCard extends LitElement {
   }
 
   protected updated(changed: Map<string, unknown>): void {
+    this.syncPanelLayout();
     // Do NOT refresh on every hass churn — Lovelace replaces hass ~1–2s and caused flicker.
     // Weather chips still re-render from live hass.states without refetching calendars.
     if (changed.has("config") || changed.has("anchorDate") || changed.has("view")) {
@@ -933,6 +1038,7 @@ export class HaCalendarCard extends LitElement {
           ${this.view === "month"
             ? html`
                 <hac-month-grid
+                  ?data-fill=${this.hasAttribute("data-layout")}
                   .anchorDate=${this.anchorDate}
                   .events=${visibleEvents}
                   .calendars=${calendars}

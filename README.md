@@ -8,7 +8,7 @@ Inspired by Daylight/Skylight aesthetics — **own codebase**, not a fork of tho
 
 ## Status
 
-- **Card v0.7.0** — weather config fix (`weather` / `weather_entity` + `weather.get_forecasts`), recurring create/edit (RRULE) with clear series UX, Skylight-style wall-tablet UI, safe cross-calendar moves (one-off only), panel full-height, HACS packaging, optional reminder hooks
+- **Card v0.7.1** — panel/mobile single-scroll layout (card fills the view; only the month/week/day body scrolls), plus v0.7.0 weather config fix (`weather` / `weather_entity` + `weather.get_forecasts`), recurring create/edit (RRULE), Skylight-style wall-tablet UI, safe cross-calendar moves (one-off only), HACS packaging, optional reminder hooks
 - **Integration v0.1.0** — `custom_components/ha_calendar_reminders` scaffold (storage + services + best-effort scheduler)
 - Notify delivery is **best-effort** until validated on your stack. Recurring **cross-calendar moves** remain blocked (prefer clear UX over partial series copies).
 - Event notifications can stay on your existing HA automations — the reminder integration is optional.
@@ -33,7 +33,7 @@ Private / custom-repo install — not yet in the HACS default store.
 
 ```yaml
 resources:
-  - url: /local/ha-calendar-card.js?v=0.7.0
+  - url: /local/ha-calendar-card.js?v=0.7.1
     type: module
 ```
 
@@ -54,7 +54,7 @@ Component notes: [`custom_components/ha_calendar_reminders/README.md`](custom_co
 
 ## Card YAML
 
-**Full-screen dashboard tip:** use a Lovelace view with `type: panel` so the calendar fills width **and** height (toolbar stays put; the month/week/day grid scrolls inside). Masonry / sections views still work — the card keeps a sensible min-height there.
+**Full-screen dashboard tip:** use a Lovelace view with `type: panel` so the calendar fills width **and** height. The HA page should not scroll — only the month/week/day body under the header chrome scrolls when content overflows. Masonry / sections views still work — the card keeps a sensible min-height there.
 
 ```yaml
 # View (recommended for a dedicated calendar dashboard)
@@ -127,8 +127,8 @@ Events reload on **visible range / view change**, **after create/edit/move**, an
 ```bash
 npm ci
 npm run release:check
-git tag v0.7.0
-git push origin v0.7.0  # .github/workflows/release.yml attaches JS assets
+git tag v0.7.1
+git push origin v0.7.1  # .github/workflows/release.yml attaches JS assets
 ```
 
 HACS plugin assets: `ha-calendar-card.js`, `HACalendar.js` (repo-name match). No `zip_release`.
