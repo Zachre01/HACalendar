@@ -60,6 +60,10 @@ export class HacMonthGrid extends LitElement {
       background: #fff;
     }
 
+    :host([data-fill]) {
+      min-height: 0;
+    }
+
     .month {
       display: flex;
       flex-direction: column;
@@ -90,6 +94,11 @@ export class HacMonthGrid extends LitElement {
       grid-template-columns: repeat(7, minmax(0, 1fr));
       grid-auto-rows: minmax(5.5rem, 1fr);
       min-height: 0;
+    }
+
+    /* Panel fill: shrink rows into the available body (outer page must not scroll) */
+    :host([data-fill]) .cells {
+      grid-auto-rows: minmax(0, 1fr);
     }
 
     .cell {
@@ -212,6 +221,10 @@ export class HacMonthGrid extends LitElement {
     @media (max-width: 720px) {
       .cells {
         grid-auto-rows: minmax(4.75rem, 1fr);
+      }
+
+      :host([data-fill]) .cells {
+        grid-auto-rows: minmax(0, 1fr);
       }
 
       .chip {
