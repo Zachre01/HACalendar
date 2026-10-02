@@ -21,4 +21,5 @@ jobs:
         with:
           category: plugin
           # Repo description/topics are org metadata; ignore so card PRs aren't blocked.
-          ignore: topics,description
+          # Space-separated (hacs/action requirement).
+          ignore: topics description
