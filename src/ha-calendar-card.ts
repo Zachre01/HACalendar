@@ -53,6 +53,7 @@ import {
   weatherGlyphCute,
   weatherMood,
 } from "./utils/weather-ui";
+import { formatHassError } from "./utils/ha-error";
 import "./components/time-grid";
 import "./components/month-grid";
 import "./components/event-form";
@@ -541,7 +542,7 @@ export class HaCalendarCard extends LitElement {
       this.events = [];
       this.loadFailed = true;
       this.hasLoadedOnce = true;
-      this.status = `Load failed: ${err instanceof Error ? err.message : String(err)}`;
+      this.status = `Load failed: ${formatHassError(err)}`;
       this.statusKind = "error";
     } finally {
       if (generation === this.loadGeneration) {
@@ -857,7 +858,7 @@ export class HaCalendarCard extends LitElement {
       }
       await this.refreshEvents();
     } catch (err) {
-      this.formError = err instanceof Error ? err.message : String(err);
+      this.formError = formatHassError(err);
       this.status = this.formError;
       this.statusKind = "error";
     } finally {
@@ -917,7 +918,7 @@ export class HaCalendarCard extends LitElement {
       this.statusKind = "info";
       await this.refreshEvents();
     } catch (err) {
-      this.formError = err instanceof Error ? err.message : String(err);
+      this.formError = formatHassError(err);
       this.status = this.formError;
       this.statusKind = "error";
     } finally {
@@ -936,7 +937,7 @@ export class HaCalendarCard extends LitElement {
       this.statusKind = "info";
       await this.refreshEvents();
     } catch (err) {
-      this.status = `Cleanup failed: ${err instanceof Error ? err.message : String(err)}`;
+      this.status = `Cleanup failed: ${formatHassError(err)}`;
       this.statusKind = "error";
     }
   }

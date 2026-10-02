@@ -8,6 +8,7 @@ Inspired by Daylight/Skylight aesthetics — **own codebase**, not a fork of tho
 
 ## Status
 
+- **Card v0.9.1** — recurring create: floating local `dtstart`/`dtend` + timed `UNTIL=…THHMMSS` (Local Calendar WS); real HA error text (no `[object Object]`); Until ≥ start validation; multi-day timed + daily RRULE normalized to same-day duration
 - **Card v0.9.0** — event form **Delete**; recurring Save/Delete always prompt for scope (**This occurrence** / **This and future** / **Entire series**) matching HA `recurrence_id` + `THISANDFUTURE`
 - **Card v0.8.1** — day/week time grids join the panel flex cascade (`min-height: 0`) so only one body scrollport remains (same sizing idea as the v0.7.1 month/panel fix)
 - **Card v0.8.0** — dark/light/auto theme toggle (localStorage + `theme` config), clickable month/year picker, friendlier weather header chips; keeps HA calendar colors, panel single-scroll, recurring, and Skylight layout
@@ -36,7 +37,7 @@ Private / custom-repo install — not yet in the HACS default store.
 
 ```yaml
 resources:
-  - url: /local/ha-calendar-card.js?v=0.9.0
+  - url: /local/ha-calendar-card.js?v=0.9.1
     type: module
 ```
 

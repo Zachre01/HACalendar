@@ -10,6 +10,8 @@ import { fallbackCalendarColor } from "../utils/calendar-colors";
 import type { CalendarColorMap } from "../utils/calendar-colors";
 import {
   buildRrule,
+  isUntilBeforeStart,
+  normalizeRecurringTimedEnd,
   parseRruleFreq,
   parseRruleUntil,
   rruleShortLabel,
@@ -81,6 +83,8 @@ export class HacEventForm extends LitElement {
   @state() private hydrateKey = "";
   @state() private recurFreq: RecurrenceFreq = "none";
   @state() private recurUntil = "";
+  /** Client-side validation (until / multi-day + rrule) — separate from API errors */
+  @state() private validationError = "";
   /** Modal: choose this / this+future / series before save or delete */
   @state() private scopePrompt: ScopePromptKind | null = null;
   /** Simple confirm for one-off delete */
@@ -144,6 +148,7 @@ export class HacEventForm extends LitElement {
       this.recurUntil = "";
     }
     this.moveNote = "";
+    this.validationError = "";
   }
 
   private applyReminderFields(resetIfEmpty: boolean): void {
@@ -188,7 +193,42 @@ export class HacEventForm extends LitElement {
   }
 
   private fromLocalInput(value: string): string {
-    return new Date(value).toISOString();
+    // datetime-local → floating local wall time (HA calendar WS / Local Calendar)
+    const m = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})(?::(\d{2}))?/.exec(value);
+    if (m) {
+      return `${m[1]}:${m[2] ?? "00"}`;
+    }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value;
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  }
+
+  private get untilInvalid(): boolean {
+    return (
+      this.recurFreq !== "none" &&
+      isUntilBeforeStart(this.recurUntil || undefined, this.start)
+    );
+  }
+
+  private get recurringMultiDay(): boolean {
+    if (this.recurFreq === "none" || !this.start || !this.end) return false;
+    return this.start.slice(0, 10) !== this.end.slice(0, 10);
+  }
+
+  private refreshValidation(): void {
+    if (this.untilInvalid) {
+      this.validationError =
+        "Until must be on or after the event start date.";
+      return;
+    }
+    if (this.recurringMultiDay) {
+      this.validationError =
+        "Repeating timed events should end on the same day as they start — each occurrence uses that duration. End will be adjusted to the start date.";
+      return;
+    }
+    this.validationError = "";
   }
 
   private get isRecurring(): boolean {
@@ -273,6 +313,19 @@ export class HacEventForm extends LitElement {
     if (this.calendarMoveBlocked) {
       return;
     }
+    this.refreshValidation();
+    if (this.untilInvalid) {
+      return;
+    }
+    // Multi-day + recurrence: normalize end onto start day before save
+    if (this.recurringMultiDay) {
+      const { end, adjusted } = normalizeRecurringTimedEnd(this.start, this.end);
+      if (adjusted) {
+        this.end = end;
+        this.validationError =
+          "End adjusted to the start date so each occurrence has a same-day duration.";
+      }
+    }
     if (this.event && this.isRecurring) {
       this.confirmDelete = false;
       this.scopePrompt = "save";
@@ -310,6 +363,15 @@ export class HacEventForm extends LitElement {
   }
 
   private emitSave(scope: RecurrenceEditScope | undefined): void {
+    this.refreshValidation();
+    if (this.untilInvalid) {
+      return;
+    }
+    // Ensure multi-day recurring end is normalized (scope dialog path)
+    if (this.recurFreq !== "none") {
+      const { end, adjusted } = normalizeRecurringTimedEnd(this.start, this.end);
+      if (adjusted) this.end = end;
+    }
     const startIso = this.fromLocalInput(this.start);
     // This-occurrence edits must not change the series RRULE
     const allowRruleChange =
@@ -620,6 +682,7 @@ export class HacEventForm extends LitElement {
                 ?disabled=${this.busy}
                 @input=${(e: Event) => {
                   this.start = (e.target as HTMLInputElement).value;
+                  this.refreshValidation();
                 }}
               />
             </div>
@@ -632,6 +695,7 @@ export class HacEventForm extends LitElement {
                 ?disabled=${this.busy}
                 @input=${(e: Event) => {
                   this.end = (e.target as HTMLInputElement).value;
+                  this.refreshValidation();
                 }}
               />
             </div>
@@ -674,6 +738,7 @@ export class HacEventForm extends LitElement {
               @change=${(e: Event) => {
                 this.recurFreq = (e.target as HTMLSelectElement)
                   .value as RecurrenceFreq;
+                this.refreshValidation();
               }}
             >
               <option value="none" ?selected=${this.recurFreq === "none"}>
@@ -699,17 +764,25 @@ export class HacEventForm extends LitElement {
                     id="recur-until"
                     type="date"
                     .value=${this.recurUntil}
+                    min=${this.start ? this.start.slice(0, 10) : ""}
                     ?disabled=${this.busy}
                     @input=${(e: Event) => {
                       this.recurUntil = (e.target as HTMLInputElement).value;
+                      this.refreshValidation();
                     }}
                   />
-                  <p class="hint">
-                    Uses Home Assistant calendar websocket
-                    <code>rrule</code> (local calendars and other backends that
-                    support CREATE/UPDATE with recurrence). Weekly repeats on
-                    the weekday of the start date.
+                  <p class="hint ${this.untilInvalid ? "warn" : ""}">
+                    ${this.untilInvalid
+                      ? "Until must be on or after the start date."
+                      : "Optional end date for the series (inclusive). Must be on or after the start date. Weekly repeats on the weekday of the start."}
                   </p>
+                  ${this.recurringMultiDay
+                    ? html`<p class="hint warn">
+                        End is on a later day than Start. For repeating timed
+                        events, Save will keep the end clock time on the start
+                        date (same-day duration per occurrence).
+                      </p>`
+                    : nothing}
                 `
               : nothing}
           </div>
@@ -797,6 +870,14 @@ export class HacEventForm extends LitElement {
                 ${this.moveNote}
               </p>`
             : null}
+          ${this.validationError
+            ? html`<p
+                class="hint ${this.untilInvalid ? "error" : "warn"}"
+                role="alert"
+              >
+                ${this.validationError}
+              </p>`
+            : null}
           ${this.errorMessage
             ? html`<p class="hint error" role="alert">${this.errorMessage}</p>`
             : null}
@@ -821,7 +902,9 @@ export class HacEventForm extends LitElement {
               <button
                 type="button"
                 class="primary"
-                ?disabled=${this.busy || this.calendarMoveBlocked}
+                ?disabled=${this.busy ||
+                this.calendarMoveBlocked ||
+                this.untilInvalid}
                 @click=${() => this.onSaveClick()}
               >
                 ${this.busy

@@ -6,6 +6,7 @@ import type {
   PendingDuplicate,
   RawCalendarApiEvent,
 } from "../types";
+import { formatHassError } from "../utils/ha-error";
 
 /** HA CalendarEntityFeature.CREATE_EVENT */
 const FEATURE_CREATE_EVENT = 1;
@@ -51,14 +52,35 @@ export function normalizeApiEvent(
   };
 }
 
+/**
+ * Normalize to HA calendar WS values:
+ * - all-day → YYYY-MM-DD
+ * - timed → floating local YYYY-MM-DDTHH:MM:SS (no Z) — matches stock HA UI
+ */
+function toHaDateTime(value: string, allDay: boolean | undefined): string {
+  if (allDay || /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return value.slice(0, 10);
+  }
+  // Already floating local from the form
+  const floating = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})(?::(\d{2}))?/.exec(value);
+  if (floating && !/[zZ]|[+-]\d{2}:?\d{2}$/.test(value)) {
+    return `${floating[1]}:${floating[2] ?? "00"}`;
+  }
+  // ISO with offset/Z → convert to local wall time for Local Calendar
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
 function toWsEventPayload(input: CalendarEventInput): Record<string, unknown> {
   // HA websocket schema uses rfc5545 field names: dtstart / dtend / rrule
   const payload: Record<string, unknown> = {
     summary: input.summary,
     description: input.description ?? "",
     location: input.location ?? "",
-    dtstart: input.all_day ? input.start.slice(0, 10) : input.start,
-    dtend: input.all_day ? input.end.slice(0, 10) : input.end,
+    dtstart: toHaDateTime(input.start, input.all_day),
+    dtend: toHaDateTime(input.end, input.all_day),
   };
   if (input.rrule) {
     payload.rrule = input.rrule;
@@ -235,41 +257,66 @@ export class CalendarApi {
   }
 
   async createEvent(input: CalendarEventInput): Promise<{ uid?: string }> {
-    try {
-      await this.hass.callWS({
-        type: "calendar/event/create",
-        entity_id: input.calendar,
-        event: toWsEventPayload(input),
-      });
-    } catch (wsErr) {
-      // REST create_event has no rrule — recurring requires websocket
-      if (input.rrule) {
-        throw wsErr instanceof Error
-          ? wsErr
-          : new Error(
-              `Recurring create failed (websocket required for rrule): ${String(wsErr)}`
-            );
-      }
-      // Older / restricted paths: service create_event
+    const event = toWsEventPayload(input);
+
+    // Prefer websocket — required for rrule (REST create_event has no recurrence)
+    if (this.hass.callWS) {
       try {
-        await this.hass.callService("calendar", "create_event", {
+        await this.hass.callWS({
+          type: "calendar/event/create",
           entity_id: input.calendar,
-          summary: input.summary,
-          description: input.description ?? "",
-          location: input.location ?? "",
-          start_date_time: input.all_day ? undefined : input.start,
-          end_date_time: input.all_day ? undefined : input.end,
-          start_date: input.all_day ? input.start.slice(0, 10) : undefined,
-          end_date: input.all_day ? input.end.slice(0, 10) : undefined,
+          event,
         });
-      } catch {
-        throw wsErr instanceof Error ? wsErr : new Error(String(wsErr));
+        const resolved = await this.findCreatedEvent(input);
+        return { uid: resolved?.uid };
+      } catch (wsErr) {
+        if (input.rrule) {
+          throw new Error(
+            `Recurring create failed: ${formatHassError(wsErr)}`
+          );
+        }
+        // Non-recurring: try service fallback below
+        try {
+          await this.createEventViaService(input);
+        } catch (serviceErr) {
+          throw new Error(
+            formatHassError(
+              serviceErr,
+              formatHassError(wsErr, "Calendar create failed")
+            )
+          );
+        }
+        const resolved = await this.findCreatedEvent(input);
+        return { uid: resolved?.uid };
       }
     }
 
-    // Create responses often omit uid — resolve by refetch when possible
+    if (input.rrule) {
+      throw new Error(
+        "Recurring create failed: Home Assistant websocket (callWS) is required for rrule — REST create_event does not support recurrence."
+      );
+    }
+
+    await this.createEventViaService(input);
     const resolved = await this.findCreatedEvent(input);
     return { uid: resolved?.uid };
+  }
+
+  private async createEventViaService(input: CalendarEventInput): Promise<void> {
+    await this.hass.callService("calendar", "create_event", {
+      entity_id: input.calendar,
+      summary: input.summary,
+      description: input.description ?? "",
+      location: input.location ?? "",
+      start_date_time: input.all_day
+        ? undefined
+        : toHaDateTime(input.start, false),
+      end_date_time: input.all_day
+        ? undefined
+        : toHaDateTime(input.end, false),
+      start_date: input.all_day ? input.start.slice(0, 10) : undefined,
+      end_date: input.all_day ? input.end.slice(0, 10) : undefined,
+    });
   }
 
   private async findCreatedEvent(
@@ -323,7 +370,7 @@ export class CalendarApi {
     } catch (wsErr) {
       // Service path has no rrule / recurrence_range — WS is required for series edits
       if (patch.rrule || recurrenceRange) {
-        throw wsErr instanceof Error ? wsErr : new Error(String(wsErr));
+        throw new Error(formatHassError(wsErr, "Calendar update failed"));
       }
       try {
         await this.hass.callService("calendar", "update_event", {
@@ -332,11 +379,20 @@ export class CalendarApi {
           summary: patch.summary,
           description: patch.description,
           location: patch.location,
-          start_date_time: patch.all_day ? undefined : patch.start,
-          end_date_time: patch.all_day ? undefined : patch.end,
+          start_date_time: patch.all_day
+            ? undefined
+            : toHaDateTime(patch.start, false),
+          end_date_time: patch.all_day
+            ? undefined
+            : toHaDateTime(patch.end, false),
         });
-      } catch {
-        throw wsErr instanceof Error ? wsErr : new Error(String(wsErr));
+      } catch (serviceErr) {
+        throw new Error(
+          formatHassError(
+            serviceErr,
+            formatHassError(wsErr, "Calendar update failed")
+          )
+        );
       }
     }
   }
@@ -363,8 +419,13 @@ export class CalendarApi {
           entity_id: entityId,
           uid,
         });
-      } catch {
-        throw wsErr instanceof Error ? wsErr : new Error(String(wsErr));
+      } catch (serviceErr) {
+        throw new Error(
+          formatHassError(
+            serviceErr,
+            formatHassError(wsErr, "Calendar delete failed")
+          )
+        );
       }
     }
   }
@@ -418,7 +479,7 @@ export class CalendarApi {
     } catch (err) {
       return {
         status: "create_failed",
-        error: err instanceof Error ? err.message : String(err),
+        error: formatHassError(err, "Create on target calendar failed"),
       };
     }
 
@@ -437,7 +498,7 @@ export class CalendarApi {
       return {
         status: "delete_failed",
         newUid,
-        error: err instanceof Error ? err.message : String(err),
+        error: formatHassError(err, "Delete from source calendar failed"),
         duplicate: true,
         pending: duplicate,
       };
