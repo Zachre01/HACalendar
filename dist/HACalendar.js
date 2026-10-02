@@ -2007,9 +2007,8 @@ function e(e,t,r,i){var a,n=arguments.length,s=n<3?t:null===i?i=Object.getOwnPro
                 aria-label="Jump to month and year"
                 @click=${()=>this.toggleMonthPicker()}
               >
-                ${this.rangeLabel()}<span class="caret" aria-hidden="true"
-                  >▾</span
-                >
+                ${this.rangeLabel()}
+                <span class="caret" aria-hidden="true">▾</span>
               </button>
               ${this.monthPickerOpen?j`
                     <div

@@ -1176,9 +1176,8 @@ export class HaCalendarCard extends LitElement {
                 aria-label="Jump to month and year"
                 @click=${() => this.toggleMonthPicker()}
               >
-                ${this.rangeLabel()}<span class="caret" aria-hidden="true"
-                  >▾</span
-                >
+                ${this.rangeLabel()}
+                <span class="caret" aria-hidden="true">▾</span>
               </button>
               ${this.monthPickerOpen
                 ? html`
