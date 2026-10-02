@@ -38,8 +38,14 @@ export const cardStyles = css`
     --hac-cal-4: #7a5c2e;
     --hac-hour-height: 56px;
 
-    display: block;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
     position: relative;
+    width: 100%;
+    /* % height resolves in panel hosts; masonry parents stay auto + min-height */
+    height: 100%;
+    min-height: 440px;
     font-family: var(--hac-font-body);
     color: var(--hac-ink);
     background:
@@ -56,9 +62,17 @@ export const cardStyles = css`
       );
     border-radius: var(--hac-radius);
     overflow: hidden;
-    min-height: 440px;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
     animation: host-in 280ms ease;
+  }
+
+  /* Lovelace type: panel — fill the view height, not only width */
+  :host([data-layout="panel"]),
+  :host-context(hui-panel-view) {
+    height: 100%;
+    min-height: calc(100vh - var(--header-height, 56px));
+    min-height: calc(100dvh - var(--header-height, 56px));
+    border-radius: 0;
   }
 
   @keyframes host-in {
@@ -75,8 +89,10 @@ export const cardStyles = css`
   .shell {
     display: flex;
     flex-direction: column;
+    flex: 1 1 auto;
+    width: 100%;
     height: 100%;
-    min-height: 440px;
+    min-height: 0;
   }
 
   header.toolbar {
@@ -183,10 +199,17 @@ export const cardStyles = css`
   }
 
   .grid-wrap {
-    flex: 1;
+    flex: 1 1 auto;
+    min-height: 0;
     overflow: auto;
     position: relative;
     -webkit-overflow-scrolling: touch;
+  }
+
+  /* Time grid fills the flex area below the toolbar; hours scroll inside */
+  hac-time-grid {
+    display: block;
+    min-height: 100%;
   }
 
   .status {
@@ -379,8 +402,12 @@ export const cardStyles = css`
       border-radius: 12px;
     }
 
-    .shell {
-      min-height: 380px;
+    /* Keep masonry compact on phones; panel still fills the view */
+    :host([data-layout="panel"]),
+    :host-context(hui-panel-view) {
+      min-height: calc(100vh - var(--header-height, 56px));
+      min-height: calc(100dvh - var(--header-height, 56px));
+      border-radius: 0;
     }
 
     header.toolbar {
@@ -412,7 +439,10 @@ export const cardStyles = css`
 export const gridStyles = css`
   :host {
     display: block;
+    width: 100%;
+    height: 100%;
     min-height: 100%;
+    box-sizing: border-box;
     --hac-line: rgba(21, 37, 46, 0.1);
     --hac-line-strong: rgba(21, 37, 46, 0.16);
     --hac-muted: #5b7380;

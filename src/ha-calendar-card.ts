@@ -1,4 +1,4 @@
-import { LitElement, html, css, nothing } from "lit";
+import { LitElement, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import {
   CARD_NAME,
@@ -24,14 +24,7 @@ import "./components/event-form";
 
 @customElement(CARD_NAME)
 export class HaCalendarCard extends LitElement {
-  static styles = [
-    cardStyles,
-    css`
-      :host {
-        position: relative;
-      }
-    `,
-  ];
+  static styles = cardStyles;
 
   @property({ attribute: false }) public hass?: HomeAssistant;
 
@@ -91,6 +84,11 @@ export class HaCalendarCard extends LitElement {
   connectedCallback(): void {
     super.connectedCallback();
     this.ensureFonts();
+    this.syncPanelLayout();
+  }
+
+  protected firstUpdated(): void {
+    this.syncPanelLayout();
   }
 
   private ensureFonts(): void {
@@ -103,7 +101,22 @@ export class HaCalendarCard extends LitElement {
     document.head.appendChild(link);
   }
 
+  /**
+   * Lovelace `type: panel` hosts the card in `hui-panel-view` with a real
+   * height. Mark the host so CSS can fill that viewport without forcing
+   * masonry / sections cards to stretch.
+   */
+  private syncPanelLayout(): void {
+    const inPanel = Boolean(this.closest("hui-panel-view"));
+    if (inPanel) {
+      this.setAttribute("data-layout", "panel");
+    } else {
+      this.removeAttribute("data-layout");
+    }
+  }
+
   protected updated(changed: Map<string, unknown>): void {
+    this.syncPanelLayout();
     if (
       changed.has("hass") ||
       changed.has("config") ||
