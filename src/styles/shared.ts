@@ -1096,6 +1096,8 @@ export const formStyles = css`
     z-index: 10;
     animation: fade-in 160ms ease;
     padding: 0;
+    /* Containing block for scope / confirm overlays */
+    isolation: isolate;
   }
 
   @media (min-width: 640px) {
@@ -1280,10 +1282,23 @@ export const formStyles = css`
     display: flex;
     gap: 0.5rem;
     justify-content: flex-end;
+    align-items: center;
     margin-top: 1.15rem;
   }
 
-  .form-actions button {
+  .form-actions.with-delete {
+    justify-content: space-between;
+  }
+
+  .form-actions-end {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    margin-left: auto;
+  }
+
+  .form-actions button,
+  .scope-actions button {
     font: inherit;
     font-weight: 700;
     border-radius: 999px;
@@ -1305,9 +1320,132 @@ export const formStyles = css`
     background: var(--hac-accent-hover, #318579);
   }
 
-  .form-actions button:disabled {
+  .form-actions button.danger,
+  .scope-actions button.danger {
+    background: var(--hac-danger, #c45c5c);
+    border-color: var(--hac-danger, #c45c5c);
+    color: #fff;
+  }
+
+  .form-actions button.danger:hover:not(:disabled),
+  .scope-actions button.danger:hover:not(:disabled) {
+    filter: brightness(1.05);
+  }
+
+  .form-actions button:disabled,
+  .scope-actions button:disabled,
+  .scope-choice:disabled {
     opacity: 0.55;
     cursor: not-allowed;
+  }
+
+  .scope-backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: 12;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    background: color-mix(in srgb, var(--hac-ink, #2c3340) 42%, transparent);
+    animation: fade-in 140ms ease;
+    padding: 0;
+  }
+
+  @media (min-width: 640px) {
+    .scope-backdrop {
+      align-items: center;
+      padding: 1rem;
+    }
+  }
+
+  .scope-panel {
+    width: min(400px, 100%);
+    background: var(--hac-surface, #fff);
+    border-radius: 16px 16px 0 0;
+    padding: 1.1rem 1.15rem 1.25rem;
+    box-shadow: 0 -10px 36px var(--hac-shadow-soft, rgba(44, 51, 64, 0.18));
+    animation: slide-up 200ms ease;
+    color: var(--hac-ink, #2c3340);
+  }
+
+  @media (min-width: 640px) {
+    .scope-panel {
+      border-radius: 16px;
+    }
+  }
+
+  .scope-panel h3 {
+    margin: 0 0 0.35rem;
+    font-family: var(--hac-font-display, "Manrope", sans-serif);
+    font-size: 1.15rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  .scope-sub {
+    margin: 0 0 0.85rem;
+    font-size: 0.82rem;
+    color: var(--hac-muted, #8a93a3);
+    line-height: 1.4;
+  }
+
+  .scope-choices {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+  }
+
+  .scope-choice {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.15rem;
+    width: 100%;
+    text-align: left;
+    font: inherit;
+    border-radius: 12px;
+    border: 1px solid var(--hac-line, #e8ebf0);
+    background: var(--hac-bg, #f7f8fa);
+    color: var(--hac-ink, #2c3340);
+    padding: 0.7rem 0.85rem;
+    cursor: pointer;
+    transition: border-color 140ms ease, box-shadow 140ms ease,
+      background 140ms ease;
+  }
+
+  .scope-choice:hover:not(:disabled) {
+    border-color: var(--hac-accent, #3d9b8f);
+    background: var(--hac-surface, #fff);
+    box-shadow: 0 0 0 3px
+      color-mix(in srgb, var(--hac-accent, #3d9b8f) 12%, transparent);
+  }
+
+  .scope-choice.danger-soft:hover:not(:disabled) {
+    border-color: var(--hac-danger, #c45c5c);
+    box-shadow: 0 0 0 3px
+      color-mix(in srgb, var(--hac-danger, #c45c5c) 14%, transparent);
+  }
+
+  .scope-choice-title {
+    font-weight: 800;
+    font-size: 0.95rem;
+  }
+
+  .scope-choice-desc {
+    font-size: 0.78rem;
+    color: var(--hac-muted, #8a93a3);
+    line-height: 1.35;
+  }
+
+  .scope-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    margin-top: 0.95rem;
+  }
+
+  .scope-actions.split {
+    justify-content: space-between;
   }
 
   .hint {

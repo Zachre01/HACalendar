@@ -23,7 +23,10 @@ import type {
   WeatherDay,
   WeatherSummary,
 } from "./types";
-import type { EventFormSaveDetail } from "./components/event-form";
+import type {
+  EventFormDeleteDetail,
+  EventFormSaveDetail,
+} from "./components/event-form";
 import {
   buildCalendarColorMap,
   fallbackCalendarColor,
@@ -360,6 +363,13 @@ export class HaCalendarCard extends LitElement {
       return [current, ...writable];
     }
     return writable;
+  }
+
+  /** True when the open edit form may offer Delete. */
+  private canDeleteEditing(): boolean {
+    if (!this.editing) return false;
+    if (!this.hass) return true;
+    return new CalendarApi(this.hass).canDelete(this.editing.calendar);
   }
 
   private calendarColor(entityId: string): string {
@@ -845,6 +855,66 @@ export class HaCalendarCard extends LitElement {
         }${reminderNote ? ` · ${reminderNote}` : ""}`;
         this.statusKind = "info";
       }
+      await this.refreshEvents();
+    } catch (err) {
+      this.formError = err instanceof Error ? err.message : String(err);
+      this.status = this.formError;
+      this.statusKind = "error";
+    } finally {
+      this.formBusy = false;
+    }
+  }
+
+  private async onFormDelete(
+    e: CustomEvent<EventFormDeleteDetail>
+  ): Promise<void> {
+    const { event, recurrenceScope } = e.detail;
+    if (!this.hass) {
+      this.formError = "No Home Assistant connection — cannot delete.";
+      return;
+    }
+
+    this.formBusy = true;
+    this.formError = "";
+    const api = new CalendarApi(this.hass);
+
+    try {
+      if (!api.canDelete(event.calendar)) {
+        this.formError = `${event.calendar} does not support deleting events.`;
+        this.status = this.formError;
+        this.statusKind = "error";
+        return;
+      }
+
+      const { recurrenceId, recurrenceRange } = recurrenceParams(
+        event,
+        recurrenceScope ?? "this"
+      );
+      await api.deleteEvent(
+        event.calendar,
+        event.uid,
+        recurrenceId,
+        recurrenceRange
+      );
+
+      if (this.remindersAvailable()) {
+        try {
+          await new ReminderApi(this.hass).clearReminder(
+            event.calendar,
+            event.uid
+          );
+        } catch {
+          /* best-effort */
+        }
+      }
+
+      this.formOpen = false;
+      const scopeNote =
+        event.recurring || event.rrule || event.recurrence_id
+          ? ` · ${recurrenceScope ?? "this"}`
+          : "";
+      this.status = `Deleted “${event.summary}”${scopeNote}`;
+      this.statusKind = "info";
       await this.refreshEvents();
     } catch (err) {
       this.formError = err instanceof Error ? err.message : String(err);
@@ -1384,10 +1454,12 @@ export class HaCalendarCard extends LitElement {
                   .remindersAvailable=${this.remindersAvailable()}
                   .reminderDefaults=${this.reminderDefaults()}
                   .reminder=${this.formReminder}
+                  .canDelete=${this.canDeleteEditing()}
                   @form-cancel=${() => {
                     if (!this.formBusy) this.formOpen = false;
                   }}
                   @form-save=${this.onFormSave}
+                  @form-delete=${this.onFormDelete}
                 ></hac-event-form>
               `
             : nothing}
