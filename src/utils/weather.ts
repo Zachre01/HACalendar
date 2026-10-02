@@ -1,4 +1,9 @@
-import type { HassEntity, HomeAssistant, WeatherDay, WeatherSummary } from "../types";
+import type {
+  HassEntity,
+  HomeAssistant,
+  WeatherDay,
+  WeatherSummary,
+} from "../types";
 
 const CONDITION_LABELS: Record<string, string> = {
   "clear-night": "Clear",
@@ -37,7 +42,21 @@ export function weatherGlyph(condition: string): string {
   return "·";
 }
 
-function asForecastList(raw: unknown): WeatherDay[] {
+/**
+ * Canonical weather entity id from card config.
+ * Prefer `weather_entity`; accept alias `weather` (common YAML shorthand).
+ */
+export function resolveWeatherEntityId(config: {
+  weather_entity?: string;
+  weather?: string;
+}): string | undefined {
+  const raw = config.weather_entity ?? config.weather;
+  if (!raw || typeof raw !== "string") return undefined;
+  const trimmed = raw.trim();
+  return trimmed || undefined;
+}
+
+export function asForecastList(raw: unknown): WeatherDay[] {
   if (!Array.isArray(raw)) return [];
   const out: WeatherDay[] = [];
   for (const item of raw) {
@@ -57,18 +76,47 @@ function asForecastList(raw: unknown): WeatherDay[] {
   return out;
 }
 
+function forecastFromAttributes(attrs: Record<string, unknown>): WeatherDay[] {
+  return asForecastList(
+    attrs.forecast ?? attrs.forecast_daily ?? attrs.forecast_twice_daily
+  );
+}
+
+function unwrapForecastsResponse(
+  response: unknown,
+  entityId: string
+): WeatherDay[] {
+  if (!response || typeof response !== "object") return [];
+  const obj = response as Record<string, unknown>;
+  const root =
+    obj.response && typeof obj.response === "object"
+      ? (obj.response as Record<string, unknown>)
+      : obj;
+  const entityPayload = root[entityId];
+  if (!entityPayload || typeof entityPayload !== "object") return [];
+  return asForecastList(
+    (entityPayload as Record<string, unknown>).forecast
+  );
+}
+
+/**
+ * Live summary from hass.states (condition + temp). Forecast may be empty on
+ * modern HA where the forecast attribute was removed — use fetchWeatherForecast.
+ */
 export function readWeatherSummary(
   hass: HomeAssistant | undefined,
-  entityId: string | undefined
+  entityId: string | undefined,
+  forecastOverride?: WeatherDay[] | null
 ): WeatherSummary | null {
   if (!hass || !entityId) return null;
   const entity: HassEntity | undefined = hass.states[entityId];
   if (!entity) return null;
 
   const attrs = entity.attributes ?? {};
-  const forecast = asForecastList(
-    attrs.forecast ?? attrs.forecast_daily ?? attrs.forecast_twice_daily
-  );
+  const forecast =
+    forecastOverride && forecastOverride.length
+      ? forecastOverride
+      : forecastFromAttributes(attrs);
 
   return {
     entityId,
@@ -84,6 +132,40 @@ export function readWeatherSummary(
     humidity: typeof attrs.humidity === "number" ? attrs.humidity : undefined,
     forecast,
   };
+}
+
+/**
+ * Prefer attribute forecast when present; otherwise call weather.get_forecasts
+ * (daily → twice_daily → hourly) for modern HA entities.
+ */
+export async function fetchWeatherForecast(
+  hass: HomeAssistant,
+  entityId: string
+): Promise<WeatherDay[]> {
+  const entity = hass.states[entityId];
+  if (entity) {
+    const fromAttrs = forecastFromAttributes(entity.attributes ?? {});
+    if (fromAttrs.length) return fromAttrs;
+  }
+
+  const types = ["daily", "twice_daily", "hourly"] as const;
+  for (const type of types) {
+    try {
+      const response = await hass.callService(
+        "weather",
+        "get_forecasts",
+        { type },
+        { entity_id: entityId },
+        false,
+        true
+      );
+      const list = unwrapForecastsResponse(response, entityId);
+      if (list.length) return list;
+    } catch {
+      // try next forecast type / fall through
+    }
+  }
+  return [];
 }
 
 export function forecastForDate(

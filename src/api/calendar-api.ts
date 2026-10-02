@@ -52,14 +52,40 @@ export function normalizeApiEvent(
 }
 
 function toWsEventPayload(input: CalendarEventInput): Record<string, unknown> {
-  // HA websocket schema uses rfc5545 field names: dtstart / dtend
-  return {
+  // HA websocket schema uses rfc5545 field names: dtstart / dtend / rrule
+  const payload: Record<string, unknown> = {
     summary: input.summary,
     description: input.description ?? "",
     location: input.location ?? "",
     dtstart: input.all_day ? input.start.slice(0, 10) : input.start,
     dtend: input.all_day ? input.end.slice(0, 10) : input.end,
   };
+  if (input.rrule) {
+    payload.rrule = input.rrule;
+  }
+  return payload;
+}
+
+/** Map UI scope → HA recurrence_id / recurrence_range for update/delete. */
+export function recurrenceParams(
+  event: Pick<CalendarEvent, "recurrence_id" | "rrule" | "recurring">,
+  scope: "this" | "future" | "series" = "this"
+): { recurrenceId?: string; recurrenceRange?: string } {
+  const isRecurring = Boolean(event.recurring || event.rrule || event.recurrence_id);
+  if (!isRecurring) return {};
+  if (scope === "series") {
+    // Entire series: uid only (no recurrence_id)
+    return {};
+  }
+  const recurrenceId = event.recurrence_id;
+  if (!recurrenceId) {
+    // Series master without instance id — treat as whole series
+    return {};
+  }
+  if (scope === "future") {
+    return { recurrenceId, recurrenceRange: "THISANDFUTURE" };
+  }
+  return { recurrenceId };
 }
 
 function eventsMatch(
@@ -213,6 +239,14 @@ export class CalendarApi {
         event: toWsEventPayload(input),
       });
     } catch (wsErr) {
+      // REST create_event has no rrule — recurring requires websocket
+      if (input.rrule) {
+        throw wsErr instanceof Error
+          ? wsErr
+          : new Error(
+              `Recurring create failed (websocket required for rrule): ${String(wsErr)}`
+            );
+      }
       // Older / restricted paths: service create_event
       try {
         await this.hass.callService("calendar", "create_event", {
@@ -269,18 +303,25 @@ export class CalendarApi {
     entityId: string,
     uid: string,
     patch: CalendarEventInput,
-    recurrenceId?: string
+    recurrenceId?: string,
+    recurrenceRange?: string
   ): Promise<void> {
     try {
-      await this.hass.callWS({
+      const msg: Record<string, unknown> = {
         type: "calendar/event/update",
         entity_id: entityId,
         uid,
-        recurrence_id: recurrenceId,
         event: toWsEventPayload(patch),
-      });
+      };
+      if (recurrenceId) msg.recurrence_id = recurrenceId;
+      if (recurrenceRange) msg.recurrence_range = recurrenceRange;
+      await this.hass.callWS(msg);
       return;
     } catch (wsErr) {
+      // Service path has no rrule / recurrence_range — WS is required for series edits
+      if (patch.rrule || recurrenceRange) {
+        throw wsErr instanceof Error ? wsErr : new Error(String(wsErr));
+      }
       try {
         await this.hass.callService("calendar", "update_event", {
           entity_id: entityId,
@@ -300,15 +341,18 @@ export class CalendarApi {
   async deleteEvent(
     entityId: string,
     uid: string,
-    recurrenceId?: string
+    recurrenceId?: string,
+    recurrenceRange?: string
   ): Promise<void> {
     try {
-      await this.hass.callWS({
+      const msg: Record<string, unknown> = {
         type: "calendar/event/delete",
         entity_id: entityId,
         uid,
-        recurrence_id: recurrenceId,
-      });
+      };
+      if (recurrenceId) msg.recurrence_id = recurrenceId;
+      if (recurrenceRange) msg.recurrence_range = recurrenceRange;
+      await this.hass.callWS(msg);
       return;
     } catch (wsErr) {
       try {
