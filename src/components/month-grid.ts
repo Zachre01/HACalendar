@@ -51,14 +51,9 @@ export class HacMonthGrid extends LitElement {
       height: 100%;
       min-height: 100%;
       box-sizing: border-box;
-      --hac-ink: #2c3340;
-      --hac-muted: #8a93a3;
-      --hac-line: #e8ebf0;
-      --hac-today: #f08a5a;
-      --hac-font-body: "Nunito", "Avenir Next", "Segoe UI", sans-serif;
-      font-family: var(--hac-font-body);
-      color: var(--hac-ink);
-      background: #fff;
+      font-family: var(--hac-font-body, "Nunito", "Avenir Next", "Segoe UI", sans-serif);
+      color: var(--hac-ink, #2c3340);
+      background: var(--hac-surface, #fff);
     }
 
     :host([data-fill]) {
@@ -75,8 +70,8 @@ export class HacMonthGrid extends LitElement {
     .dow {
       display: grid;
       grid-template-columns: repeat(7, minmax(0, 1fr));
-      border-bottom: 1px solid var(--hac-line);
-      background: #fafbfc;
+      border-bottom: 1px solid var(--hac-line, #e8ebf0);
+      background: var(--hac-surface-muted, #fafbfc);
     }
 
     .dow span {
@@ -85,7 +80,7 @@ export class HacMonthGrid extends LitElement {
       font-weight: 700;
       letter-spacing: 0.06em;
       text-transform: uppercase;
-      color: var(--hac-muted);
+      color: var(--hac-muted, #8a93a3);
       padding: 0.55rem 0.25rem;
     }
 
@@ -103,14 +98,14 @@ export class HacMonthGrid extends LitElement {
     }
 
     .cell {
-      border-right: 1px solid var(--hac-line);
-      border-bottom: 1px solid var(--hac-line);
+      border-right: 1px solid var(--hac-line, #e8ebf0);
+      border-bottom: 1px solid var(--hac-line, #e8ebf0);
       padding: 0.35rem 0.35rem 0.4rem;
       min-height: 0;
       display: flex;
       flex-direction: column;
       gap: 0.2rem;
-      background: #fff;
+      background: var(--hac-surface, #fff);
       cursor: pointer;
       transition: background 140ms ease;
     }
@@ -120,16 +115,16 @@ export class HacMonthGrid extends LitElement {
     }
 
     .cell:hover {
-      background: #f7fafc;
+      background: var(--hac-cell-hover, #f7fafc);
     }
 
     .cell[data-outside="true"] {
-      background: #fbfcfd;
-      color: #b0b7c3;
+      background: var(--hac-outside-bg, #fbfcfd);
+      color: var(--hac-outside-ink, #b0b7c3);
     }
 
     .cell[data-today="true"] {
-      background: #fffaf7;
+      background: var(--hac-today-bg, #fffaf7);
     }
 
     .cell-top {
@@ -152,13 +147,13 @@ export class HacMonthGrid extends LitElement {
     }
 
     .cell[data-today="true"] .num {
-      background: var(--hac-today);
+      background: var(--hac-today, #f08a5a);
       color: #fff;
     }
 
     .wx {
       font-size: 0.68rem;
-      color: var(--hac-muted);
+      color: var(--hac-muted, #8a93a3);
       font-weight: 600;
       white-space: nowrap;
     }
@@ -208,14 +203,14 @@ export class HacMonthGrid extends LitElement {
     .more {
       font-size: 0.65rem;
       font-weight: 700;
-      color: var(--hac-muted);
+      color: var(--hac-muted, #8a93a3);
       padding: 0.05rem 0.2rem;
     }
 
     .empty {
       font-size: 0.65rem;
       font-weight: 600;
-      color: #c2c8d2;
+      color: var(--hac-faint, #c2c8d2);
       padding: 0.1rem 0.15rem;
     }
 

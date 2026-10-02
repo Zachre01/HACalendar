@@ -5,25 +5,41 @@ import { css } from "lit";
  * Light off-white surface, soft pastels, coral today accent — not purple / cream-AI defaults.
  */
 export const FONT_STYLESHEET_HREF =
-  "https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Nunito:wght@500;600;700;800&display=swap";
+  "https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Nunito:wght@500;600;700;800&family=Quicksand:wght@500;600;700&display=swap";
 
 export const cardStyles = css`
   :host {
+    /* Light (Skylight) — default */
     --hac-bg: #f7f8fa;
     --hac-surface: #ffffff;
+    --hac-surface-muted: #fafbfc;
+    --hac-surface-soft: #f4f6f8;
     --hac-ink: #2c3340;
     --hac-muted: #8a93a3;
+    --hac-faint: #b0b7c3;
     --hac-accent: #3d9b8f;
     --hac-accent-hover: #318579;
     --hac-today: #f08a5a;
+    --hac-today-bg: #fffaf7;
+    --hac-today-head: #fff6f1;
     --hac-line: #e8ebf0;
     --hac-line-strong: #d8dde6;
     --hac-danger: #c45c5c;
+    --hac-danger-bg: #fdf4f4;
     --hac-warn: #9a6b1f;
     --hac-warn-bg: #fff6e8;
+    --hac-warn-ink: #5c3d00;
+    --hac-cell-hover: #f7fafc;
+    --hac-outside-bg: #fbfcfd;
+    --hac-outside-ink: #b0b7c3;
+    --hac-veil: rgba(255, 255, 255, 0.28);
+    --hac-state-bg: rgba(255, 255, 255, 0.88);
+    --hac-info-grad: linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%);
+    --hac-shadow-soft: rgba(44, 51, 64, 0.08);
     --hac-radius: 0;
     --hac-font-display: "Manrope", "Avenir Next", "Segoe UI", sans-serif;
     --hac-font-body: "Nunito", "Avenir Next", "Segoe UI", sans-serif;
+    --hac-font-weather: "Quicksand", "Nunito", "Avenir Next", sans-serif;
     --hac-cal-0: #e07a5f;
     --hac-cal-1: #3d9b8f;
     --hac-cal-2: #81b29a;
@@ -45,6 +61,39 @@ export const cardStyles = css`
     overflow: hidden;
     border: 1px solid var(--hac-line);
     animation: host-in 280ms ease;
+    color-scheme: light;
+    transition: background 220ms ease, color 220ms ease, border-color 220ms ease;
+  }
+
+  /* Cohesive dark companion to Skylight light — warm slate, same accents */
+  :host([data-theme="dark"]) {
+    --hac-bg: #1a1e26;
+    --hac-surface: #222833;
+    --hac-surface-muted: #1e2430;
+    --hac-surface-soft: #2a3140;
+    --hac-ink: #e8ebf2;
+    --hac-muted: #9aa3b5;
+    --hac-faint: #6e778a;
+    --hac-accent: #4db3a5;
+    --hac-accent-hover: #5fc4b5;
+    --hac-today: #f08a5a;
+    --hac-today-bg: #2e2622;
+    --hac-today-head: #342820;
+    --hac-line: #323a4a;
+    --hac-line-strong: #3e475a;
+    --hac-danger: #e07a7a;
+    --hac-danger-bg: #3a2428;
+    --hac-warn: #e0b45c;
+    --hac-warn-bg: #3a3020;
+    --hac-warn-ink: #f0d9a0;
+    --hac-cell-hover: #2a3140;
+    --hac-outside-bg: #1c212c;
+    --hac-outside-ink: #6e778a;
+    --hac-veil: rgba(26, 30, 38, 0.35);
+    --hac-state-bg: rgba(34, 40, 51, 0.92);
+    --hac-info-grad: linear-gradient(180deg, #262c38 0%, #222833 100%);
+    --hac-shadow-soft: rgba(0, 0, 0, 0.35);
+    color-scheme: dark;
   }
 
   /*
@@ -93,7 +142,7 @@ export const cardStyles = css`
     align-items: center;
     padding: 0.85rem 1.15rem 0.65rem;
     border-bottom: 1px solid var(--hac-line);
-    background: linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%);
+    background: var(--hac-info-grad);
     flex: 0 0 auto;
   }
 
@@ -130,36 +179,94 @@ export const cardStyles = css`
     align-items: center;
     justify-content: center;
     text-align: center;
-    gap: 0.1rem;
+    gap: 0.35rem;
     min-width: 0;
   }
 
+  .weather-blob {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.35rem 0.75rem 0.35rem 0.4rem;
+    border-radius: 999px;
+    background: var(--hac-wx-soft, var(--hac-surface-soft));
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+    animation: wx-pop 420ms cubic-bezier(0.34, 1.4, 0.64, 1);
+  }
+
+  :host([data-theme="dark"]) .weather-blob {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  }
+
+  @keyframes wx-pop {
+    from {
+      opacity: 0.5;
+      transform: scale(0.92);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .weather-icon-halo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.15rem;
+    height: 2.15rem;
+    border-radius: 50%;
+    background: var(--hac-wx-accent, var(--hac-accent));
+    font-size: 1.15rem;
+    line-height: 1;
+    box-shadow: 0 4px 12px var(--hac-shadow-soft);
+    animation: wx-bob 3.2s ease-in-out infinite;
+  }
+
+  @keyframes wx-bob {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-2px);
+    }
+  }
+
   .weather-now .temp {
-    font-family: var(--hac-font-display);
+    font-family: var(--hac-font-weather);
     font-size: clamp(1.35rem, 3vw, 1.85rem);
-    font-weight: 800;
+    font-weight: 700;
     letter-spacing: -0.03em;
+    color: var(--hac-wx-ink, var(--hac-ink));
   }
 
   .weather-now .cond {
-    font-size: 0.82rem;
+    font-family: var(--hac-font-weather);
+    font-size: 0.88rem;
     font-weight: 600;
-    color: var(--hac-muted);
-    text-transform: capitalize;
+    color: var(--hac-wx-ink, var(--hac-muted));
+    text-transform: none;
+    letter-spacing: -0.01em;
   }
 
   .weather-stub {
+    font-family: var(--hac-font-weather);
     font-size: 0.8rem;
     font-weight: 600;
-    color: #b0b7c3;
+    color: var(--hac-faint);
+    padding: 0.45rem 0.7rem;
+    border-radius: 999px;
+    background: var(--hac-surface-soft);
   }
 
   .forecast-strip {
     display: flex;
     justify-content: flex-end;
-    gap: 0.35rem;
+    gap: 0.4rem;
     overflow: auto;
     min-width: 0;
+    padding-bottom: 0.1rem;
   }
 
   .forecast-day {
@@ -167,29 +274,54 @@ export const cardStyles = css`
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.1rem;
-    min-width: 2.6rem;
-    padding: 0.25rem 0.3rem;
-    border-radius: 10px;
-    background: #f4f6f8;
+    gap: 0.15rem;
+    min-width: 2.85rem;
+    padding: 0.35rem 0.35rem 0.4rem;
+    border-radius: 14px;
+    background: var(--hac-wx-day-soft, var(--hac-surface-soft));
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+    transition: transform 160ms ease, box-shadow 160ms ease;
+    animation: wx-chip-in 360ms ease both;
+  }
+
+  :host([data-theme="dark"]) .forecast-day {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  }
+
+  .forecast-day:hover {
+    transform: translateY(-2px);
+  }
+
+  @keyframes wx-chip-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .forecast-day .d {
+    font-family: var(--hac-font-weather);
     font-size: 0.62rem;
-    font-weight: 800;
+    font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
     color: var(--hac-muted);
   }
 
   .forecast-day .g {
-    font-size: 0.85rem;
+    font-size: 1rem;
     line-height: 1;
   }
 
   .forecast-day .t {
-    font-size: 0.72rem;
+    font-family: var(--hac-font-weather);
+    font-size: 0.76rem;
     font-weight: 700;
+    color: var(--hac-wx-day-ink, var(--hac-ink));
   }
 
   .title-row {
@@ -228,7 +360,7 @@ export const cardStyles = css`
     align-items: center;
     gap: 0.35rem;
     border: 1px solid var(--hac-line-strong);
-    background: #fff;
+    background: var(--hac-surface);
     color: var(--hac-ink);
     font: inherit;
     font-size: 0.8rem;
@@ -246,7 +378,7 @@ export const cardStyles = css`
 
   .pill[aria-pressed="false"] {
     opacity: 0.42;
-    background: #f3f5f7;
+    background: var(--hac-surface-soft);
   }
 
   .pill .dot {
@@ -279,12 +411,107 @@ export const cardStyles = css`
     gap: 0.25rem;
   }
 
+  .range-wrap {
+    position: relative;
+  }
+
   .range-label {
+    font: inherit;
     font-size: 0.9rem;
     font-weight: 700;
     color: var(--hac-ink);
     min-width: 7rem;
     text-align: center;
+    border: 1px solid transparent;
+    background: transparent;
+    border-radius: 999px;
+    padding: 0.35rem 0.65rem;
+    cursor: pointer;
+    transition: background 140ms ease, border-color 140ms ease;
+  }
+
+  .range-label:hover,
+  .range-label[aria-expanded="true"] {
+    background: var(--hac-surface-soft);
+    border-color: var(--hac-line-strong);
+  }
+
+  .range-label .caret {
+    display: inline-block;
+    margin-left: 0.2rem;
+    font-size: 0.7em;
+    opacity: 0.65;
+  }
+
+  .month-picker {
+    position: absolute;
+    top: calc(100% + 0.35rem);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 8;
+    width: min(17.5rem, 80vw);
+    padding: 0.75rem;
+    border-radius: 14px;
+    background: var(--hac-surface);
+    border: 1px solid var(--hac-line-strong);
+    box-shadow: 0 12px 32px var(--hac-shadow-soft);
+    animation: picker-in 180ms ease;
+  }
+
+  @keyframes picker-in {
+    from {
+      opacity: 0;
+      transform: translateX(-50%) translateY(-4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  }
+
+  .month-picker-year {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.35rem;
+    margin-bottom: 0.55rem;
+  }
+
+  .month-picker-year .year {
+    font-family: var(--hac-font-display);
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  .month-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.3rem;
+  }
+
+  .month-picker-grid button {
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 700;
+    border: 1px solid transparent;
+    background: var(--hac-surface-soft);
+    color: var(--hac-ink);
+    border-radius: 10px;
+    padding: 0.45rem 0.25rem;
+    cursor: pointer;
+    min-height: 2.15rem;
+    transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+  }
+
+  .month-picker-grid button:hover {
+    border-color: var(--hac-line-strong);
+  }
+
+  .month-picker-grid button[aria-current="true"] {
+    background: var(--hac-accent);
+    color: #fff;
+    border-color: var(--hac-accent);
   }
 
   .view-toggle {
@@ -292,7 +519,7 @@ export const cardStyles = css`
     border: 1px solid var(--hac-line-strong);
     border-radius: 999px;
     overflow: hidden;
-    background: #f7f8fa;
+    background: var(--hac-bg);
   }
 
   .view-toggle button {
@@ -309,7 +536,18 @@ export const cardStyles = css`
 
   .view-toggle button[aria-pressed="true"] {
     background: var(--hac-ink);
-    color: #fff;
+    color: var(--hac-surface);
+  }
+
+  .theme-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .theme-btn .glyph {
+    font-size: 0.95rem;
+    line-height: 1;
   }
 
   .nav-btn,
@@ -319,7 +557,7 @@ export const cardStyles = css`
     font-size: 0.85rem;
     font-weight: 700;
     border: 1px solid var(--hac-line-strong);
-    background: #fff;
+    background: var(--hac-surface);
     color: var(--hac-ink);
     padding: 0.4rem 0.8rem;
     border-radius: 999px;
@@ -360,7 +598,7 @@ export const cardStyles = css`
     overscroll-behavior: contain;
     position: relative;
     -webkit-overflow-scrolling: touch;
-    background: #fff;
+    background: var(--hac-surface);
   }
 
   hac-time-grid,
@@ -386,13 +624,13 @@ export const cardStyles = css`
     font-weight: 600;
     color: var(--hac-muted);
     border-top: 1px solid var(--hac-line);
-    background: #fafbfc;
+    background: var(--hac-surface-muted);
     flex: 0 0 auto;
   }
 
   .status[data-kind="error"] {
     color: var(--hac-danger);
-    background: #fdf4f4;
+    background: var(--hac-danger-bg);
   }
 
   .status[data-kind="warn"] {
@@ -423,7 +661,7 @@ export const cardStyles = css`
     padding: 0.7rem 1rem;
     background: var(--hac-warn-bg);
     border-bottom: 1px solid rgba(154, 107, 31, 0.22);
-    color: #5c3d00;
+    color: var(--hac-warn-ink);
     font-size: 0.85rem;
     animation: banner-in 200ms ease;
     flex: 0 0 auto;
@@ -444,8 +682,8 @@ export const cardStyles = css`
     font: inherit;
     font-weight: 700;
     border: 1px solid rgba(154, 107, 31, 0.35);
-    background: #fff;
-    color: #5c3d00;
+    background: var(--hac-surface);
+    color: var(--hac-warn-ink);
     border-radius: 999px;
     padding: 0.35rem 0.75rem;
     cursor: pointer;
@@ -469,7 +707,7 @@ export const cardStyles = css`
     gap: 0.65rem;
     padding: 1.5rem;
     text-align: center;
-    background: rgba(255, 255, 255, 0.88);
+    background: var(--hac-state-bg);
     backdrop-filter: blur(2px);
     animation: fade-in 200ms ease;
     pointer-events: auto;
@@ -492,9 +730,13 @@ export const cardStyles = css`
     width: 3.25rem;
     height: 3.25rem;
     border-radius: 1rem;
-    background: linear-gradient(145deg, #fff 0%, #e8f4f2 100%);
+    background: linear-gradient(
+      145deg,
+      var(--hac-surface) 0%,
+      color-mix(in srgb, var(--hac-accent) 18%, var(--hac-surface)) 100%
+    );
     border: 1px solid var(--hac-line);
-    box-shadow: 0 8px 20px rgba(44, 51, 64, 0.06);
+    box-shadow: 0 8px 20px var(--hac-shadow-soft);
     position: relative;
   }
 
@@ -515,7 +757,7 @@ export const cardStyles = css`
     right: 30%;
     height: 3px;
     border-radius: 2px;
-    background: rgba(44, 51, 64, 0.2);
+    background: color-mix(in srgb, var(--hac-ink) 20%, transparent);
   }
 
   .state-panel h2 {
@@ -546,7 +788,7 @@ export const cardStyles = css`
     position: absolute;
     inset: 0;
     z-index: 3;
-    background: rgba(255, 255, 255, 0.28);
+    background: var(--hac-veil);
     pointer-events: none;
     animation: fade-in 160ms ease;
   }
@@ -628,22 +870,11 @@ export const gridStyles = css`
     height: 100%;
     min-height: 100%;
     box-sizing: border-box;
-    --hac-line: #e8ebf0;
-    --hac-line-strong: #d8dde6;
-    --hac-muted: #8a93a3;
-    --hac-ink: #2c3340;
-    --hac-event: #3d9b8f;
+    --hac-event: var(--hac-accent, #3d9b8f);
     --hac-event-text: #fff;
-    --hac-accent: #3d9b8f;
-    --hac-today: #f08a5a;
-    --hac-cal-0: #e07a5f;
-    --hac-cal-1: #3d9b8f;
-    --hac-cal-2: #81b29a;
-    --hac-cal-3: #5b8db8;
-    --hac-cal-4: #e9b44c;
-    --hac-font-body: "Nunito", "Avenir Next", "Segoe UI", sans-serif;
-    font-family: var(--hac-font-body);
-    background: #fff;
+    font-family: var(--hac-font-body, "Nunito", "Avenir Next", "Segoe UI", sans-serif);
+    color: var(--hac-ink, #2c3340);
+    background: var(--hac-surface, #fff);
   }
 
   .time-grid {
@@ -665,9 +896,9 @@ export const gridStyles = css`
     position: sticky;
     top: 0;
     z-index: 2;
-    background: rgba(255, 255, 255, 0.96);
+    background: color-mix(in srgb, var(--hac-surface, #fff) 96%, transparent);
     backdrop-filter: blur(6px);
-    border-bottom: 1px solid var(--hac-line-strong);
+    border-bottom: 1px solid var(--hac-line-strong, #d8dde6);
     padding: 0.55rem 0.3rem;
     text-align: center;
   }
@@ -683,7 +914,7 @@ export const gridStyles = css`
     gap: 0.1rem;
     font-size: 0.72rem;
     font-weight: 700;
-    color: var(--hac-muted);
+    color: var(--hac-muted, #8a93a3);
     text-transform: uppercase;
     letter-spacing: 0.04em;
   }
@@ -691,13 +922,13 @@ export const gridStyles = css`
   .day-head .num {
     font-size: 1.05rem;
     font-weight: 800;
-    color: var(--hac-ink);
+    color: var(--hac-ink, #2c3340);
     letter-spacing: 0;
     text-transform: none;
   }
 
   .day-head[data-today="true"] {
-    background: #fff6f1;
+    background: var(--hac-today-head, #fff6f1);
   }
 
   .day-head[data-today="true"] .num {
@@ -708,7 +939,7 @@ export const gridStyles = css`
     height: 1.7rem;
     margin: 0 auto;
     border-radius: 50%;
-    background: var(--hac-today);
+    background: var(--hac-today, #f08a5a);
     color: #fff;
   }
 
@@ -718,34 +949,34 @@ export const gridStyles = css`
     position: sticky;
     left: 0;
     z-index: 1;
-    background: rgba(255, 255, 255, 0.96);
+    background: color-mix(in srgb, var(--hac-surface, #fff) 96%, transparent);
   }
 
   .hour-label {
     height: var(--hac-hour-height, 56px);
     font-size: 0.68rem;
     font-weight: 700;
-    color: var(--hac-muted);
+    color: var(--hac-muted, #8a93a3);
     text-align: right;
     padding: 0.15rem 0.45rem 0 0;
-    border-right: 1px solid var(--hac-line);
+    border-right: 1px solid var(--hac-line, #e8ebf0);
     box-sizing: border-box;
   }
 
   .day-col {
     position: relative;
-    border-left: 1px solid var(--hac-line);
-    background: #fff;
+    border-left: 1px solid var(--hac-line, #e8ebf0);
+    background: var(--hac-surface, #fff);
   }
 
   .day-col[data-today="true"] {
-    background: #fffaf7;
+    background: var(--hac-today-bg, #fffaf7);
   }
 
   .hour-line {
     height: var(--hac-hour-height, 56px);
     box-sizing: border-box;
-    border-bottom: 1px solid var(--hac-line);
+    border-bottom: 1px solid var(--hac-line, #e8ebf0);
   }
 
   .now-line {
@@ -753,7 +984,7 @@ export const gridStyles = css`
     left: 0;
     right: 0;
     height: 2px;
-    background: var(--hac-today);
+    background: var(--hac-today, #f08a5a);
     z-index: 2;
     pointer-events: none;
     box-shadow: 0 0 0 2px rgba(240, 138, 90, 0.15);
@@ -767,7 +998,7 @@ export const gridStyles = css`
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: var(--hac-today);
+    background: var(--hac-today, #f08a5a);
   }
 
   .event-block {
@@ -784,7 +1015,7 @@ export const gridStyles = css`
     overflow: hidden;
     cursor: pointer;
     border: 0;
-    box-shadow: 0 1px 0 rgba(44, 51, 64, 0.06);
+    box-shadow: 0 1px 0 var(--hac-shadow-soft, rgba(44, 51, 64, 0.06));
     transition: transform 140ms ease, box-shadow 140ms ease, filter 140ms ease;
     -webkit-tap-highlight-color: transparent;
   }
@@ -792,7 +1023,7 @@ export const gridStyles = css`
   .event-block:hover,
   .event-block:focus-visible {
     transform: translateY(-1px) scale(1.01);
-    box-shadow: 0 6px 14px rgba(44, 51, 64, 0.12);
+    box-shadow: 0 6px 14px var(--hac-shadow-soft, rgba(44, 51, 64, 0.12));
     filter: brightness(1.04);
     outline: none;
   }
@@ -837,22 +1068,15 @@ export const gridStyles = css`
 
 export const formStyles = css`
   :host {
-    --hac-ink: #2c3340;
-    --hac-muted: #8a93a3;
-    --hac-accent: #3d9b8f;
-    --hac-accent-hover: #318579;
-    --hac-line: #e8ebf0;
-    --hac-danger: #c45c5c;
-    --hac-warn: #9a6b1f;
-    --hac-font-display: "Manrope", "Avenir Next", "Segoe UI", sans-serif;
-    --hac-font-body: "Nunito", "Avenir Next", "Segoe UI", sans-serif;
-    font-family: var(--hac-font-body);
+    --hac-event: var(--hac-accent, #3d9b8f);
+    font-family: var(--hac-font-body, "Nunito", "Avenir Next", "Segoe UI", sans-serif);
+    color: var(--hac-ink, #2c3340);
   }
 
   .form-backdrop {
     position: absolute;
     inset: 0;
-    background: rgba(44, 51, 64, 0.34);
+    background: color-mix(in srgb, var(--hac-ink, #2c3340) 34%, transparent);
     display: flex;
     align-items: flex-end;
     justify-content: center;
@@ -881,17 +1105,18 @@ export const formStyles = css`
     width: min(440px, 100%);
     max-height: min(92vh, 720px);
     overflow: auto;
-    background: #fff;
+    background: var(--hac-surface, #fff);
     border-radius: 16px 16px 0 0;
     padding: 1.1rem 1.15rem 1.35rem;
-    box-shadow: 0 -10px 36px rgba(44, 51, 64, 0.18);
+    box-shadow: 0 -10px 36px var(--hac-shadow-soft, rgba(44, 51, 64, 0.18));
     animation: slide-up 220ms ease;
+    color: var(--hac-ink, #2c3340);
   }
 
   @media (min-width: 640px) {
     .form-panel {
       border-radius: 16px;
-      box-shadow: 0 16px 40px rgba(44, 51, 64, 0.18);
+      box-shadow: 0 16px 40px var(--hac-shadow-soft, rgba(44, 51, 64, 0.18));
     }
   }
 
@@ -907,7 +1132,7 @@ export const formStyles = css`
   }
 
   .form-panel h2 {
-    font-family: var(--hac-font-display);
+    font-family: var(--hac-font-display, "Manrope", sans-serif);
     font-size: 1.28rem;
     margin: 0 0 0.35rem;
     letter-spacing: -0.02em;
@@ -917,7 +1142,7 @@ export const formStyles = css`
   .form-sub {
     margin: 0 0 0.75rem;
     font-size: 0.82rem;
-    color: var(--hac-muted);
+    color: var(--hac-muted, #8a93a3);
   }
 
   label {
@@ -926,7 +1151,7 @@ export const formStyles = css`
     font-weight: 800;
     letter-spacing: 0.03em;
     text-transform: uppercase;
-    color: var(--hac-muted);
+    color: var(--hac-muted, #8a93a3);
     margin: 0.65rem 0 0.25rem;
   }
 
@@ -938,10 +1163,10 @@ export const formStyles = css`
     font: inherit;
     font-size: 0.95rem;
     padding: 0.55rem 0.65rem;
-    border: 1px solid var(--hac-line);
+    border: 1px solid var(--hac-line, #e8ebf0);
     border-radius: 10px;
-    background: #f7f8fa;
-    color: var(--hac-ink);
+    background: var(--hac-bg, #f7f8fa);
+    color: var(--hac-ink, #2c3340);
     min-height: 2.5rem;
     transition: border-color 140ms ease, box-shadow 140ms ease;
   }
@@ -950,9 +1175,9 @@ export const formStyles = css`
   select:focus,
   textarea:focus {
     outline: none;
-    border-color: var(--hac-accent);
-    box-shadow: 0 0 0 3px rgba(61, 155, 143, 0.15);
-    background: #fff;
+    border-color: var(--hac-accent, #3d9b8f);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--hac-accent, #3d9b8f) 15%, transparent);
+    background: var(--hac-surface, #fff);
   }
 
   input:disabled,
@@ -977,7 +1202,7 @@ export const formStyles = css`
     height: 1.1rem;
     border-radius: 50%;
     flex: 0 0 auto;
-    box-shadow: inset 0 0 0 1px rgba(44, 51, 64, 0.12);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--hac-ink, #2c3340) 12%, transparent);
   }
 
   .cal-legend {
@@ -991,22 +1216,22 @@ export const formStyles = css`
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    border: 1px solid var(--hac-line);
-    background: #f7f8fa;
+    border: 1px solid var(--hac-line, #e8ebf0);
+    background: var(--hac-bg, #f7f8fa);
     border-radius: 999px;
     padding: 0.2rem 0.55rem 0.2rem 0.35rem;
     font: inherit;
     font-size: 0.72rem;
     font-weight: 700;
-    color: var(--hac-ink);
+    color: var(--hac-ink, #2c3340);
     cursor: pointer;
     text-transform: capitalize;
   }
 
   .cal-legend-item[data-active="true"] {
-    border-color: var(--hac-accent);
-    background: #fff;
-    box-shadow: 0 0 0 2px rgba(61, 155, 143, 0.12);
+    border-color: var(--hac-accent, #3d9b8f);
+    background: var(--hac-surface, #fff);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--hac-accent, #3d9b8f) 12%, transparent);
   }
 
   .cal-legend-item:disabled {
@@ -1052,19 +1277,19 @@ export const formStyles = css`
     padding: 0.5rem 1rem;
     min-height: 2.4rem;
     cursor: pointer;
-    border: 1px solid var(--hac-line);
-    background: #fff;
-    color: var(--hac-ink);
+    border: 1px solid var(--hac-line, #e8ebf0);
+    background: var(--hac-surface, #fff);
+    color: var(--hac-ink, #2c3340);
   }
 
   .form-actions button.primary {
-    background: var(--hac-accent);
-    border-color: var(--hac-accent);
+    background: var(--hac-accent, #3d9b8f);
+    border-color: var(--hac-accent, #3d9b8f);
     color: #fff;
   }
 
   .form-actions button.primary:hover:not(:disabled) {
-    background: var(--hac-accent-hover);
+    background: var(--hac-accent-hover, #318579);
   }
 
   .form-actions button:disabled {
@@ -1074,19 +1299,19 @@ export const formStyles = css`
 
   .hint {
     font-size: 0.78rem;
-    color: var(--hac-muted);
+    color: var(--hac-muted, #8a93a3);
     margin: 0.65rem 0 0;
     line-height: 1.35;
   }
 
   .hint.warn {
-    color: var(--hac-warn);
+    color: var(--hac-warn, #9a6b1f);
   }
 
   .hint.error {
-    color: var(--hac-danger);
-    background: #fdf4f4;
-    border: 1px solid rgba(196, 92, 92, 0.2);
+    color: var(--hac-danger, #c45c5c);
+    background: var(--hac-danger-bg, #fdf4f4);
+    border: 1px solid color-mix(in srgb, var(--hac-danger, #c45c5c) 20%, transparent);
     border-radius: 10px;
     padding: 0.55rem 0.7rem;
   }
@@ -1094,23 +1319,23 @@ export const formStyles = css`
   .reminder-block {
     margin-top: 1rem;
     padding: 0.75rem 0.8rem;
-    border: 1px solid var(--hac-line);
+    border: 1px solid var(--hac-line, #e8ebf0);
     border-radius: 12px;
-    background: #f7faf9;
+    background: color-mix(in srgb, var(--hac-accent, #3d9b8f) 8%, var(--hac-surface, #fff));
   }
 
   .recur-block {
     margin-top: 1rem;
     padding: 0.75rem 0.8rem;
-    border: 1px solid var(--hac-line);
+    border: 1px solid var(--hac-line, #e8ebf0);
     border-radius: 12px;
-    background: #f8f9fb;
+    background: var(--hac-surface-muted, #f8f9fb);
   }
 
   .recur-block h3,
   .reminder-block h3 {
     margin: 0 0 0.35rem;
-    font-family: var(--hac-font-display);
+    font-family: var(--hac-font-display, "Manrope", sans-serif);
     font-size: 0.95rem;
     font-weight: 800;
   }
@@ -1126,7 +1351,7 @@ export const formStyles = css`
     margin: 0.55rem 0 0.25rem;
     font-size: 0.9rem;
     font-weight: 700;
-    color: var(--hac-ink);
+    color: var(--hac-ink, #2c3340);
     text-transform: none;
     letter-spacing: 0;
   }

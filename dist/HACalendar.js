@@ -1,20 +1,36 @@
-function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPropertyDescriptor(t,r):i;if("object"==typeof Reflect&&"function"==typeof Reflect.decorate)a=Reflect.decorate(e,t,r,i);else for(var o=e.length-1;o>=0;o--)(s=e[o])&&(a=(n<3?s(a):n>3?s(t,r,a):s(t,r))||a);return n>3&&a&&Object.defineProperty(t,r,a),a}"function"==typeof SuppressedError&&SuppressedError;const t=globalThis,r=t.ShadowRoot&&(void 0===t.ShadyCSS||t.ShadyCSS.nativeShadow)&&"adoptedStyleSheets"in Document.prototype&&"replace"in CSSStyleSheet.prototype,i=Symbol(),s=new WeakMap;let n=class{constructor(e,t,r){if(this._$cssResult$=!0,r!==i)throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");this.cssText=e,this.t=t}get styleSheet(){let e=this.o;const t=this.t;if(r&&void 0===e){const r=void 0!==t&&1===t.length;r&&(e=s.get(t)),void 0===e&&((this.o=e=new CSSStyleSheet).replaceSync(this.cssText),r&&s.set(t,e))}return e}toString(){return this.cssText}};const a=(e,...t)=>{const r=1===e.length?e[0]:t.reduce((t,r,i)=>t+(e=>{if(!0===e._$cssResult$)return e.cssText;if("number"==typeof e)return e;throw Error("Value passed to 'css' function must be a 'css' function result: "+e+". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.")})(r)+e[i+1],e[0]);return new n(r,e,i)},o=r?e=>e:e=>e instanceof CSSStyleSheet?(e=>{let t="";for(const r of e.cssRules)t+=r.cssText;return(e=>new n("string"==typeof e?e:e+"",void 0,i))(t)})(e):e,{is:l,defineProperty:d,getOwnPropertyDescriptor:c,getOwnPropertyNames:h,getOwnPropertySymbols:u,getPrototypeOf:p}=Object,m=globalThis,f=m.trustedTypes,g=f?f.emptyScript:"",y=m.reactiveElementPolyfillSupport,v=(e,t)=>e,b={toAttribute(e,t){switch(t){case Boolean:e=e?g:null;break;case Object:case Array:e=null==e?e:JSON.stringify(e)}return e},fromAttribute(e,t){let r=e;switch(t){case Boolean:r=null!==e;break;case Number:r=null===e?null:Number(e);break;case Object:case Array:try{r=JSON.parse(e)}catch(e){r=null}}return r}},w=(e,t)=>!l(e,t),$={attribute:!0,type:String,converter:b,reflect:!1,useDefault:!1,hasChanged:w};Symbol.metadata??=Symbol("metadata"),m.litPropertyMetadata??=new WeakMap;let _=class extends HTMLElement{static addInitializer(e){this._$Ei(),(this.l??=[]).push(e)}static get observedAttributes(){return this.finalize(),this._$Eh&&[...this._$Eh.keys()]}static createProperty(e,t=$){if(t.state&&(t.attribute=!1),this._$Ei(),this.prototype.hasOwnProperty(e)&&((t=Object.create(t)).wrapped=!0),this.elementProperties.set(e,t),!t.noAccessor){const r=Symbol(),i=this.getPropertyDescriptor(e,r,t);void 0!==i&&d(this.prototype,e,i)}}static getPropertyDescriptor(e,t,r){const{get:i,set:s}=c(this.prototype,e)??{get(){return this[t]},set(e){this[t]=e}};return{get:i,set(t){const n=i?.call(this);s?.call(this,t),this.requestUpdate(e,n,r)},configurable:!0,enumerable:!0}}static getPropertyOptions(e){return this.elementProperties.get(e)??$}static _$Ei(){if(this.hasOwnProperty(v("elementProperties")))return;const e=p(this);e.finalize(),void 0!==e.l&&(this.l=[...e.l]),this.elementProperties=new Map(e.elementProperties)}static finalize(){if(this.hasOwnProperty(v("finalized")))return;if(this.finalized=!0,this._$Ei(),this.hasOwnProperty(v("properties"))){const e=this.properties,t=[...h(e),...u(e)];for(const r of t)this.createProperty(r,e[r])}const e=this[Symbol.metadata];if(null!==e){const t=litPropertyMetadata.get(e);if(void 0!==t)for(const[e,r]of t)this.elementProperties.set(e,r)}this._$Eh=new Map;for(const[e,t]of this.elementProperties){const r=this._$Eu(e,t);void 0!==r&&this._$Eh.set(r,e)}this.elementStyles=this.finalizeStyles(this.styles)}static finalizeStyles(e){const t=[];if(Array.isArray(e)){const r=new Set(e.flat(1/0).reverse());for(const e of r)t.unshift(o(e))}else void 0!==e&&t.push(o(e));return t}static _$Eu(e,t){const r=t.attribute;return!1===r?void 0:"string"==typeof r?r:"string"==typeof e?e.toLowerCase():void 0}constructor(){super(),this._$Ep=void 0,this.isUpdatePending=!1,this.hasUpdated=!1,this._$Em=null,this._$Ev()}_$Ev(){this._$ES=new Promise(e=>this.enableUpdating=e),this._$AL=new Map,this._$E_(),this.requestUpdate(),this.constructor.l?.forEach(e=>e(this))}addController(e){(this._$EO??=new Set).add(e),void 0!==this.renderRoot&&this.isConnected&&e.hostConnected?.()}removeController(e){this._$EO?.delete(e)}_$E_(){const e=new Map,t=this.constructor.elementProperties;for(const r of t.keys())this.hasOwnProperty(r)&&(e.set(r,this[r]),delete this[r]);e.size>0&&(this._$Ep=e)}createRenderRoot(){const e=this.shadowRoot??this.attachShadow(this.constructor.shadowRootOptions);return((e,i)=>{if(r)e.adoptedStyleSheets=i.map(e=>e instanceof CSSStyleSheet?e:e.styleSheet);else for(const r of i){const i=document.createElement("style"),s=t.litNonce;void 0!==s&&i.setAttribute("nonce",s),i.textContent=r.cssText,e.appendChild(i)}})(e,this.constructor.elementStyles),e}connectedCallback(){this.renderRoot??=this.createRenderRoot(),this.enableUpdating(!0),this._$EO?.forEach(e=>e.hostConnected?.())}enableUpdating(e){}disconnectedCallback(){this._$EO?.forEach(e=>e.hostDisconnected?.())}attributeChangedCallback(e,t,r){this._$AK(e,r)}_$ET(e,t){const r=this.constructor.elementProperties.get(e),i=this.constructor._$Eu(e,r);if(void 0!==i&&!0===r.reflect){const s=(void 0!==r.converter?.toAttribute?r.converter:b).toAttribute(t,r.type);this._$Em=e,null==s?this.removeAttribute(i):this.setAttribute(i,s),this._$Em=null}}_$AK(e,t){const r=this.constructor,i=r._$Eh.get(e);if(void 0!==i&&this._$Em!==i){const e=r.getPropertyOptions(i),s="function"==typeof e.converter?{fromAttribute:e.converter}:void 0!==e.converter?.fromAttribute?e.converter:b;this._$Em=i;const n=s.fromAttribute(t,e.type);this[i]=n??this._$Ej?.get(i)??n,this._$Em=null}}requestUpdate(e,t,r,i=!1,s){if(void 0!==e){const n=this.constructor;if(!1===i&&(s=this[e]),r??=n.getPropertyOptions(e),!((r.hasChanged??w)(s,t)||r.useDefault&&r.reflect&&s===this._$Ej?.get(e)&&!this.hasAttribute(n._$Eu(e,r))))return;this.C(e,t,r)}!1===this.isUpdatePending&&(this._$ES=this._$EP())}C(e,t,{useDefault:r,reflect:i,wrapped:s},n){r&&!(this._$Ej??=new Map).has(e)&&(this._$Ej.set(e,n??t??this[e]),!0!==s||void 0!==n)||(this._$AL.has(e)||(this.hasUpdated||r||(t=void 0),this._$AL.set(e,t)),!0===i&&this._$Em!==e&&(this._$Eq??=new Set).add(e))}async _$EP(){this.isUpdatePending=!0;try{await this._$ES}catch(e){Promise.reject(e)}const e=this.scheduleUpdate();return null!=e&&await e,!this.isUpdatePending}scheduleUpdate(){return this.performUpdate()}performUpdate(){if(!this.isUpdatePending)return;if(!this.hasUpdated){if(this.renderRoot??=this.createRenderRoot(),this._$Ep){for(const[e,t]of this._$Ep)this[e]=t;this._$Ep=void 0}const e=this.constructor.elementProperties;if(e.size>0)for(const[t,r]of e){const{wrapped:e}=r,i=this[t];!0!==e||this._$AL.has(t)||void 0===i||this.C(t,void 0,r,i)}}let e=!1;const t=this._$AL;try{e=this.shouldUpdate(t),e?(this.willUpdate(t),this._$EO?.forEach(e=>e.hostUpdate?.()),this.update(t)):this._$EM()}catch(t){throw e=!1,this._$EM(),t}e&&this._$AE(t)}willUpdate(e){}_$AE(e){this._$EO?.forEach(e=>e.hostUpdated?.()),this.hasUpdated||(this.hasUpdated=!0,this.firstUpdated(e)),this.updated(e)}_$EM(){this._$AL=new Map,this.isUpdatePending=!1}get updateComplete(){return this.getUpdateComplete()}getUpdateComplete(){return this._$ES}shouldUpdate(e){return!0}update(e){this._$Eq&&=this._$Eq.forEach(e=>this._$ET(e,this[e])),this._$EM()}updated(e){}firstUpdated(e){}};_.elementStyles=[],_.shadowRootOptions={mode:"open"},_[v("elementProperties")]=new Map,_[v("finalized")]=new Map,y?.({ReactiveElement:_}),(m.reactiveElementVersions??=[]).push("2.1.2");const x=globalThis,k=e=>e,E=x.trustedTypes,S=E?E.createPolicy("lit-html",{createHTML:e=>e}):void 0,C="$lit$",A=`lit$${Math.random().toFixed(9).slice(2)}$`,D="?"+A,R=`<${D}>`,T=document,M=()=>T.createComment(""),P=e=>null===e||"object"!=typeof e&&"function"!=typeof e,O=Array.isArray,H="[ \t\n\f\r]",N=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,L=/-->/g,z=/>/g,U=RegExp(`>|${H}(?:([^\\s"'>=/]+)(${H}*=${H}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`,"g"),F=/'/g,I=/"/g,B=/^(?:script|style|textarea|title)$/i,j=(e=>(t,...r)=>({_$litType$:e,strings:t,values:r}))(1),K=Symbol.for("lit-noChange"),W=Symbol.for("lit-nothing"),q=new WeakMap,Y=T.createTreeWalker(T,129);function V(e,t){if(!O(e)||!e.hasOwnProperty("raw"))throw Error("invalid template strings array");return void 0!==S?S.createHTML(t):t}const G=(e,t)=>{const r=e.length-1,i=[];let s,n=2===t?"<svg>":3===t?"<math>":"",a=N;for(let t=0;t<r;t++){const r=e[t];let o,l,d=-1,c=0;for(;c<r.length&&(a.lastIndex=c,l=a.exec(r),null!==l);)c=a.lastIndex,a===N?"!--"===l[1]?a=L:void 0!==l[1]?a=z:void 0!==l[2]?(B.test(l[2])&&(s=RegExp("</"+l[2],"g")),a=U):void 0!==l[3]&&(a=U):a===U?">"===l[0]?(a=s??N,d=-1):void 0===l[1]?d=-2:(d=a.lastIndex-l[2].length,o=l[1],a=void 0===l[3]?U:'"'===l[3]?I:F):a===I||a===F?a=U:a===L||a===z?a=N:(a=U,s=void 0);const h=a===U&&e[t+1].startsWith("/>")?" ":"";n+=a===N?r+R:d>=0?(i.push(o),r.slice(0,d)+C+r.slice(d)+A+h):r+A+(-2===d?t:h)}return[V(e,n+(e[r]||"<?>")+(2===t?"</svg>":3===t?"</math>":"")),i]};class J{constructor({strings:e,_$litType$:t},r){let i;this.parts=[];let s=0,n=0;const a=e.length-1,o=this.parts,[l,d]=G(e,t);if(this.el=J.createElement(l,r),Y.currentNode=this.el.content,2===t||3===t){const e=this.el.content.firstChild;e.replaceWith(...e.childNodes)}for(;null!==(i=Y.nextNode())&&o.length<a;){if(1===i.nodeType){if(i.hasAttributes())for(const e of i.getAttributeNames())if(e.endsWith(C)){const t=d[n++],r=i.getAttribute(e).split(A),a=/([.?@])?(.*)/.exec(t);o.push({type:1,index:s,name:a[2],strings:r,ctor:"."===a[1]?te:"?"===a[1]?re:"@"===a[1]?ie:ee}),i.removeAttribute(e)}else e.startsWith(A)&&(o.push({type:6,index:s}),i.removeAttribute(e));if(B.test(i.tagName)){const e=i.textContent.split(A),t=e.length-1;if(t>0){i.textContent=E?E.emptyScript:"";for(let r=0;r<t;r++)i.append(e[r],M()),Y.nextNode(),o.push({type:2,index:++s});i.append(e[t],M())}}}else if(8===i.nodeType)if(i.data===D)o.push({type:2,index:s});else{let e=-1;for(;-1!==(e=i.data.indexOf(A,e+1));)o.push({type:7,index:s}),e+=A.length-1}s++}}static createElement(e,t){const r=T.createElement("template");return r.innerHTML=e,r}}function Q(e,t,r=e,i){if(t===K)return t;let s=void 0!==i?r._$Co?.[i]:r._$Cl;const n=P(t)?void 0:t._$litDirective$;return s?.constructor!==n&&(s?._$AO?.(!1),void 0===n?s=void 0:(s=new n(e),s._$AT(e,r,i)),void 0!==i?(r._$Co??=[])[i]=s:r._$Cl=s),void 0!==s&&(t=Q(e,s._$AS(e,t.values),s,i)),t}class Z{constructor(e,t){this._$AV=[],this._$AN=void 0,this._$AD=e,this._$AM=t}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(e){const{el:{content:t},parts:r}=this._$AD,i=(e?.creationScope??T).importNode(t,!0);Y.currentNode=i;let s=Y.nextNode(),n=0,a=0,o=r[0];for(;void 0!==o;){if(n===o.index){let t;2===o.type?t=new X(s,s.nextSibling,this,e):1===o.type?t=new o.ctor(s,o.name,o.strings,this,e):6===o.type&&(t=new se(s,this,e)),this._$AV.push(t),o=r[++a]}n!==o?.index&&(s=Y.nextNode(),n++)}return Y.currentNode=T,i}p(e){let t=0;for(const r of this._$AV)void 0!==r&&(void 0!==r.strings?(r._$AI(e,r,t),t+=r.strings.length-2):r._$AI(e[t])),t++}}class X{get _$AU(){return this._$AM?._$AU??this._$Cv}constructor(e,t,r,i){this.type=2,this._$AH=W,this._$AN=void 0,this._$AA=e,this._$AB=t,this._$AM=r,this.options=i,this._$Cv=i?.isConnected??!0}get parentNode(){let e=this._$AA.parentNode;const t=this._$AM;return void 0!==t&&11===e?.nodeType&&(e=t.parentNode),e}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(e,t=this){e=Q(this,e,t),P(e)?e===W||null==e||""===e?(this._$AH!==W&&this._$AR(),this._$AH=W):e!==this._$AH&&e!==K&&this._(e):void 0!==e._$litType$?this.$(e):void 0!==e.nodeType?this.T(e):(e=>O(e)||"function"==typeof e?.[Symbol.iterator])(e)?this.k(e):this._(e)}O(e){return this._$AA.parentNode.insertBefore(e,this._$AB)}T(e){this._$AH!==e&&(this._$AR(),this._$AH=this.O(e))}_(e){this._$AH!==W&&P(this._$AH)?this._$AA.nextSibling.data=e:this.T(T.createTextNode(e)),this._$AH=e}$(e){const{values:t,_$litType$:r}=e,i="number"==typeof r?this._$AC(e):(void 0===r.el&&(r.el=J.createElement(V(r.h,r.h[0]),this.options)),r);if(this._$AH?._$AD===i)this._$AH.p(t);else{const e=new Z(i,this),r=e.u(this.options);e.p(t),this.T(r),this._$AH=e}}_$AC(e){let t=q.get(e.strings);return void 0===t&&q.set(e.strings,t=new J(e)),t}k(e){O(this._$AH)||(this._$AH=[],this._$AR());const t=this._$AH;let r,i=0;for(const s of e)i===t.length?t.push(r=new X(this.O(M()),this.O(M()),this,this.options)):r=t[i],r._$AI(s),i++;i<t.length&&(this._$AR(r&&r._$AB.nextSibling,i),t.length=i)}_$AR(e=this._$AA.nextSibling,t){for(this._$AP?.(!1,!0,t);e!==this._$AB;){const t=k(e).nextSibling;k(e).remove(),e=t}}setConnected(e){void 0===this._$AM&&(this._$Cv=e,this._$AP?.(e))}}class ee{get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}constructor(e,t,r,i,s){this.type=1,this._$AH=W,this._$AN=void 0,this.element=e,this.name=t,this._$AM=i,this.options=s,r.length>2||""!==r[0]||""!==r[1]?(this._$AH=Array(r.length-1).fill(new String),this.strings=r):this._$AH=W}_$AI(e,t=this,r,i){const s=this.strings;let n=!1;if(void 0===s)e=Q(this,e,t,0),n=!P(e)||e!==this._$AH&&e!==K,n&&(this._$AH=e);else{const i=e;let a,o;for(e=s[0],a=0;a<s.length-1;a++)o=Q(this,i[r+a],t,a),o===K&&(o=this._$AH[a]),n||=!P(o)||o!==this._$AH[a],o===W?e=W:e!==W&&(e+=(o??"")+s[a+1]),this._$AH[a]=o}n&&!i&&this.j(e)}j(e){e===W?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,e??"")}}class te extends ee{constructor(){super(...arguments),this.type=3}j(e){this.element[this.name]=e===W?void 0:e}}class re extends ee{constructor(){super(...arguments),this.type=4}j(e){this.element.toggleAttribute(this.name,!!e&&e!==W)}}class ie extends ee{constructor(e,t,r,i,s){super(e,t,r,i,s),this.type=5}_$AI(e,t=this){if((e=Q(this,e,t,0)??W)===K)return;const r=this._$AH,i=e===W&&r!==W||e.capture!==r.capture||e.once!==r.once||e.passive!==r.passive,s=e!==W&&(r===W||i);i&&this.element.removeEventListener(this.name,this,r),s&&this.element.addEventListener(this.name,this,e),this._$AH=e}handleEvent(e){"function"==typeof this._$AH?this._$AH.call(this.options?.host??this.element,e):this._$AH.handleEvent(e)}}class se{constructor(e,t,r){this.element=e,this.type=6,this._$AN=void 0,this._$AM=t,this.options=r}get _$AU(){return this._$AM._$AU}_$AI(e){Q(this,e)}}const ne=x.litHtmlPolyfillSupport;ne?.(J,X),(x.litHtmlVersions??=[]).push("3.3.3");const ae=globalThis;class oe extends _{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0}createRenderRoot(){const e=super.createRenderRoot();return this.renderOptions.renderBefore??=e.firstChild,e}update(e){const t=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(e),this._$Do=((e,t,r)=>{const i=r?.renderBefore??t;let s=i._$litPart$;if(void 0===s){const e=r?.renderBefore??null;i._$litPart$=s=new X(t.insertBefore(M(),e),e,void 0,r??{})}return s._$AI(e),s})(t,this.renderRoot,this.renderOptions)}connectedCallback(){super.connectedCallback(),this._$Do?.setConnected(!0)}disconnectedCallback(){super.disconnectedCallback(),this._$Do?.setConnected(!1)}render(){return K}}oe._$litElement$=!0,oe.finalized=!0,ae.litElementHydrateSupport?.({LitElement:oe});const le=ae.litElementPolyfillSupport;le?.({LitElement:oe}),(ae.litElementVersions??=[]).push("4.2.2");const de=e=>(t,r)=>{void 0!==r?r.addInitializer(()=>{customElements.define(e,t)}):customElements.define(e,t)},ce={attribute:!0,type:String,converter:b,reflect:!1,hasChanged:w},he=(e=ce,t,r)=>{const{kind:i,metadata:s}=r;let n=globalThis.litPropertyMetadata.get(s);if(void 0===n&&globalThis.litPropertyMetadata.set(s,n=new Map),"setter"===i&&((e=Object.create(e)).wrapped=!0),n.set(r.name,e),"accessor"===i){const{name:i}=r;return{set(r){const s=t.get.call(this);t.set.call(this,r),this.requestUpdate(i,s,e,!0,r)},init(t){return void 0!==t&&this.C(i,void 0,e,t),t}}}if("setter"===i){const{name:i}=r;return function(r){const s=this[i];t.call(this,r),this.requestUpdate(i,s,e,!0,r)}}throw Error("Unsupported decorator location: "+i)};function ue(e){return(t,r)=>"object"==typeof r?he(e,t,r):((e,t,r)=>{const i=t.hasOwnProperty(r);return t.constructor.createProperty(r,e),i?Object.getOwnPropertyDescriptor(t,r):void 0})(e,t,r)}function pe(e){return ue({...e,state:!0,attribute:!1})}const me="0.7.2",fe="ha-calendar-card",ge=56,ye=["calendar.family","calendar.personal","calendar.work"],ve=["#E07A5F","#3D9B8F","#81B29A","#5B8DB8","#E9B44C"];function be(e){if(e)return"string"==typeof e?e:"dateTime"in e&&e.dateTime?e.dateTime:"date"in e&&e.date?e.date:void 0}function we(e,t){const r=be(e.start),i=be(e.end);if(!r||!i)return null;const s=e.rrule??void 0;return{uid:e.uid??`${t}:${r}:${e.summary??"event"}`,summary:e.summary??"(no title)",description:e.description??void 0,location:e.location??void 0,start:r,end:i,all_day:e.all_day??(n=e.start,n&&"string"!=typeof n?Boolean(n.date&&!n.dateTime):Boolean(n&&/^\d{4}-\d{2}-\d{2}$/.test(n))),calendar:t,recurring:Boolean(s||e.recurrence_id),rrule:s,recurrence_id:e.recurrence_id??void 0};var n}function $e(e){const t={summary:e.summary,description:e.description??"",location:e.location??"",dtstart:e.all_day?e.start.slice(0,10):e.start,dtend:e.all_day?e.end.slice(0,10):e.end};return e.rrule&&(t.rrule=e.rrule),t}class _e{constructor(e){this.hass=e}listCalendarEntities(e){return e?.length?[...e]:Object.keys(this.hass.states).filter(e=>e.startsWith("calendar.")).sort()}listWritableCalendars(e){return e.filter(e=>{const t=this.hass.states[e];if(!t)return!0;const r=t.attributes.supported_features;return"number"!=typeof r||!!(1&r)})}canDelete(e){const t=this.hass.states[e];if(!t)return!0;const r=t.attributes.supported_features;return"number"!=typeof r||!!(2&r)}async getEvents(e,t,r){const i=[],s=[];let n=!1;for(const a of e)try{const e=await this.fetchEntityEvents(a,t,r);n=!0,i.push(...e)}catch(e){s.push(a),console.warn(`[ha-calendar-card] failed to load ${a}:`,e instanceof Error?e.message:e)}return{events:i,errors:s,anySuccess:n}}async fetchEntityEvents(e,t,r){if(this.hass.callApi)try{const i=`?start=${encodeURIComponent(t.toISOString())}&end=${encodeURIComponent(r.toISOString())}`;return(await this.hass.callApi("GET",`calendars/${e}${i}`)??[]).map(t=>we(t,e)).filter(e=>null!==e)}catch{}const i=await this.hass.callService("calendar","get_events",{entity_id:e,start_date_time:t.toISOString(),end_date_time:r.toISOString()},void 0,void 0,!0);let s;if(i&&"object"==typeof i){const e=i;s=e.response&&"object"==typeof e.response?e.response:e}return(s?.[e]?.events??[]).map(t=>we(t,e)).filter(e=>null!==e)}async createEvent(e){try{await this.hass.callWS({type:"calendar/event/create",entity_id:e.calendar,event:$e(e)})}catch(t){if(e.rrule)throw t instanceof Error?t:new Error(`Recurring create failed (websocket required for rrule): ${String(t)}`);try{await this.hass.callService("calendar","create_event",{entity_id:e.calendar,summary:e.summary,description:e.description??"",location:e.location??"",start_date_time:e.all_day?void 0:e.start,end_date_time:e.all_day?void 0:e.end,start_date:e.all_day?e.start.slice(0,10):void 0,end_date:e.all_day?e.end.slice(0,10):void 0})}catch{throw t instanceof Error?t:new Error(String(t))}}const t=await this.findCreatedEvent(e);return{uid:t?.uid}}async findCreatedEvent(e){const t=new Date(e.start),r=new Date(e.end),i=new Date(t.getTime()-6e4),s=new Date(r.getTime()+6e4);try{const{events:r}=await this.getEvents([e.calendar],i,s);return r.find(t=>function(e,t){return e.summary===t.summary&&e.start===t.start&&e.end===t.end}(t,{summary:e.summary,start:e.all_day?e.start.slice(0,10):e.start,end:e.all_day?e.end.slice(0,10):e.end}))??r.find(r=>r.summary===e.summary&&Math.abs(new Date(r.start).getTime()-t.getTime())<12e4)??null}catch{return null}}async updateEvent(e,t,r,i,s){try{const n={type:"calendar/event/update",entity_id:e,uid:t,event:$e(r)};return i&&(n.recurrence_id=i),s&&(n.recurrence_range=s),void await this.hass.callWS(n)}catch(i){if(r.rrule||s)throw i instanceof Error?i:new Error(String(i));try{await this.hass.callService("calendar","update_event",{entity_id:e,uid:t,summary:r.summary,description:r.description,location:r.location,start_date_time:r.all_day?void 0:r.start,end_date_time:r.all_day?void 0:r.end})}catch{throw i instanceof Error?i:new Error(String(i))}}}async deleteEvent(e,t,r,i){try{const s={type:"calendar/event/delete",entity_id:e,uid:t};return r&&(s.recurrence_id=r),i&&(s.recurrence_range=i),void await this.hass.callWS(s)}catch(r){try{await this.hass.callService("calendar","delete_event",{entity_id:e,uid:t})}catch{throw r instanceof Error?r:new Error(String(r))}}}async moveEventToCalendar(e,t,r){if(e.recurring||e.rrule)return{status:"blocked_recurring",reason:"Moving recurring events is disabled — change calendars only for one-off events."};if(e.calendar===t)return{status:"moved",newUid:e.uid};const i={summary:r?.summary??e.summary,description:r?.description??e.description,location:r?.location??e.location,start:r?.start??e.start,end:r?.end??e.end,all_day:r?.all_day??e.all_day,calendar:t};let s;try{if(s=(await this.createEvent(i)).uid??(await this.findCreatedEvent(i))?.uid,!s)return{status:"create_failed",error:"Created on target calendar but could not confirm the new event id — source left untouched."}}catch(e){return{status:"create_failed",error:e instanceof Error?e.message:String(e)}}try{return await this.deleteEvent(e.calendar,e.uid,e.recurrence_id),{status:"moved",newUid:s}}catch(i){const n={entityId:e.calendar,uid:e.uid,summary:r?.summary??e.summary,targetCalendar:t,newUid:s};return{status:"delete_failed",newUid:s,error:i instanceof Error?i.message:String(i),duplicate:!0,pending:n}}}}const xe="ha_calendar_reminders";function ke(e){if(!e||"object"!=typeof e)return{};const t=e;return t.response&&"object"==typeof t.response?t.response:t}class Ee{constructor(e){this.hass=e}isAvailable(){const e=this.hass.services;return Boolean(e&&e[xe]?.set_reminder)}async getReminder(e,t){const r=ke(await this.hass.callService(xe,"get_reminder",{calendar_entity_id:e,event_uid:t},void 0,void 0,!0)).reminder;return r&&"object"==typeof r?r:null}async setReminder(e){return ke(await this.hass.callService(xe,"set_reminder",{calendar_entity_id:e.calendar_entity_id,event_uid:e.event_uid,event_start:e.event_start,event_summary:e.event_summary??"",minutes_before:e.minutes_before,notify_service:e.notify_service,message:e.message??"",enabled:e.enabled??!0},void 0,void 0,!0)).reminder??null}async clearReminder(e,t){const r=ke(await this.hass.callService(xe,"clear_reminder",{calendar_entity_id:e,event_uid:t},void 0,void 0,!0));return Boolean(r.cleared)}}const Se=a`
+function e(e,t,r,i){var a,n=arguments.length,s=n<3?t:null===i?i=Object.getOwnPropertyDescriptor(t,r):i;if("object"==typeof Reflect&&"function"==typeof Reflect.decorate)s=Reflect.decorate(e,t,r,i);else for(var o=e.length-1;o>=0;o--)(a=e[o])&&(s=(n<3?a(s):n>3?a(t,r,s):a(t,r))||s);return n>3&&s&&Object.defineProperty(t,r,s),s}"function"==typeof SuppressedError&&SuppressedError;const t=globalThis,r=t.ShadowRoot&&(void 0===t.ShadyCSS||t.ShadyCSS.nativeShadow)&&"adoptedStyleSheets"in Document.prototype&&"replace"in CSSStyleSheet.prototype,i=Symbol(),a=new WeakMap;let n=class{constructor(e,t,r){if(this._$cssResult$=!0,r!==i)throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");this.cssText=e,this.t=t}get styleSheet(){let e=this.o;const t=this.t;if(r&&void 0===e){const r=void 0!==t&&1===t.length;r&&(e=a.get(t)),void 0===e&&((this.o=e=new CSSStyleSheet).replaceSync(this.cssText),r&&a.set(t,e))}return e}toString(){return this.cssText}};const s=(e,...t)=>{const r=1===e.length?e[0]:t.reduce((t,r,i)=>t+(e=>{if(!0===e._$cssResult$)return e.cssText;if("number"==typeof e)return e;throw Error("Value passed to 'css' function must be a 'css' function result: "+e+". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.")})(r)+e[i+1],e[0]);return new n(r,e,i)},o=r?e=>e:e=>e instanceof CSSStyleSheet?(e=>{let t="";for(const r of e.cssRules)t+=r.cssText;return(e=>new n("string"==typeof e?e:e+"",void 0,i))(t)})(e):e,{is:c,defineProperty:l,getOwnPropertyDescriptor:d,getOwnPropertyNames:h,getOwnPropertySymbols:u,getPrototypeOf:p}=Object,m=globalThis,f=m.trustedTypes,g=f?f.emptyScript:"",y=m.reactiveElementPolyfillSupport,v=(e,t)=>e,b={toAttribute(e,t){switch(t){case Boolean:e=e?g:null;break;case Object:case Array:e=null==e?e:JSON.stringify(e)}return e},fromAttribute(e,t){let r=e;switch(t){case Boolean:r=null!==e;break;case Number:r=null===e?null:Number(e);break;case Object:case Array:try{r=JSON.parse(e)}catch(e){r=null}}return r}},w=(e,t)=>!c(e,t),$={attribute:!0,type:String,converter:b,reflect:!1,useDefault:!1,hasChanged:w};Symbol.metadata??=Symbol("metadata"),m.litPropertyMetadata??=new WeakMap;let x=class extends HTMLElement{static addInitializer(e){this._$Ei(),(this.l??=[]).push(e)}static get observedAttributes(){return this.finalize(),this._$Eh&&[...this._$Eh.keys()]}static createProperty(e,t=$){if(t.state&&(t.attribute=!1),this._$Ei(),this.prototype.hasOwnProperty(e)&&((t=Object.create(t)).wrapped=!0),this.elementProperties.set(e,t),!t.noAccessor){const r=Symbol(),i=this.getPropertyDescriptor(e,r,t);void 0!==i&&l(this.prototype,e,i)}}static getPropertyDescriptor(e,t,r){const{get:i,set:a}=d(this.prototype,e)??{get(){return this[t]},set(e){this[t]=e}};return{get:i,set(t){const n=i?.call(this);a?.call(this,t),this.requestUpdate(e,n,r)},configurable:!0,enumerable:!0}}static getPropertyOptions(e){return this.elementProperties.get(e)??$}static _$Ei(){if(this.hasOwnProperty(v("elementProperties")))return;const e=p(this);e.finalize(),void 0!==e.l&&(this.l=[...e.l]),this.elementProperties=new Map(e.elementProperties)}static finalize(){if(this.hasOwnProperty(v("finalized")))return;if(this.finalized=!0,this._$Ei(),this.hasOwnProperty(v("properties"))){const e=this.properties,t=[...h(e),...u(e)];for(const r of t)this.createProperty(r,e[r])}const e=this[Symbol.metadata];if(null!==e){const t=litPropertyMetadata.get(e);if(void 0!==t)for(const[e,r]of t)this.elementProperties.set(e,r)}this._$Eh=new Map;for(const[e,t]of this.elementProperties){const r=this._$Eu(e,t);void 0!==r&&this._$Eh.set(r,e)}this.elementStyles=this.finalizeStyles(this.styles)}static finalizeStyles(e){const t=[];if(Array.isArray(e)){const r=new Set(e.flat(1/0).reverse());for(const e of r)t.unshift(o(e))}else void 0!==e&&t.push(o(e));return t}static _$Eu(e,t){const r=t.attribute;return!1===r?void 0:"string"==typeof r?r:"string"==typeof e?e.toLowerCase():void 0}constructor(){super(),this._$Ep=void 0,this.isUpdatePending=!1,this.hasUpdated=!1,this._$Em=null,this._$Ev()}_$Ev(){this._$ES=new Promise(e=>this.enableUpdating=e),this._$AL=new Map,this._$E_(),this.requestUpdate(),this.constructor.l?.forEach(e=>e(this))}addController(e){(this._$EO??=new Set).add(e),void 0!==this.renderRoot&&this.isConnected&&e.hostConnected?.()}removeController(e){this._$EO?.delete(e)}_$E_(){const e=new Map,t=this.constructor.elementProperties;for(const r of t.keys())this.hasOwnProperty(r)&&(e.set(r,this[r]),delete this[r]);e.size>0&&(this._$Ep=e)}createRenderRoot(){const e=this.shadowRoot??this.attachShadow(this.constructor.shadowRootOptions);return((e,i)=>{if(r)e.adoptedStyleSheets=i.map(e=>e instanceof CSSStyleSheet?e:e.styleSheet);else for(const r of i){const i=document.createElement("style"),a=t.litNonce;void 0!==a&&i.setAttribute("nonce",a),i.textContent=r.cssText,e.appendChild(i)}})(e,this.constructor.elementStyles),e}connectedCallback(){this.renderRoot??=this.createRenderRoot(),this.enableUpdating(!0),this._$EO?.forEach(e=>e.hostConnected?.())}enableUpdating(e){}disconnectedCallback(){this._$EO?.forEach(e=>e.hostDisconnected?.())}attributeChangedCallback(e,t,r){this._$AK(e,r)}_$ET(e,t){const r=this.constructor.elementProperties.get(e),i=this.constructor._$Eu(e,r);if(void 0!==i&&!0===r.reflect){const a=(void 0!==r.converter?.toAttribute?r.converter:b).toAttribute(t,r.type);this._$Em=e,null==a?this.removeAttribute(i):this.setAttribute(i,a),this._$Em=null}}_$AK(e,t){const r=this.constructor,i=r._$Eh.get(e);if(void 0!==i&&this._$Em!==i){const e=r.getPropertyOptions(i),a="function"==typeof e.converter?{fromAttribute:e.converter}:void 0!==e.converter?.fromAttribute?e.converter:b;this._$Em=i;const n=a.fromAttribute(t,e.type);this[i]=n??this._$Ej?.get(i)??n,this._$Em=null}}requestUpdate(e,t,r,i=!1,a){if(void 0!==e){const n=this.constructor;if(!1===i&&(a=this[e]),r??=n.getPropertyOptions(e),!((r.hasChanged??w)(a,t)||r.useDefault&&r.reflect&&a===this._$Ej?.get(e)&&!this.hasAttribute(n._$Eu(e,r))))return;this.C(e,t,r)}!1===this.isUpdatePending&&(this._$ES=this._$EP())}C(e,t,{useDefault:r,reflect:i,wrapped:a},n){r&&!(this._$Ej??=new Map).has(e)&&(this._$Ej.set(e,n??t??this[e]),!0!==a||void 0!==n)||(this._$AL.has(e)||(this.hasUpdated||r||(t=void 0),this._$AL.set(e,t)),!0===i&&this._$Em!==e&&(this._$Eq??=new Set).add(e))}async _$EP(){this.isUpdatePending=!0;try{await this._$ES}catch(e){Promise.reject(e)}const e=this.scheduleUpdate();return null!=e&&await e,!this.isUpdatePending}scheduleUpdate(){return this.performUpdate()}performUpdate(){if(!this.isUpdatePending)return;if(!this.hasUpdated){if(this.renderRoot??=this.createRenderRoot(),this._$Ep){for(const[e,t]of this._$Ep)this[e]=t;this._$Ep=void 0}const e=this.constructor.elementProperties;if(e.size>0)for(const[t,r]of e){const{wrapped:e}=r,i=this[t];!0!==e||this._$AL.has(t)||void 0===i||this.C(t,void 0,r,i)}}let e=!1;const t=this._$AL;try{e=this.shouldUpdate(t),e?(this.willUpdate(t),this._$EO?.forEach(e=>e.hostUpdate?.()),this.update(t)):this._$EM()}catch(t){throw e=!1,this._$EM(),t}e&&this._$AE(t)}willUpdate(e){}_$AE(e){this._$EO?.forEach(e=>e.hostUpdated?.()),this.hasUpdated||(this.hasUpdated=!0,this.firstUpdated(e)),this.updated(e)}_$EM(){this._$AL=new Map,this.isUpdatePending=!1}get updateComplete(){return this.getUpdateComplete()}getUpdateComplete(){return this._$ES}shouldUpdate(e){return!0}update(e){this._$Eq&&=this._$Eq.forEach(e=>this._$ET(e,this[e])),this._$EM()}updated(e){}firstUpdated(e){}};x.elementStyles=[],x.shadowRootOptions={mode:"open"},x[v("elementProperties")]=new Map,x[v("finalized")]=new Map,y?.({ReactiveElement:x}),(m.reactiveElementVersions??=[]).push("2.1.2");const k=globalThis,_=e=>e,E=k.trustedTypes,S=E?E.createPolicy("lit-html",{createHTML:e=>e}):void 0,D="$lit$",C=`lit$${Math.random().toFixed(9).slice(2)}$`,A="?"+C,P=`<${A}>`,M=document,T=()=>M.createComment(""),R=e=>null===e||"object"!=typeof e&&"function"!=typeof e,O=Array.isArray,H="[ \t\n\f\r]",L=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,N=/-->/g,z=/>/g,F=RegExp(`>|${H}(?:([^\\s"'>=/]+)(${H}*=${H}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`,"g"),U=/'/g,I=/"/g,B=/^(?:script|style|textarea|title)$/i,j=(e=>(t,...r)=>({_$litType$:e,strings:t,values:r}))(1),Y=Symbol.for("lit-noChange"),W=Symbol.for("lit-nothing"),K=new WeakMap,q=M.createTreeWalker(M,129);function V(e,t){if(!O(e)||!e.hasOwnProperty("raw"))throw Error("invalid template strings array");return void 0!==S?S.createHTML(t):t}const G=(e,t)=>{const r=e.length-1,i=[];let a,n=2===t?"<svg>":3===t?"<math>":"",s=L;for(let t=0;t<r;t++){const r=e[t];let o,c,l=-1,d=0;for(;d<r.length&&(s.lastIndex=d,c=s.exec(r),null!==c);)d=s.lastIndex,s===L?"!--"===c[1]?s=N:void 0!==c[1]?s=z:void 0!==c[2]?(B.test(c[2])&&(a=RegExp("</"+c[2],"g")),s=F):void 0!==c[3]&&(s=F):s===F?">"===c[0]?(s=a??L,l=-1):void 0===c[1]?l=-2:(l=s.lastIndex-c[2].length,o=c[1],s=void 0===c[3]?F:'"'===c[3]?I:U):s===I||s===U?s=F:s===N||s===z?s=L:(s=F,a=void 0);const h=s===F&&e[t+1].startsWith("/>")?" ":"";n+=s===L?r+P:l>=0?(i.push(o),r.slice(0,l)+D+r.slice(l)+C+h):r+C+(-2===l?t:h)}return[V(e,n+(e[r]||"<?>")+(2===t?"</svg>":3===t?"</math>":"")),i]};class Q{constructor({strings:e,_$litType$:t},r){let i;this.parts=[];let a=0,n=0;const s=e.length-1,o=this.parts,[c,l]=G(e,t);if(this.el=Q.createElement(c,r),q.currentNode=this.el.content,2===t||3===t){const e=this.el.content.firstChild;e.replaceWith(...e.childNodes)}for(;null!==(i=q.nextNode())&&o.length<s;){if(1===i.nodeType){if(i.hasAttributes())for(const e of i.getAttributeNames())if(e.endsWith(D)){const t=l[n++],r=i.getAttribute(e).split(C),s=/([.?@])?(.*)/.exec(t);o.push({type:1,index:a,name:s[2],strings:r,ctor:"."===s[1]?te:"?"===s[1]?re:"@"===s[1]?ie:ee}),i.removeAttribute(e)}else e.startsWith(C)&&(o.push({type:6,index:a}),i.removeAttribute(e));if(B.test(i.tagName)){const e=i.textContent.split(C),t=e.length-1;if(t>0){i.textContent=E?E.emptyScript:"";for(let r=0;r<t;r++)i.append(e[r],T()),q.nextNode(),o.push({type:2,index:++a});i.append(e[t],T())}}}else if(8===i.nodeType)if(i.data===A)o.push({type:2,index:a});else{let e=-1;for(;-1!==(e=i.data.indexOf(C,e+1));)o.push({type:7,index:a}),e+=C.length-1}a++}}static createElement(e,t){const r=M.createElement("template");return r.innerHTML=e,r}}function J(e,t,r=e,i){if(t===Y)return t;let a=void 0!==i?r._$Co?.[i]:r._$Cl;const n=R(t)?void 0:t._$litDirective$;return a?.constructor!==n&&(a?._$AO?.(!1),void 0===n?a=void 0:(a=new n(e),a._$AT(e,r,i)),void 0!==i?(r._$Co??=[])[i]=a:r._$Cl=a),void 0!==a&&(t=J(e,a._$AS(e,t.values),a,i)),t}class X{constructor(e,t){this._$AV=[],this._$AN=void 0,this._$AD=e,this._$AM=t}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(e){const{el:{content:t},parts:r}=this._$AD,i=(e?.creationScope??M).importNode(t,!0);q.currentNode=i;let a=q.nextNode(),n=0,s=0,o=r[0];for(;void 0!==o;){if(n===o.index){let t;2===o.type?t=new Z(a,a.nextSibling,this,e):1===o.type?t=new o.ctor(a,o.name,o.strings,this,e):6===o.type&&(t=new ae(a,this,e)),this._$AV.push(t),o=r[++s]}n!==o?.index&&(a=q.nextNode(),n++)}return q.currentNode=M,i}p(e){let t=0;for(const r of this._$AV)void 0!==r&&(void 0!==r.strings?(r._$AI(e,r,t),t+=r.strings.length-2):r._$AI(e[t])),t++}}class Z{get _$AU(){return this._$AM?._$AU??this._$Cv}constructor(e,t,r,i){this.type=2,this._$AH=W,this._$AN=void 0,this._$AA=e,this._$AB=t,this._$AM=r,this.options=i,this._$Cv=i?.isConnected??!0}get parentNode(){let e=this._$AA.parentNode;const t=this._$AM;return void 0!==t&&11===e?.nodeType&&(e=t.parentNode),e}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(e,t=this){e=J(this,e,t),R(e)?e===W||null==e||""===e?(this._$AH!==W&&this._$AR(),this._$AH=W):e!==this._$AH&&e!==Y&&this._(e):void 0!==e._$litType$?this.$(e):void 0!==e.nodeType?this.T(e):(e=>O(e)||"function"==typeof e?.[Symbol.iterator])(e)?this.k(e):this._(e)}O(e){return this._$AA.parentNode.insertBefore(e,this._$AB)}T(e){this._$AH!==e&&(this._$AR(),this._$AH=this.O(e))}_(e){this._$AH!==W&&R(this._$AH)?this._$AA.nextSibling.data=e:this.T(M.createTextNode(e)),this._$AH=e}$(e){const{values:t,_$litType$:r}=e,i="number"==typeof r?this._$AC(e):(void 0===r.el&&(r.el=Q.createElement(V(r.h,r.h[0]),this.options)),r);if(this._$AH?._$AD===i)this._$AH.p(t);else{const e=new X(i,this),r=e.u(this.options);e.p(t),this.T(r),this._$AH=e}}_$AC(e){let t=K.get(e.strings);return void 0===t&&K.set(e.strings,t=new Q(e)),t}k(e){O(this._$AH)||(this._$AH=[],this._$AR());const t=this._$AH;let r,i=0;for(const a of e)i===t.length?t.push(r=new Z(this.O(T()),this.O(T()),this,this.options)):r=t[i],r._$AI(a),i++;i<t.length&&(this._$AR(r&&r._$AB.nextSibling,i),t.length=i)}_$AR(e=this._$AA.nextSibling,t){for(this._$AP?.(!1,!0,t);e!==this._$AB;){const t=_(e).nextSibling;_(e).remove(),e=t}}setConnected(e){void 0===this._$AM&&(this._$Cv=e,this._$AP?.(e))}}class ee{get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}constructor(e,t,r,i,a){this.type=1,this._$AH=W,this._$AN=void 0,this.element=e,this.name=t,this._$AM=i,this.options=a,r.length>2||""!==r[0]||""!==r[1]?(this._$AH=Array(r.length-1).fill(new String),this.strings=r):this._$AH=W}_$AI(e,t=this,r,i){const a=this.strings;let n=!1;if(void 0===a)e=J(this,e,t,0),n=!R(e)||e!==this._$AH&&e!==Y,n&&(this._$AH=e);else{const i=e;let s,o;for(e=a[0],s=0;s<a.length-1;s++)o=J(this,i[r+s],t,s),o===Y&&(o=this._$AH[s]),n||=!R(o)||o!==this._$AH[s],o===W?e=W:e!==W&&(e+=(o??"")+a[s+1]),this._$AH[s]=o}n&&!i&&this.j(e)}j(e){e===W?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,e??"")}}class te extends ee{constructor(){super(...arguments),this.type=3}j(e){this.element[this.name]=e===W?void 0:e}}class re extends ee{constructor(){super(...arguments),this.type=4}j(e){this.element.toggleAttribute(this.name,!!e&&e!==W)}}class ie extends ee{constructor(e,t,r,i,a){super(e,t,r,i,a),this.type=5}_$AI(e,t=this){if((e=J(this,e,t,0)??W)===Y)return;const r=this._$AH,i=e===W&&r!==W||e.capture!==r.capture||e.once!==r.once||e.passive!==r.passive,a=e!==W&&(r===W||i);i&&this.element.removeEventListener(this.name,this,r),a&&this.element.addEventListener(this.name,this,e),this._$AH=e}handleEvent(e){"function"==typeof this._$AH?this._$AH.call(this.options?.host??this.element,e):this._$AH.handleEvent(e)}}class ae{constructor(e,t,r){this.element=e,this.type=6,this._$AN=void 0,this._$AM=t,this.options=r}get _$AU(){return this._$AM._$AU}_$AI(e){J(this,e)}}const ne=k.litHtmlPolyfillSupport;ne?.(Q,Z),(k.litHtmlVersions??=[]).push("3.3.3");const se=globalThis;class oe extends x{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0}createRenderRoot(){const e=super.createRenderRoot();return this.renderOptions.renderBefore??=e.firstChild,e}update(e){const t=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(e),this._$Do=((e,t,r)=>{const i=r?.renderBefore??t;let a=i._$litPart$;if(void 0===a){const e=r?.renderBefore??null;i._$litPart$=a=new Z(t.insertBefore(T(),e),e,void 0,r??{})}return a._$AI(e),a})(t,this.renderRoot,this.renderOptions)}connectedCallback(){super.connectedCallback(),this._$Do?.setConnected(!0)}disconnectedCallback(){super.disconnectedCallback(),this._$Do?.setConnected(!1)}render(){return Y}}oe._$litElement$=!0,oe.finalized=!0,se.litElementHydrateSupport?.({LitElement:oe});const ce=se.litElementPolyfillSupport;ce?.({LitElement:oe}),(se.litElementVersions??=[]).push("4.2.2");const le=e=>(t,r)=>{void 0!==r?r.addInitializer(()=>{customElements.define(e,t)}):customElements.define(e,t)},de={attribute:!0,type:String,converter:b,reflect:!1,hasChanged:w},he=(e=de,t,r)=>{const{kind:i,metadata:a}=r;let n=globalThis.litPropertyMetadata.get(a);if(void 0===n&&globalThis.litPropertyMetadata.set(a,n=new Map),"setter"===i&&((e=Object.create(e)).wrapped=!0),n.set(r.name,e),"accessor"===i){const{name:i}=r;return{set(r){const a=t.get.call(this);t.set.call(this,r),this.requestUpdate(i,a,e,!0,r)},init(t){return void 0!==t&&this.C(i,void 0,e,t),t}}}if("setter"===i){const{name:i}=r;return function(r){const a=this[i];t.call(this,r),this.requestUpdate(i,a,e,!0,r)}}throw Error("Unsupported decorator location: "+i)};function ue(e){return(t,r)=>"object"==typeof r?he(e,t,r):((e,t,r)=>{const i=t.hasOwnProperty(r);return t.constructor.createProperty(r,e),i?Object.getOwnPropertyDescriptor(t,r):void 0})(e,t,r)}function pe(e){return ue({...e,state:!0,attribute:!1})}const me="0.8.0",fe="ha-calendar-card",ge=56,ye=["calendar.family","calendar.personal","calendar.work"],ve=["#E07A5F","#3D9B8F","#81B29A","#5B8DB8","#E9B44C"];function be(e){if(e)return"string"==typeof e?e:"dateTime"in e&&e.dateTime?e.dateTime:"date"in e&&e.date?e.date:void 0}function we(e,t){const r=be(e.start),i=be(e.end);if(!r||!i)return null;const a=e.rrule??void 0;return{uid:e.uid??`${t}:${r}:${e.summary??"event"}`,summary:e.summary??"(no title)",description:e.description??void 0,location:e.location??void 0,start:r,end:i,all_day:e.all_day??(n=e.start,n&&"string"!=typeof n?Boolean(n.date&&!n.dateTime):Boolean(n&&/^\d{4}-\d{2}-\d{2}$/.test(n))),calendar:t,recurring:Boolean(a||e.recurrence_id),rrule:a,recurrence_id:e.recurrence_id??void 0};var n}function $e(e){const t={summary:e.summary,description:e.description??"",location:e.location??"",dtstart:e.all_day?e.start.slice(0,10):e.start,dtend:e.all_day?e.end.slice(0,10):e.end};return e.rrule&&(t.rrule=e.rrule),t}class xe{constructor(e){this.hass=e}listCalendarEntities(e){return e?.length?[...e]:Object.keys(this.hass.states).filter(e=>e.startsWith("calendar.")).sort()}listWritableCalendars(e){return e.filter(e=>{const t=this.hass.states[e];if(!t)return!0;const r=t.attributes.supported_features;return"number"!=typeof r||!!(1&r)})}canDelete(e){const t=this.hass.states[e];if(!t)return!0;const r=t.attributes.supported_features;return"number"!=typeof r||!!(2&r)}async getEvents(e,t,r){const i=[],a=[];let n=!1;for(const s of e)try{const e=await this.fetchEntityEvents(s,t,r);n=!0,i.push(...e)}catch(e){a.push(s),console.warn(`[ha-calendar-card] failed to load ${s}:`,e instanceof Error?e.message:e)}return{events:i,errors:a,anySuccess:n}}async fetchEntityEvents(e,t,r){if(this.hass.callApi)try{const i=`?start=${encodeURIComponent(t.toISOString())}&end=${encodeURIComponent(r.toISOString())}`;return(await this.hass.callApi("GET",`calendars/${e}${i}`)??[]).map(t=>we(t,e)).filter(e=>null!==e)}catch{}const i=await this.hass.callService("calendar","get_events",{entity_id:e,start_date_time:t.toISOString(),end_date_time:r.toISOString()},void 0,void 0,!0);let a;if(i&&"object"==typeof i){const e=i;a=e.response&&"object"==typeof e.response?e.response:e}return(a?.[e]?.events??[]).map(t=>we(t,e)).filter(e=>null!==e)}async createEvent(e){try{await this.hass.callWS({type:"calendar/event/create",entity_id:e.calendar,event:$e(e)})}catch(t){if(e.rrule)throw t instanceof Error?t:new Error(`Recurring create failed (websocket required for rrule): ${String(t)}`);try{await this.hass.callService("calendar","create_event",{entity_id:e.calendar,summary:e.summary,description:e.description??"",location:e.location??"",start_date_time:e.all_day?void 0:e.start,end_date_time:e.all_day?void 0:e.end,start_date:e.all_day?e.start.slice(0,10):void 0,end_date:e.all_day?e.end.slice(0,10):void 0})}catch{throw t instanceof Error?t:new Error(String(t))}}const t=await this.findCreatedEvent(e);return{uid:t?.uid}}async findCreatedEvent(e){const t=new Date(e.start),r=new Date(e.end),i=new Date(t.getTime()-6e4),a=new Date(r.getTime()+6e4);try{const{events:r}=await this.getEvents([e.calendar],i,a);return r.find(t=>function(e,t){return e.summary===t.summary&&e.start===t.start&&e.end===t.end}(t,{summary:e.summary,start:e.all_day?e.start.slice(0,10):e.start,end:e.all_day?e.end.slice(0,10):e.end}))??r.find(r=>r.summary===e.summary&&Math.abs(new Date(r.start).getTime()-t.getTime())<12e4)??null}catch{return null}}async updateEvent(e,t,r,i,a){try{const n={type:"calendar/event/update",entity_id:e,uid:t,event:$e(r)};return i&&(n.recurrence_id=i),a&&(n.recurrence_range=a),void await this.hass.callWS(n)}catch(i){if(r.rrule||a)throw i instanceof Error?i:new Error(String(i));try{await this.hass.callService("calendar","update_event",{entity_id:e,uid:t,summary:r.summary,description:r.description,location:r.location,start_date_time:r.all_day?void 0:r.start,end_date_time:r.all_day?void 0:r.end})}catch{throw i instanceof Error?i:new Error(String(i))}}}async deleteEvent(e,t,r,i){try{const a={type:"calendar/event/delete",entity_id:e,uid:t};return r&&(a.recurrence_id=r),i&&(a.recurrence_range=i),void await this.hass.callWS(a)}catch(r){try{await this.hass.callService("calendar","delete_event",{entity_id:e,uid:t})}catch{throw r instanceof Error?r:new Error(String(r))}}}async moveEventToCalendar(e,t,r){if(e.recurring||e.rrule)return{status:"blocked_recurring",reason:"Moving recurring events is disabled — change calendars only for one-off events."};if(e.calendar===t)return{status:"moved",newUid:e.uid};const i={summary:r?.summary??e.summary,description:r?.description??e.description,location:r?.location??e.location,start:r?.start??e.start,end:r?.end??e.end,all_day:r?.all_day??e.all_day,calendar:t};let a;try{if(a=(await this.createEvent(i)).uid??(await this.findCreatedEvent(i))?.uid,!a)return{status:"create_failed",error:"Created on target calendar but could not confirm the new event id — source left untouched."}}catch(e){return{status:"create_failed",error:e instanceof Error?e.message:String(e)}}try{return await this.deleteEvent(e.calendar,e.uid,e.recurrence_id),{status:"moved",newUid:a}}catch(i){const n={entityId:e.calendar,uid:e.uid,summary:r?.summary??e.summary,targetCalendar:t,newUid:a};return{status:"delete_failed",newUid:a,error:i instanceof Error?i.message:String(i),duplicate:!0,pending:n}}}}const ke="ha_calendar_reminders";function _e(e){if(!e||"object"!=typeof e)return{};const t=e;return t.response&&"object"==typeof t.response?t.response:t}class Ee{constructor(e){this.hass=e}isAvailable(){const e=this.hass.services;return Boolean(e&&e[ke]?.set_reminder)}async getReminder(e,t){const r=_e(await this.hass.callService(ke,"get_reminder",{calendar_entity_id:e,event_uid:t},void 0,void 0,!0)).reminder;return r&&"object"==typeof r?r:null}async setReminder(e){return _e(await this.hass.callService(ke,"set_reminder",{calendar_entity_id:e.calendar_entity_id,event_uid:e.event_uid,event_start:e.event_start,event_summary:e.event_summary??"",minutes_before:e.minutes_before,notify_service:e.notify_service,message:e.message??"",enabled:e.enabled??!0},void 0,void 0,!0)).reminder??null}async clearReminder(e,t){const r=_e(await this.hass.callService(ke,"clear_reminder",{calendar_entity_id:e,event_uid:t},void 0,void 0,!0));return Boolean(r.cleared)}}const Se=s`
   :host {
+    /* Light (Skylight) — default */
     --hac-bg: #f7f8fa;
     --hac-surface: #ffffff;
+    --hac-surface-muted: #fafbfc;
+    --hac-surface-soft: #f4f6f8;
     --hac-ink: #2c3340;
     --hac-muted: #8a93a3;
+    --hac-faint: #b0b7c3;
     --hac-accent: #3d9b8f;
     --hac-accent-hover: #318579;
     --hac-today: #f08a5a;
+    --hac-today-bg: #fffaf7;
+    --hac-today-head: #fff6f1;
     --hac-line: #e8ebf0;
     --hac-line-strong: #d8dde6;
     --hac-danger: #c45c5c;
+    --hac-danger-bg: #fdf4f4;
     --hac-warn: #9a6b1f;
     --hac-warn-bg: #fff6e8;
+    --hac-warn-ink: #5c3d00;
+    --hac-cell-hover: #f7fafc;
+    --hac-outside-bg: #fbfcfd;
+    --hac-outside-ink: #b0b7c3;
+    --hac-veil: rgba(255, 255, 255, 0.28);
+    --hac-state-bg: rgba(255, 255, 255, 0.88);
+    --hac-info-grad: linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%);
+    --hac-shadow-soft: rgba(44, 51, 64, 0.08);
     --hac-radius: 0;
     --hac-font-display: "Manrope", "Avenir Next", "Segoe UI", sans-serif;
     --hac-font-body: "Nunito", "Avenir Next", "Segoe UI", sans-serif;
+    --hac-font-weather: "Quicksand", "Nunito", "Avenir Next", sans-serif;
     --hac-cal-0: #e07a5f;
     --hac-cal-1: #3d9b8f;
     --hac-cal-2: #81b29a;
@@ -36,6 +52,39 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
     overflow: hidden;
     border: 1px solid var(--hac-line);
     animation: host-in 280ms ease;
+    color-scheme: light;
+    transition: background 220ms ease, color 220ms ease, border-color 220ms ease;
+  }
+
+  /* Cohesive dark companion to Skylight light — warm slate, same accents */
+  :host([data-theme="dark"]) {
+    --hac-bg: #1a1e26;
+    --hac-surface: #222833;
+    --hac-surface-muted: #1e2430;
+    --hac-surface-soft: #2a3140;
+    --hac-ink: #e8ebf2;
+    --hac-muted: #9aa3b5;
+    --hac-faint: #6e778a;
+    --hac-accent: #4db3a5;
+    --hac-accent-hover: #5fc4b5;
+    --hac-today: #f08a5a;
+    --hac-today-bg: #2e2622;
+    --hac-today-head: #342820;
+    --hac-line: #323a4a;
+    --hac-line-strong: #3e475a;
+    --hac-danger: #e07a7a;
+    --hac-danger-bg: #3a2428;
+    --hac-warn: #e0b45c;
+    --hac-warn-bg: #3a3020;
+    --hac-warn-ink: #f0d9a0;
+    --hac-cell-hover: #2a3140;
+    --hac-outside-bg: #1c212c;
+    --hac-outside-ink: #6e778a;
+    --hac-veil: rgba(26, 30, 38, 0.35);
+    --hac-state-bg: rgba(34, 40, 51, 0.92);
+    --hac-info-grad: linear-gradient(180deg, #262c38 0%, #222833 100%);
+    --hac-shadow-soft: rgba(0, 0, 0, 0.35);
+    color-scheme: dark;
   }
 
   /*
@@ -84,7 +133,7 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
     align-items: center;
     padding: 0.85rem 1.15rem 0.65rem;
     border-bottom: 1px solid var(--hac-line);
-    background: linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%);
+    background: var(--hac-info-grad);
     flex: 0 0 auto;
   }
 
@@ -121,36 +170,94 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
     align-items: center;
     justify-content: center;
     text-align: center;
-    gap: 0.1rem;
+    gap: 0.35rem;
     min-width: 0;
   }
 
+  .weather-blob {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.35rem 0.75rem 0.35rem 0.4rem;
+    border-radius: 999px;
+    background: var(--hac-wx-soft, var(--hac-surface-soft));
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+    animation: wx-pop 420ms cubic-bezier(0.34, 1.4, 0.64, 1);
+  }
+
+  :host([data-theme="dark"]) .weather-blob {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  }
+
+  @keyframes wx-pop {
+    from {
+      opacity: 0.5;
+      transform: scale(0.92);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .weather-icon-halo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.15rem;
+    height: 2.15rem;
+    border-radius: 50%;
+    background: var(--hac-wx-accent, var(--hac-accent));
+    font-size: 1.15rem;
+    line-height: 1;
+    box-shadow: 0 4px 12px var(--hac-shadow-soft);
+    animation: wx-bob 3.2s ease-in-out infinite;
+  }
+
+  @keyframes wx-bob {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-2px);
+    }
+  }
+
   .weather-now .temp {
-    font-family: var(--hac-font-display);
+    font-family: var(--hac-font-weather);
     font-size: clamp(1.35rem, 3vw, 1.85rem);
-    font-weight: 800;
+    font-weight: 700;
     letter-spacing: -0.03em;
+    color: var(--hac-wx-ink, var(--hac-ink));
   }
 
   .weather-now .cond {
-    font-size: 0.82rem;
+    font-family: var(--hac-font-weather);
+    font-size: 0.88rem;
     font-weight: 600;
-    color: var(--hac-muted);
-    text-transform: capitalize;
+    color: var(--hac-wx-ink, var(--hac-muted));
+    text-transform: none;
+    letter-spacing: -0.01em;
   }
 
   .weather-stub {
+    font-family: var(--hac-font-weather);
     font-size: 0.8rem;
     font-weight: 600;
-    color: #b0b7c3;
+    color: var(--hac-faint);
+    padding: 0.45rem 0.7rem;
+    border-radius: 999px;
+    background: var(--hac-surface-soft);
   }
 
   .forecast-strip {
     display: flex;
     justify-content: flex-end;
-    gap: 0.35rem;
+    gap: 0.4rem;
     overflow: auto;
     min-width: 0;
+    padding-bottom: 0.1rem;
   }
 
   .forecast-day {
@@ -158,29 +265,54 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.1rem;
-    min-width: 2.6rem;
-    padding: 0.25rem 0.3rem;
-    border-radius: 10px;
-    background: #f4f6f8;
+    gap: 0.15rem;
+    min-width: 2.85rem;
+    padding: 0.35rem 0.35rem 0.4rem;
+    border-radius: 14px;
+    background: var(--hac-wx-day-soft, var(--hac-surface-soft));
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+    transition: transform 160ms ease, box-shadow 160ms ease;
+    animation: wx-chip-in 360ms ease both;
+  }
+
+  :host([data-theme="dark"]) .forecast-day {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  }
+
+  .forecast-day:hover {
+    transform: translateY(-2px);
+  }
+
+  @keyframes wx-chip-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .forecast-day .d {
+    font-family: var(--hac-font-weather);
     font-size: 0.62rem;
-    font-weight: 800;
+    font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
     color: var(--hac-muted);
   }
 
   .forecast-day .g {
-    font-size: 0.85rem;
+    font-size: 1rem;
     line-height: 1;
   }
 
   .forecast-day .t {
-    font-size: 0.72rem;
+    font-family: var(--hac-font-weather);
+    font-size: 0.76rem;
     font-weight: 700;
+    color: var(--hac-wx-day-ink, var(--hac-ink));
   }
 
   .title-row {
@@ -219,7 +351,7 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
     align-items: center;
     gap: 0.35rem;
     border: 1px solid var(--hac-line-strong);
-    background: #fff;
+    background: var(--hac-surface);
     color: var(--hac-ink);
     font: inherit;
     font-size: 0.8rem;
@@ -237,7 +369,7 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
 
   .pill[aria-pressed="false"] {
     opacity: 0.42;
-    background: #f3f5f7;
+    background: var(--hac-surface-soft);
   }
 
   .pill .dot {
@@ -270,12 +402,107 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
     gap: 0.25rem;
   }
 
+  .range-wrap {
+    position: relative;
+  }
+
   .range-label {
+    font: inherit;
     font-size: 0.9rem;
     font-weight: 700;
     color: var(--hac-ink);
     min-width: 7rem;
     text-align: center;
+    border: 1px solid transparent;
+    background: transparent;
+    border-radius: 999px;
+    padding: 0.35rem 0.65rem;
+    cursor: pointer;
+    transition: background 140ms ease, border-color 140ms ease;
+  }
+
+  .range-label:hover,
+  .range-label[aria-expanded="true"] {
+    background: var(--hac-surface-soft);
+    border-color: var(--hac-line-strong);
+  }
+
+  .range-label .caret {
+    display: inline-block;
+    margin-left: 0.2rem;
+    font-size: 0.7em;
+    opacity: 0.65;
+  }
+
+  .month-picker {
+    position: absolute;
+    top: calc(100% + 0.35rem);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 8;
+    width: min(17.5rem, 80vw);
+    padding: 0.75rem;
+    border-radius: 14px;
+    background: var(--hac-surface);
+    border: 1px solid var(--hac-line-strong);
+    box-shadow: 0 12px 32px var(--hac-shadow-soft);
+    animation: picker-in 180ms ease;
+  }
+
+  @keyframes picker-in {
+    from {
+      opacity: 0;
+      transform: translateX(-50%) translateY(-4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  }
+
+  .month-picker-year {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.35rem;
+    margin-bottom: 0.55rem;
+  }
+
+  .month-picker-year .year {
+    font-family: var(--hac-font-display);
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  .month-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.3rem;
+  }
+
+  .month-picker-grid button {
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 700;
+    border: 1px solid transparent;
+    background: var(--hac-surface-soft);
+    color: var(--hac-ink);
+    border-radius: 10px;
+    padding: 0.45rem 0.25rem;
+    cursor: pointer;
+    min-height: 2.15rem;
+    transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+  }
+
+  .month-picker-grid button:hover {
+    border-color: var(--hac-line-strong);
+  }
+
+  .month-picker-grid button[aria-current="true"] {
+    background: var(--hac-accent);
+    color: #fff;
+    border-color: var(--hac-accent);
   }
 
   .view-toggle {
@@ -283,7 +510,7 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
     border: 1px solid var(--hac-line-strong);
     border-radius: 999px;
     overflow: hidden;
-    background: #f7f8fa;
+    background: var(--hac-bg);
   }
 
   .view-toggle button {
@@ -300,7 +527,18 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
 
   .view-toggle button[aria-pressed="true"] {
     background: var(--hac-ink);
-    color: #fff;
+    color: var(--hac-surface);
+  }
+
+  .theme-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .theme-btn .glyph {
+    font-size: 0.95rem;
+    line-height: 1;
   }
 
   .nav-btn,
@@ -310,7 +548,7 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
     font-size: 0.85rem;
     font-weight: 700;
     border: 1px solid var(--hac-line-strong);
-    background: #fff;
+    background: var(--hac-surface);
     color: var(--hac-ink);
     padding: 0.4rem 0.8rem;
     border-radius: 999px;
@@ -351,7 +589,7 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
     overscroll-behavior: contain;
     position: relative;
     -webkit-overflow-scrolling: touch;
-    background: #fff;
+    background: var(--hac-surface);
   }
 
   hac-time-grid,
@@ -377,13 +615,13 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
     font-weight: 600;
     color: var(--hac-muted);
     border-top: 1px solid var(--hac-line);
-    background: #fafbfc;
+    background: var(--hac-surface-muted);
     flex: 0 0 auto;
   }
 
   .status[data-kind="error"] {
     color: var(--hac-danger);
-    background: #fdf4f4;
+    background: var(--hac-danger-bg);
   }
 
   .status[data-kind="warn"] {
@@ -414,7 +652,7 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
     padding: 0.7rem 1rem;
     background: var(--hac-warn-bg);
     border-bottom: 1px solid rgba(154, 107, 31, 0.22);
-    color: #5c3d00;
+    color: var(--hac-warn-ink);
     font-size: 0.85rem;
     animation: banner-in 200ms ease;
     flex: 0 0 auto;
@@ -435,8 +673,8 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
     font: inherit;
     font-weight: 700;
     border: 1px solid rgba(154, 107, 31, 0.35);
-    background: #fff;
-    color: #5c3d00;
+    background: var(--hac-surface);
+    color: var(--hac-warn-ink);
     border-radius: 999px;
     padding: 0.35rem 0.75rem;
     cursor: pointer;
@@ -460,7 +698,7 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
     gap: 0.65rem;
     padding: 1.5rem;
     text-align: center;
-    background: rgba(255, 255, 255, 0.88);
+    background: var(--hac-state-bg);
     backdrop-filter: blur(2px);
     animation: fade-in 200ms ease;
     pointer-events: auto;
@@ -483,9 +721,13 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
     width: 3.25rem;
     height: 3.25rem;
     border-radius: 1rem;
-    background: linear-gradient(145deg, #fff 0%, #e8f4f2 100%);
+    background: linear-gradient(
+      145deg,
+      var(--hac-surface) 0%,
+      color-mix(in srgb, var(--hac-accent) 18%, var(--hac-surface)) 100%
+    );
     border: 1px solid var(--hac-line);
-    box-shadow: 0 8px 20px rgba(44, 51, 64, 0.06);
+    box-shadow: 0 8px 20px var(--hac-shadow-soft);
     position: relative;
   }
 
@@ -506,7 +748,7 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
     right: 30%;
     height: 3px;
     border-radius: 2px;
-    background: rgba(44, 51, 64, 0.2);
+    background: color-mix(in srgb, var(--hac-ink) 20%, transparent);
   }
 
   .state-panel h2 {
@@ -537,7 +779,7 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
     position: absolute;
     inset: 0;
     z-index: 3;
-    background: rgba(255, 255, 255, 0.28);
+    background: var(--hac-veil);
     pointer-events: none;
     animation: fade-in 160ms ease;
   }
@@ -610,29 +852,18 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
       padding: 0.45rem 0.75rem;
     }
   }
-`,Ce=a`
+`,De=s`
   :host {
     display: block;
     width: 100%;
     height: 100%;
     min-height: 100%;
     box-sizing: border-box;
-    --hac-line: #e8ebf0;
-    --hac-line-strong: #d8dde6;
-    --hac-muted: #8a93a3;
-    --hac-ink: #2c3340;
-    --hac-event: #3d9b8f;
+    --hac-event: var(--hac-accent, #3d9b8f);
     --hac-event-text: #fff;
-    --hac-accent: #3d9b8f;
-    --hac-today: #f08a5a;
-    --hac-cal-0: #e07a5f;
-    --hac-cal-1: #3d9b8f;
-    --hac-cal-2: #81b29a;
-    --hac-cal-3: #5b8db8;
-    --hac-cal-4: #e9b44c;
-    --hac-font-body: "Nunito", "Avenir Next", "Segoe UI", sans-serif;
-    font-family: var(--hac-font-body);
-    background: #fff;
+    font-family: var(--hac-font-body, "Nunito", "Avenir Next", "Segoe UI", sans-serif);
+    color: var(--hac-ink, #2c3340);
+    background: var(--hac-surface, #fff);
   }
 
   .time-grid {
@@ -654,9 +885,9 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
     position: sticky;
     top: 0;
     z-index: 2;
-    background: rgba(255, 255, 255, 0.96);
+    background: color-mix(in srgb, var(--hac-surface, #fff) 96%, transparent);
     backdrop-filter: blur(6px);
-    border-bottom: 1px solid var(--hac-line-strong);
+    border-bottom: 1px solid var(--hac-line-strong, #d8dde6);
     padding: 0.55rem 0.3rem;
     text-align: center;
   }
@@ -672,7 +903,7 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
     gap: 0.1rem;
     font-size: 0.72rem;
     font-weight: 700;
-    color: var(--hac-muted);
+    color: var(--hac-muted, #8a93a3);
     text-transform: uppercase;
     letter-spacing: 0.04em;
   }
@@ -680,13 +911,13 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
   .day-head .num {
     font-size: 1.05rem;
     font-weight: 800;
-    color: var(--hac-ink);
+    color: var(--hac-ink, #2c3340);
     letter-spacing: 0;
     text-transform: none;
   }
 
   .day-head[data-today="true"] {
-    background: #fff6f1;
+    background: var(--hac-today-head, #fff6f1);
   }
 
   .day-head[data-today="true"] .num {
@@ -697,7 +928,7 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
     height: 1.7rem;
     margin: 0 auto;
     border-radius: 50%;
-    background: var(--hac-today);
+    background: var(--hac-today, #f08a5a);
     color: #fff;
   }
 
@@ -707,34 +938,34 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
     position: sticky;
     left: 0;
     z-index: 1;
-    background: rgba(255, 255, 255, 0.96);
+    background: color-mix(in srgb, var(--hac-surface, #fff) 96%, transparent);
   }
 
   .hour-label {
     height: var(--hac-hour-height, 56px);
     font-size: 0.68rem;
     font-weight: 700;
-    color: var(--hac-muted);
+    color: var(--hac-muted, #8a93a3);
     text-align: right;
     padding: 0.15rem 0.45rem 0 0;
-    border-right: 1px solid var(--hac-line);
+    border-right: 1px solid var(--hac-line, #e8ebf0);
     box-sizing: border-box;
   }
 
   .day-col {
     position: relative;
-    border-left: 1px solid var(--hac-line);
-    background: #fff;
+    border-left: 1px solid var(--hac-line, #e8ebf0);
+    background: var(--hac-surface, #fff);
   }
 
   .day-col[data-today="true"] {
-    background: #fffaf7;
+    background: var(--hac-today-bg, #fffaf7);
   }
 
   .hour-line {
     height: var(--hac-hour-height, 56px);
     box-sizing: border-box;
-    border-bottom: 1px solid var(--hac-line);
+    border-bottom: 1px solid var(--hac-line, #e8ebf0);
   }
 
   .now-line {
@@ -742,7 +973,7 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
     left: 0;
     right: 0;
     height: 2px;
-    background: var(--hac-today);
+    background: var(--hac-today, #f08a5a);
     z-index: 2;
     pointer-events: none;
     box-shadow: 0 0 0 2px rgba(240, 138, 90, 0.15);
@@ -756,7 +987,7 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: var(--hac-today);
+    background: var(--hac-today, #f08a5a);
   }
 
   .event-block {
@@ -773,7 +1004,7 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
     overflow: hidden;
     cursor: pointer;
     border: 0;
-    box-shadow: 0 1px 0 rgba(44, 51, 64, 0.06);
+    box-shadow: 0 1px 0 var(--hac-shadow-soft, rgba(44, 51, 64, 0.06));
     transition: transform 140ms ease, box-shadow 140ms ease, filter 140ms ease;
     -webkit-tap-highlight-color: transparent;
   }
@@ -781,7 +1012,7 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
   .event-block:hover,
   .event-block:focus-visible {
     transform: translateY(-1px) scale(1.01);
-    box-shadow: 0 6px 14px rgba(44, 51, 64, 0.12);
+    box-shadow: 0 6px 14px var(--hac-shadow-soft, rgba(44, 51, 64, 0.12));
     filter: brightness(1.04);
     outline: none;
   }
@@ -822,24 +1053,17 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
       padding: 0.22rem 0.3rem;
     }
   }
-`,Ae=a`
+`,Ce=s`
   :host {
-    --hac-ink: #2c3340;
-    --hac-muted: #8a93a3;
-    --hac-accent: #3d9b8f;
-    --hac-accent-hover: #318579;
-    --hac-line: #e8ebf0;
-    --hac-danger: #c45c5c;
-    --hac-warn: #9a6b1f;
-    --hac-font-display: "Manrope", "Avenir Next", "Segoe UI", sans-serif;
-    --hac-font-body: "Nunito", "Avenir Next", "Segoe UI", sans-serif;
-    font-family: var(--hac-font-body);
+    --hac-event: var(--hac-accent, #3d9b8f);
+    font-family: var(--hac-font-body, "Nunito", "Avenir Next", "Segoe UI", sans-serif);
+    color: var(--hac-ink, #2c3340);
   }
 
   .form-backdrop {
     position: absolute;
     inset: 0;
-    background: rgba(44, 51, 64, 0.34);
+    background: color-mix(in srgb, var(--hac-ink, #2c3340) 34%, transparent);
     display: flex;
     align-items: flex-end;
     justify-content: center;
@@ -868,17 +1092,18 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
     width: min(440px, 100%);
     max-height: min(92vh, 720px);
     overflow: auto;
-    background: #fff;
+    background: var(--hac-surface, #fff);
     border-radius: 16px 16px 0 0;
     padding: 1.1rem 1.15rem 1.35rem;
-    box-shadow: 0 -10px 36px rgba(44, 51, 64, 0.18);
+    box-shadow: 0 -10px 36px var(--hac-shadow-soft, rgba(44, 51, 64, 0.18));
     animation: slide-up 220ms ease;
+    color: var(--hac-ink, #2c3340);
   }
 
   @media (min-width: 640px) {
     .form-panel {
       border-radius: 16px;
-      box-shadow: 0 16px 40px rgba(44, 51, 64, 0.18);
+      box-shadow: 0 16px 40px var(--hac-shadow-soft, rgba(44, 51, 64, 0.18));
     }
   }
 
@@ -894,7 +1119,7 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
   }
 
   .form-panel h2 {
-    font-family: var(--hac-font-display);
+    font-family: var(--hac-font-display, "Manrope", sans-serif);
     font-size: 1.28rem;
     margin: 0 0 0.35rem;
     letter-spacing: -0.02em;
@@ -904,7 +1129,7 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
   .form-sub {
     margin: 0 0 0.75rem;
     font-size: 0.82rem;
-    color: var(--hac-muted);
+    color: var(--hac-muted, #8a93a3);
   }
 
   label {
@@ -913,7 +1138,7 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
     font-weight: 800;
     letter-spacing: 0.03em;
     text-transform: uppercase;
-    color: var(--hac-muted);
+    color: var(--hac-muted, #8a93a3);
     margin: 0.65rem 0 0.25rem;
   }
 
@@ -925,10 +1150,10 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
     font: inherit;
     font-size: 0.95rem;
     padding: 0.55rem 0.65rem;
-    border: 1px solid var(--hac-line);
+    border: 1px solid var(--hac-line, #e8ebf0);
     border-radius: 10px;
-    background: #f7f8fa;
-    color: var(--hac-ink);
+    background: var(--hac-bg, #f7f8fa);
+    color: var(--hac-ink, #2c3340);
     min-height: 2.5rem;
     transition: border-color 140ms ease, box-shadow 140ms ease;
   }
@@ -937,9 +1162,9 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
   select:focus,
   textarea:focus {
     outline: none;
-    border-color: var(--hac-accent);
-    box-shadow: 0 0 0 3px rgba(61, 155, 143, 0.15);
-    background: #fff;
+    border-color: var(--hac-accent, #3d9b8f);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--hac-accent, #3d9b8f) 15%, transparent);
+    background: var(--hac-surface, #fff);
   }
 
   input:disabled,
@@ -964,7 +1189,7 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
     height: 1.1rem;
     border-radius: 50%;
     flex: 0 0 auto;
-    box-shadow: inset 0 0 0 1px rgba(44, 51, 64, 0.12);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--hac-ink, #2c3340) 12%, transparent);
   }
 
   .cal-legend {
@@ -978,22 +1203,22 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    border: 1px solid var(--hac-line);
-    background: #f7f8fa;
+    border: 1px solid var(--hac-line, #e8ebf0);
+    background: var(--hac-bg, #f7f8fa);
     border-radius: 999px;
     padding: 0.2rem 0.55rem 0.2rem 0.35rem;
     font: inherit;
     font-size: 0.72rem;
     font-weight: 700;
-    color: var(--hac-ink);
+    color: var(--hac-ink, #2c3340);
     cursor: pointer;
     text-transform: capitalize;
   }
 
   .cal-legend-item[data-active="true"] {
-    border-color: var(--hac-accent);
-    background: #fff;
-    box-shadow: 0 0 0 2px rgba(61, 155, 143, 0.12);
+    border-color: var(--hac-accent, #3d9b8f);
+    background: var(--hac-surface, #fff);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--hac-accent, #3d9b8f) 12%, transparent);
   }
 
   .cal-legend-item:disabled {
@@ -1039,19 +1264,19 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
     padding: 0.5rem 1rem;
     min-height: 2.4rem;
     cursor: pointer;
-    border: 1px solid var(--hac-line);
-    background: #fff;
-    color: var(--hac-ink);
+    border: 1px solid var(--hac-line, #e8ebf0);
+    background: var(--hac-surface, #fff);
+    color: var(--hac-ink, #2c3340);
   }
 
   .form-actions button.primary {
-    background: var(--hac-accent);
-    border-color: var(--hac-accent);
+    background: var(--hac-accent, #3d9b8f);
+    border-color: var(--hac-accent, #3d9b8f);
     color: #fff;
   }
 
   .form-actions button.primary:hover:not(:disabled) {
-    background: var(--hac-accent-hover);
+    background: var(--hac-accent-hover, #318579);
   }
 
   .form-actions button:disabled {
@@ -1061,19 +1286,19 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
 
   .hint {
     font-size: 0.78rem;
-    color: var(--hac-muted);
+    color: var(--hac-muted, #8a93a3);
     margin: 0.65rem 0 0;
     line-height: 1.35;
   }
 
   .hint.warn {
-    color: var(--hac-warn);
+    color: var(--hac-warn, #9a6b1f);
   }
 
   .hint.error {
-    color: var(--hac-danger);
-    background: #fdf4f4;
-    border: 1px solid rgba(196, 92, 92, 0.2);
+    color: var(--hac-danger, #c45c5c);
+    background: var(--hac-danger-bg, #fdf4f4);
+    border: 1px solid color-mix(in srgb, var(--hac-danger, #c45c5c) 20%, transparent);
     border-radius: 10px;
     padding: 0.55rem 0.7rem;
   }
@@ -1081,23 +1306,23 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
   .reminder-block {
     margin-top: 1rem;
     padding: 0.75rem 0.8rem;
-    border: 1px solid var(--hac-line);
+    border: 1px solid var(--hac-line, #e8ebf0);
     border-radius: 12px;
-    background: #f7faf9;
+    background: color-mix(in srgb, var(--hac-accent, #3d9b8f) 8%, var(--hac-surface, #fff));
   }
 
   .recur-block {
     margin-top: 1rem;
     padding: 0.75rem 0.8rem;
-    border: 1px solid var(--hac-line);
+    border: 1px solid var(--hac-line, #e8ebf0);
     border-radius: 12px;
-    background: #f8f9fb;
+    background: var(--hac-surface-muted, #f8f9fb);
   }
 
   .recur-block h3,
   .reminder-block h3 {
     margin: 0 0 0.35rem;
-    font-family: var(--hac-font-display);
+    font-family: var(--hac-font-display, "Manrope", sans-serif);
     font-size: 0.95rem;
     font-weight: 800;
   }
@@ -1113,7 +1338,7 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
     margin: 0.55rem 0 0.25rem;
     font-size: 0.9rem;
     font-weight: 700;
-    color: var(--hac-ink);
+    color: var(--hac-ink, #2c3340);
     text-transform: none;
     letter-spacing: 0;
   }
@@ -1127,14 +1352,14 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
     opacity: 0.45;
     pointer-events: none;
   }
-`,De=new Set(["primary","accent","red","pink","purple","deep-purple","indigo","blue","light-blue","cyan","teal","green","light-green","lime","yellow","amber","orange","deep-orange","brown","light-grey","grey","dark-grey","blue-grey","black","white"]);function Re(e){const t=e.trim();return t&&De.has(t)?`var(--${t}-color)`:t}function Te(e){if(!e||"string"!=typeof e)return!1;const t=e.trim();if(!t)return!1;if(De.has(t))return!0;if(/^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/.test(t))return!0;if(/^(rgb|hsl)a?\(/i.test(t))return!0;try{const e=(new Option).style;return e.color=t,""!==e.color}catch{return!1}}function Me(e){return ve[(e<0?0:e)%ve.length]}function Pe(e,t,r,i){if(Te(r))return Re(r);const s=function(e,t){const r=e?.entities?.[t];if(!r)return;const i=r.display?.color;return"string"==typeof i?i:"string"==typeof r.color?r.color:void 0}(i,e);if(Te(s))return Re(s);const n=i?.states?.[e]?.attributes?.color;return"string"==typeof n&&Te(n)?Re(n):Me(t)}function Oe(e){const t=e?.options?.calendar?.color;return"string"==typeof t?t:void 0}function He(e,t,r){const i={};return e.forEach((e,s)=>{i[e]=Pe(e,s,t[e],r)}),i}const Ne={"clear-night":"Clear",cloudy:"Cloudy",fog:"Fog",hail:"Hail",lightning:"Storms","lightning-rainy":"Storms",partlycloudy:"Partly cloudy",pouring:"Downpour",rainy:"Rain",snowy:"Snow","snowy-rainy":"Sleet",sunny:"Sunny",windy:"Windy","windy-variant":"Windy",exceptional:"Alert"};function Le(e){return e.includes("lightning")?"⚡":e.includes("snow")?"❄":e.includes("rain")||"pouring"===e||"hail"===e?"🌧":"fog"===e?"fog":"cloudy"===e?"☁":"partlycloudy"===e?"⛅":"clear-night"===e?"☾":"sunny"===e?"☀":e.includes("wind")?"🌬":"·"}function ze(e){const t=e.weather_entity??e.weather;if(!t||"string"!=typeof t)return;return t.trim()||void 0}function Ue(e){if(!Array.isArray(e))return[];const t=[];for(const r of e){if(!r||"object"!=typeof r)continue;const e=r,i=String(e.datetime??e.date??""),s=String(e.condition??e.state??"");i&&s&&t.push({datetime:i,condition:s,temperature:"number"==typeof e.temperature?e.temperature:void 0,templow:"number"==typeof e.templow?e.templow:void 0})}return t}function Fe(e){return Ue(e.forecast??e.forecast_daily??e.forecast_twice_daily)}function Ie(e,t){if(!e||"object"!=typeof e)return[];const r=e,i=(r.response&&"object"==typeof r.response?r.response:r)[t];return i&&"object"==typeof i?Ue(i.forecast):[]}function Be(e,t){const r=new Date(e);return r.setDate(r.getDate()+t),r}function je(e,t){return e.getFullYear()===t.getFullYear()&&e.getMonth()===t.getMonth()&&e.getDate()===t.getDate()}function Ke(e){if(/^\d{4}-\d{2}-\d{2}$/.test(e)){const[t,r,i]=e.split("-").map(Number);return new Date(t,r-1,i)}return new Date(e)}let We=class extends oe{constructor(){super(...arguments),this.mode="week",this.anchorDate=new Date,this.events=[],this.calendars=[],this.calendarColors={},this.dayStartHour=6,this.dayEndHour=22,this.nowTick=0}get days(){const e=function(e){const t=new Date(e);return t.setHours(0,0,0,0),t}(this.anchorDate);if("day"===this.mode)return[e];const t=(e.getDay()+6)%7,r=Be(e,-t);return Array.from({length:7},(e,t)=>Be(r,t))}get hours(){const e=[];for(let t=this.dayStartHour;t<this.dayEndHour;t++)e.push(t);return e}calendarColor(e){if(this.calendarColors[e])return this.calendarColors[e];return Me(Math.max(0,this.calendars.indexOf(e)))}eventStyle(e,t){const r=Ke(e.start),i=Ke(e.end),s=new Date(t);s.setHours(this.dayStartHour,0,0,0);const n=new Date(t);if(n.setHours(this.dayEndHour,0,0,0),i<=s||r>=n)return null;const a=r<s?s:r,o=i>n?n:i,l=60*(a.getHours()-this.dayStartHour)+a.getMinutes(),d=Math.max(22,(o.getTime()-a.getTime())/6e4);return`top:${l/60*ge}px;height:${d/60*ge}px;background:${this.calendarColor(e.calendar)};`}nowLineTop(e){this.nowTick;const t=new Date;if(!je(t,e))return null;if(t.getHours()<this.dayStartHour||t.getHours()>=this.dayEndHour)return null;return(60*(t.getHours()-this.dayStartHour)+t.getMinutes())/60*ge}formatTime(e){return e.all_day||/^\d{4}-\d{2}-\d{2}$/.test(e.start)?"All day":Ke(e.start).toLocaleTimeString(void 0,{hour:"numeric",minute:"2-digit"})}onEventClick(e){this.dispatchEvent(new CustomEvent("event-select",{detail:e,bubbles:!0,composed:!0}))}onSlotCreate(e,t){const r=new Date(e);r.setHours(t,0,0,0);const i=new Date(r);i.setHours(t+1,0,0,0),this.dispatchEvent(new CustomEvent("slot-create",{detail:{start:r,end:i},bubbles:!0,composed:!0}))}hourFromPointer(e,t){const r=t.getBoundingClientRect(),i=e.clientY-r.top;return this.dayStartHour+Math.floor(i/ge)}render(){const e=this.hours,t=this.days,r=e.length*ge,i=new Date;return j`
+`,Ae=new Set(["primary","accent","red","pink","purple","deep-purple","indigo","blue","light-blue","cyan","teal","green","light-green","lime","yellow","amber","orange","deep-orange","brown","light-grey","grey","dark-grey","blue-grey","black","white"]);function Pe(e){const t=e.trim();return t&&Ae.has(t)?`var(--${t}-color)`:t}function Me(e){if(!e||"string"!=typeof e)return!1;const t=e.trim();if(!t)return!1;if(Ae.has(t))return!0;if(/^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/.test(t))return!0;if(/^(rgb|hsl)a?\(/i.test(t))return!0;try{const e=(new Option).style;return e.color=t,""!==e.color}catch{return!1}}function Te(e){return ve[(e<0?0:e)%ve.length]}function Re(e,t,r,i){if(Me(r))return Pe(r);const a=function(e,t){const r=e?.entities?.[t];if(!r)return;const i=r.display?.color;return"string"==typeof i?i:"string"==typeof r.color?r.color:void 0}(i,e);if(Me(a))return Pe(a);const n=i?.states?.[e]?.attributes?.color;return"string"==typeof n&&Me(n)?Pe(n):Te(t)}function Oe(e){const t=e?.options?.calendar?.color;return"string"==typeof t?t:void 0}function He(e,t,r){const i={};return e.forEach((e,a)=>{i[e]=Re(e,a,t[e],r)}),i}const Le="ha-calendar-card-theme";function Ne(e){return"light"===e||"dark"===e||"auto"===e}function ze(e){try{const e=localStorage.getItem(Le);if(Ne(e))return e}catch{}return Ne(e)?e:"auto"}function Fe(e){return"auto"===e?Boolean("undefined"!=typeof window&&window.matchMedia?.("(prefers-color-scheme: dark)").matches)?"dark":"light":e}function Ue(e){return"light"===e?"Light":"dark"===e?"Dark":"Auto"}const Ie={"clear-night":"Clear",cloudy:"Cloudy",fog:"Fog",hail:"Hail",lightning:"Storms","lightning-rainy":"Storms",partlycloudy:"Partly cloudy",pouring:"Downpour",rainy:"Rain",snowy:"Snow","snowy-rainy":"Sleet",sunny:"Sunny",windy:"Windy","windy-variant":"Windy",exceptional:"Alert"};function Be(e){const t=e.weather_entity??e.weather;if(!t||"string"!=typeof t)return;return t.trim()||void 0}function je(e){if(!Array.isArray(e))return[];const t=[];for(const r of e){if(!r||"object"!=typeof r)continue;const e=r,i=String(e.datetime??e.date??""),a=String(e.condition??e.state??"");i&&a&&t.push({datetime:i,condition:a,temperature:"number"==typeof e.temperature?e.temperature:void 0,templow:"number"==typeof e.templow?e.templow:void 0})}return t}function Ye(e){return je(e.forecast??e.forecast_daily??e.forecast_twice_daily)}function We(e,t){if(!e||"object"!=typeof e)return[];const r=e,i=(r.response&&"object"==typeof r.response?r.response:r)[t];return i&&"object"==typeof i?je(i.forecast):[]}const Ke={sunny:{soft:"rgba(249, 196, 74, 0.28)",accent:"#f0b429",ink:"#8a5a00"},"clear-night":{soft:"rgba(120, 140, 200, 0.28)",accent:"#8fa0d4",ink:"#3d4a78"},partlycloudy:{soft:"rgba(140, 190, 220, 0.28)",accent:"#7eb6d4",ink:"#3a6078"},cloudy:{soft:"rgba(160, 170, 185, 0.28)",accent:"#9aa3b2",ink:"#4a5260"},fog:{soft:"rgba(180, 190, 200, 0.32)",accent:"#a8b2be",ink:"#555e6c"},rainy:{soft:"rgba(110, 170, 220, 0.3)",accent:"#5b9fd4",ink:"#2a5f88"},pouring:{soft:"rgba(80, 140, 210, 0.32)",accent:"#4a8bc8",ink:"#245078"},hail:{soft:"rgba(130, 180, 220, 0.3)",accent:"#7eb0d4",ink:"#355e80"},snowy:{soft:"rgba(190, 220, 245, 0.4)",accent:"#a8d0ef",ink:"#3d6488"},"snowy-rainy":{soft:"rgba(160, 200, 230, 0.35)",accent:"#8cbddc",ink:"#3a6280"},lightning:{soft:"rgba(180, 150, 220, 0.3)",accent:"#b08ad4",ink:"#5a3d78"},"lightning-rainy":{soft:"rgba(160, 140, 210, 0.32)",accent:"#9a7ac8",ink:"#4e3870"},windy:{soft:"rgba(140, 200, 190, 0.28)",accent:"#6db8ac",ink:"#2f6a62"},"windy-variant":{soft:"rgba(140, 200, 190, 0.28)",accent:"#6db8ac",ink:"#2f6a62"},exceptional:{soft:"rgba(230, 120, 100, 0.28)",accent:"#e07a5f",ink:"#8a3a28"}},qe={sunny:"#ffd78a","clear-night":"#c5d0f5",partlycloudy:"#b8d8ef",cloudy:"#c8d0dc",fog:"#c8d0dc",rainy:"#9ec8ef",pouring:"#8ebcef",hail:"#a8d0ef",snowy:"#d0e8fa","snowy-rainy":"#b8d8ef",lightning:"#d4c0f0","lightning-rainy":"#c8b4e8",windy:"#a8ddd4","windy-variant":"#a8ddd4",exceptional:"#f0b0a0"};function Ve(e,t=!1){const r=e in Ke?e:function(e){return e.includes("lightning")?"lightning":e.includes("snow")?"snowy":e.includes("rain")||"pouring"===e?"rainy":e.includes("wind")?"windy":"clear-night"===e?"clear-night":"partlycloudy"===e?"partlycloudy":"sunny"===e?"sunny":"cloudy"===e?"cloudy":"fog"===e?"fog":"cloudy"}(e),i=Ke[r]??Ke.cloudy;return t?{soft:i.soft.replace(/0\.\d+/g,e=>{const t=Number(e);return String(Math.min(.45,t+.08))}),accent:i.accent,ink:qe[r]??"#d0d6e0"}:i}function Ge(e){return e.includes("lightning")?"⛈️":"snowy-rainy"===e?"🌨️":e.includes("snow")?"❄️":"pouring"===e?"🌧️":"hail"===e?"🧊":e.includes("rain")?"🌦️":"fog"===e?"🌫️":"cloudy"===e?"☁️":"partlycloudy"===e?"⛅":"clear-night"===e?"🌙":"sunny"===e?"☀️":e.includes("wind")?"💨":"exceptional"===e?"⚠️":"🌤️"}function Qe(e,t){const r=new Date(e);return r.setDate(r.getDate()+t),r}function Je(e,t){return e.getFullYear()===t.getFullYear()&&e.getMonth()===t.getMonth()&&e.getDate()===t.getDate()}function Xe(e){if(/^\d{4}-\d{2}-\d{2}$/.test(e)){const[t,r,i]=e.split("-").map(Number);return new Date(t,r-1,i)}return new Date(e)}let Ze=class extends oe{constructor(){super(...arguments),this.mode="week",this.anchorDate=new Date,this.events=[],this.calendars=[],this.calendarColors={},this.dayStartHour=6,this.dayEndHour=22,this.nowTick=0}get days(){const e=function(e){const t=new Date(e);return t.setHours(0,0,0,0),t}(this.anchorDate);if("day"===this.mode)return[e];const t=(e.getDay()+6)%7,r=Qe(e,-t);return Array.from({length:7},(e,t)=>Qe(r,t))}get hours(){const e=[];for(let t=this.dayStartHour;t<this.dayEndHour;t++)e.push(t);return e}calendarColor(e){if(this.calendarColors[e])return this.calendarColors[e];return Te(Math.max(0,this.calendars.indexOf(e)))}eventStyle(e,t){const r=Xe(e.start),i=Xe(e.end),a=new Date(t);a.setHours(this.dayStartHour,0,0,0);const n=new Date(t);if(n.setHours(this.dayEndHour,0,0,0),i<=a||r>=n)return null;const s=r<a?a:r,o=i>n?n:i,c=60*(s.getHours()-this.dayStartHour)+s.getMinutes(),l=Math.max(22,(o.getTime()-s.getTime())/6e4);return`top:${c/60*ge}px;height:${l/60*ge}px;background:${this.calendarColor(e.calendar)};`}nowLineTop(e){this.nowTick;const t=new Date;if(!Je(t,e))return null;if(t.getHours()<this.dayStartHour||t.getHours()>=this.dayEndHour)return null;return(60*(t.getHours()-this.dayStartHour)+t.getMinutes())/60*ge}formatTime(e){return e.all_day||/^\d{4}-\d{2}-\d{2}$/.test(e.start)?"All day":Xe(e.start).toLocaleTimeString(void 0,{hour:"numeric",minute:"2-digit"})}onEventClick(e){this.dispatchEvent(new CustomEvent("event-select",{detail:e,bubbles:!0,composed:!0}))}onSlotCreate(e,t){const r=new Date(e);r.setHours(t,0,0,0);const i=new Date(r);i.setHours(t+1,0,0,0),this.dispatchEvent(new CustomEvent("slot-create",{detail:{start:r,end:i},bubbles:!0,composed:!0}))}hourFromPointer(e,t){const r=t.getBoundingClientRect(),i=e.clientY-r.top;return this.dayStartHour+Math.floor(i/ge)}render(){const e=this.hours,t=this.days,r=e.length*ge,i=new Date;return j`
       <div
         class="time-grid"
         data-mode=${"month"===this.mode?"week":this.mode}
         style="--hac-hour-height:${ge}px"
       >
         <div class="corner"></div>
-        ${t.map(e=>{const t=je(e,i);return j`
+        ${t.map(e=>{const t=Je(e,i);return j`
             <div class="day-head" data-today=${t?"true":"false"}>
               <span
                 >${e.toLocaleDateString(void 0,{weekday:"short"})}</span
@@ -1149,10 +1374,10 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
               </div>`)}
         </div>
 
-        ${t.map(t=>{const s=je(t,i),n=this.nowLineTop(t);return j`
+        ${t.map(t=>{const a=Je(t,i),n=this.nowLineTop(t);return j`
             <div
               class="day-col"
-              data-today=${s?"true":"false"}
+              data-today=${a?"true":"false"}
               style="height:${r}px"
               @dblclick=${e=>{const r=this.hourFromPointer(e,e.currentTarget);this.onSlotCreate(t,r)}}
             >
@@ -1179,27 +1404,27 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
             </div>
           `})}
       </div>
-    `}};function qe(e){const t=new Date(e);return t.setHours(0,0,0,0),t}function Ye(e,t){const r=new Date(e);return r.setDate(r.getDate()+t),r}function Ve(e){if(/^\d{4}-\d{2}-\d{2}$/.test(e)){const[t,r,i]=e.split("-").map(Number);return new Date(t,r-1,i)}return new Date(e)}We.styles=Ce,e([ue({attribute:!1})],We.prototype,"mode",void 0),e([ue({attribute:!1})],We.prototype,"anchorDate",void 0),e([ue({attribute:!1})],We.prototype,"events",void 0),e([ue({attribute:!1})],We.prototype,"calendars",void 0),e([ue({attribute:!1})],We.prototype,"calendarColors",void 0),e([ue({type:Number})],We.prototype,"dayStartHour",void 0),e([ue({type:Number})],We.prototype,"dayEndHour",void 0),e([ue({type:Number})],We.prototype,"nowTick",void 0),We=e([de("hac-time-grid")],We);let Ge=class extends oe{constructor(){super(...arguments),this.anchorDate=new Date,this.events=[],this.calendars=[],this.calendarColors={},this.weather=null,this.maxVisible=3}get monthStart(){const e=qe(this.anchorDate);return e.setDate(1),e}get cells(){const e=this.monthStart,t=(e.getDay()+6)%7,r=Ye(e,-t);return Array.from({length:42},(e,t)=>Ye(r,t))}calendarColor(e){if(this.calendarColors[e])return this.calendarColors[e];return Me(Math.max(0,this.calendars.indexOf(e)))}eventsForDay(e){return this.events.filter(t=>{const r=Ve(t.start),i=Ve(t.end),s=qe(e);return r<Ye(s,1)&&i>s}).sort((e,t)=>Ve(e.start).getTime()-Ve(t.start).getTime())}onEventClick(e,t){t.stopPropagation(),this.dispatchEvent(new CustomEvent("event-select",{detail:e,bubbles:!0,composed:!0}))}onDayCreate(e){const t=new Date(e);t.setHours(9,0,0,0);const r=new Date(t);r.setHours(10,0,0,0),this.dispatchEvent(new CustomEvent("slot-create",{detail:{start:t,end:r},bubbles:!0,composed:!0}))}render(){const e=new Date,t=this.monthStart.getMonth();return j`
+    `}};function et(e){const t=new Date(e);return t.setHours(0,0,0,0),t}function tt(e,t){const r=new Date(e);return r.setDate(r.getDate()+t),r}function rt(e){if(/^\d{4}-\d{2}-\d{2}$/.test(e)){const[t,r,i]=e.split("-").map(Number);return new Date(t,r-1,i)}return new Date(e)}Ze.styles=De,e([ue({attribute:!1})],Ze.prototype,"mode",void 0),e([ue({attribute:!1})],Ze.prototype,"anchorDate",void 0),e([ue({attribute:!1})],Ze.prototype,"events",void 0),e([ue({attribute:!1})],Ze.prototype,"calendars",void 0),e([ue({attribute:!1})],Ze.prototype,"calendarColors",void 0),e([ue({type:Number})],Ze.prototype,"dayStartHour",void 0),e([ue({type:Number})],Ze.prototype,"dayEndHour",void 0),e([ue({type:Number})],Ze.prototype,"nowTick",void 0),Ze=e([le("hac-time-grid")],Ze);let it=class extends oe{constructor(){super(...arguments),this.anchorDate=new Date,this.events=[],this.calendars=[],this.calendarColors={},this.weather=null,this.maxVisible=3}get monthStart(){const e=et(this.anchorDate);return e.setDate(1),e}get cells(){const e=this.monthStart,t=(e.getDay()+6)%7,r=tt(e,-t);return Array.from({length:42},(e,t)=>tt(r,t))}calendarColor(e){if(this.calendarColors[e])return this.calendarColors[e];return Te(Math.max(0,this.calendars.indexOf(e)))}eventsForDay(e){return this.events.filter(t=>{const r=rt(t.start),i=rt(t.end),a=et(e);return r<tt(a,1)&&i>a}).sort((e,t)=>rt(e.start).getTime()-rt(t.start).getTime())}onEventClick(e,t){t.stopPropagation(),this.dispatchEvent(new CustomEvent("event-select",{detail:e,bubbles:!0,composed:!0}))}onDayCreate(e){const t=new Date(e);t.setHours(9,0,0,0);const r=new Date(t);r.setHours(10,0,0,0),this.dispatchEvent(new CustomEvent("slot-create",{detail:{start:t,end:r},bubbles:!0,composed:!0}))}render(){const e=new Date,t=this.monthStart.getMonth();return j`
       <div class="month">
         <div class="dow">
           ${["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(e=>j`<span>${e}</span>`)}
         </div>
         <div class="cells">
-          ${this.cells.map(r=>{const i=r.getMonth()!==t,s=function(e,t){return e.getFullYear()===t.getFullYear()&&e.getMonth()===t.getMonth()&&e.getDate()===t.getDate()}(r,e),n=this.eventsForDay(r),a=n.slice(0,this.maxVisible),o=n.length-a.length,l=function(e,t){if(!e?.forecast?.length)return null;const r=[t.getFullYear(),String(t.getMonth()+1).padStart(2,"0"),String(t.getDate()).padStart(2,"0")].join("-");return e.forecast.find(e=>e.datetime.slice(0,10)===r)??null}(this.weather,r);return j`
+          ${this.cells.map(r=>{const i=r.getMonth()!==t,a=function(e,t){return e.getFullYear()===t.getFullYear()&&e.getMonth()===t.getMonth()&&e.getDate()===t.getDate()}(r,e),n=this.eventsForDay(r),s=n.slice(0,this.maxVisible),o=n.length-s.length,c=function(e,t){if(!e?.forecast?.length)return null;const r=[t.getFullYear(),String(t.getMonth()+1).padStart(2,"0"),String(t.getDate()).padStart(2,"0")].join("-");return e.forecast.find(e=>e.datetime.slice(0,10)===r)??null}(this.weather,r);return j`
               <div
                 class="cell"
                 data-outside=${i?"true":"false"}
-                data-today=${s?"true":"false"}
+                data-today=${a?"true":"false"}
                 @dblclick=${()=>this.onDayCreate(r)}
               >
                 <div class="cell-top">
                   <span class="num">${r.getDate()}</span>
-                  ${l?j`<span class="wx"
-                        >${Le(l.condition)}${null!=l.temperature?` ${Math.round(l.temperature)}°`:""}</span
+                  ${c?j`<span class="wx"
+                        >${l=c.condition,l.includes("lightning")?"⚡":l.includes("snow")?"❄":l.includes("rain")||"pouring"===l||"hail"===l?"🌧":"fog"===l?"fog":"cloudy"===l?"☁":"partlycloudy"===l?"⛅":"clear-night"===l?"☾":"sunny"===l?"☀":l.includes("wind")?"🌬":"·"}${null!=c.temperature?` ${Math.round(c.temperature)}°`:""}</span
                       >`:W}
                 </div>
                 <div class="events">
-                  ${a.map(e=>j`
+                  ${s.map(e=>j`
                       <button
                         type="button"
                         class="chip"
@@ -1208,7 +1433,7 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
                         @click=${t=>this.onEventClick(e,t)}
                       >
                         ${e.rrule||e.recurring?j`<span class="recur" aria-hidden="true">↻</span>`:W}<span class="t"
-                          >${function(e){return e.all_day||/^\d{4}-\d{2}-\d{2}$/.test(e.start)?"All day":Ve(e.start).toLocaleTimeString(void 0,{hour:"numeric",minute:"2-digit"})}(e)}</span
+                          >${function(e){return e.all_day||/^\d{4}-\d{2}-\d{2}$/.test(e.start)?"All day":rt(e.start).toLocaleTimeString(void 0,{hour:"numeric",minute:"2-digit"})}(e)}</span
                         >${e.summary}
                       </button>
                     `)}
@@ -1216,24 +1441,19 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
                   ${i||0!==n.length?W:j`<div class="empty">No events</div>`}
                 </div>
               </div>
-            `})}
+            `;var l})}
         </div>
       </div>
-    `}};Ge.styles=a`
+    `}};it.styles=s`
     :host {
       display: block;
       width: 100%;
       height: 100%;
       min-height: 100%;
       box-sizing: border-box;
-      --hac-ink: #2c3340;
-      --hac-muted: #8a93a3;
-      --hac-line: #e8ebf0;
-      --hac-today: #f08a5a;
-      --hac-font-body: "Nunito", "Avenir Next", "Segoe UI", sans-serif;
-      font-family: var(--hac-font-body);
-      color: var(--hac-ink);
-      background: #fff;
+      font-family: var(--hac-font-body, "Nunito", "Avenir Next", "Segoe UI", sans-serif);
+      color: var(--hac-ink, #2c3340);
+      background: var(--hac-surface, #fff);
     }
 
     :host([data-fill]) {
@@ -1250,8 +1470,8 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
     .dow {
       display: grid;
       grid-template-columns: repeat(7, minmax(0, 1fr));
-      border-bottom: 1px solid var(--hac-line);
-      background: #fafbfc;
+      border-bottom: 1px solid var(--hac-line, #e8ebf0);
+      background: var(--hac-surface-muted, #fafbfc);
     }
 
     .dow span {
@@ -1260,7 +1480,7 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
       font-weight: 700;
       letter-spacing: 0.06em;
       text-transform: uppercase;
-      color: var(--hac-muted);
+      color: var(--hac-muted, #8a93a3);
       padding: 0.55rem 0.25rem;
     }
 
@@ -1278,14 +1498,14 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
     }
 
     .cell {
-      border-right: 1px solid var(--hac-line);
-      border-bottom: 1px solid var(--hac-line);
+      border-right: 1px solid var(--hac-line, #e8ebf0);
+      border-bottom: 1px solid var(--hac-line, #e8ebf0);
       padding: 0.35rem 0.35rem 0.4rem;
       min-height: 0;
       display: flex;
       flex-direction: column;
       gap: 0.2rem;
-      background: #fff;
+      background: var(--hac-surface, #fff);
       cursor: pointer;
       transition: background 140ms ease;
     }
@@ -1295,16 +1515,16 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
     }
 
     .cell:hover {
-      background: #f7fafc;
+      background: var(--hac-cell-hover, #f7fafc);
     }
 
     .cell[data-outside="true"] {
-      background: #fbfcfd;
-      color: #b0b7c3;
+      background: var(--hac-outside-bg, #fbfcfd);
+      color: var(--hac-outside-ink, #b0b7c3);
     }
 
     .cell[data-today="true"] {
-      background: #fffaf7;
+      background: var(--hac-today-bg, #fffaf7);
     }
 
     .cell-top {
@@ -1327,13 +1547,13 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
     }
 
     .cell[data-today="true"] .num {
-      background: var(--hac-today);
+      background: var(--hac-today, #f08a5a);
       color: #fff;
     }
 
     .wx {
       font-size: 0.68rem;
-      color: var(--hac-muted);
+      color: var(--hac-muted, #8a93a3);
       font-weight: 600;
       white-space: nowrap;
     }
@@ -1383,14 +1603,14 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
     .more {
       font-size: 0.65rem;
       font-weight: 700;
-      color: var(--hac-muted);
+      color: var(--hac-muted, #8a93a3);
       padding: 0.05rem 0.2rem;
     }
 
     .empty {
       font-size: 0.65rem;
       font-weight: 600;
-      color: #c2c8d2;
+      color: var(--hac-faint, #c2c8d2);
       padding: 0.1rem 0.15rem;
     }
 
@@ -1412,7 +1632,7 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
         display: none;
       }
     }
-  `,e([ue({attribute:!1})],Ge.prototype,"anchorDate",void 0),e([ue({attribute:!1})],Ge.prototype,"events",void 0),e([ue({attribute:!1})],Ge.prototype,"calendars",void 0),e([ue({attribute:!1})],Ge.prototype,"calendarColors",void 0),e([ue({attribute:!1})],Ge.prototype,"weather",void 0),e([ue({type:Number})],Ge.prototype,"maxVisible",void 0),Ge=e([de("hac-month-grid")],Ge);const Je=["SU","MO","TU","WE","TH","FR","SA"];function Qe(e){if(!e)return"none";const t=/FREQ=(DAILY|WEEKLY|MONTHLY|YEARLY)/i.exec(e);return t?t[1].toLowerCase():"none"}function Ze(e){if("none"===e.freq)return;const t=[`FREQ=${e.freq.toUpperCase()}`];if("weekly"===e.freq){const i=/^\d{4}-\d{2}-\d{2}$/.test(e.startIso)?new Date(`${e.startIso}T12:00:00`):new Date(e.startIso);Number.isNaN(i.getTime())||t.push(`BYDAY=${r=i,Je[r.getDay()]}`)}var r;return e.untilDate&&/^\d{4}-\d{2}-\d{2}$/.test(e.untilDate)&&t.push(`UNTIL=${e.untilDate.replace(/-/g,"")}`),t.join(";")}let Xe=class extends oe{constructor(){super(...arguments),this.calendars=[],this.calendarColors={},this.event=null,this.defaults={},this.busy=!1,this.errorMessage="",this.remindersAvailable=!1,this.reminderDefaults={},this.reminder=null,this.summary="",this.description="",this.location="",this.start="",this.end="",this.calendar="",this.moveNote="",this.reminderEnabled=!1,this.reminderMinutes=30,this.reminderNotify="notify.mobile_app_phone",this.reminderMessage="",this.hydrateKey="",this.recurFreq="none",this.recurUntil="",this.recurScope="this"}connectedCallback(){super.connectedCallback(),this.hydrateEventFields(!0),this.applyReminderFields(!0)}updated(e){e.has("event")||e.has("defaults")?(this.hydrateEventFields(),this.applyReminderFields(!0)):(e.has("reminder")||e.has("reminderDefaults"))&&this.applyReminderFields(!1)}eventKey(){return this.event?`edit:${this.event.calendar}:${this.event.uid}:${this.event.recurrence_id??""}`:`create:${this.defaults.start??""}:${this.defaults.end??""}:${this.defaults.calendar??""}`}hydrateEventFields(e=!1){const t=this.eventKey();(e||t!==this.hydrateKey)&&(this.hydrateKey=t,this.event?(this.summary=this.event.summary,this.description=this.event.description??"",this.location=this.event.location??"",this.start=this.toLocalInput(this.event.start),this.end=this.toLocalInput(this.event.end),this.calendar=this.event.calendar,this.recurFreq=Qe(this.event.rrule),this.recurUntil=function(e){if(!e)return"";const t=/UNTIL=(\d{8})/i.exec(e);if(!t)return"";const r=t[1];return`${r.slice(0,4)}-${r.slice(4,6)}-${r.slice(6,8)}`}(this.event.rrule),this.recurScope=this.event.recurrence_id?"this":"series"):(this.summary="",this.description="",this.location="",this.start=this.toLocalInput(this.defaults.start??(new Date).toISOString()),this.end=this.toLocalInput(this.defaults.end??new Date(Date.now()+36e5).toISOString()),this.calendar=this.defaults.calendar??this.calendars[0]??"",this.recurFreq="none",this.recurUntil="",this.recurScope="this"),this.moveNote="")}applyReminderFields(e){if(this.reminder)return this.reminderEnabled=Boolean(this.reminder.enabled),this.reminderMinutes=this.reminder.minutes_before,this.reminderNotify=this.reminder.notify_service,void(this.reminderMessage=this.reminder.message??"");e&&(this.reminderEnabled=!1,this.reminderMinutes=this.reminderDefaults.minutes_before??30,this.reminderNotify=this.reminderDefaults.notify_service||"notify.mobile_app_phone",this.reminderMessage="")}get calendarOptions(){const e=new Set,t=[],r=r=>{r&&!e.has(r)&&(e.add(r),t.push(r))};this.event?.calendar&&r(this.event.calendar),this.calendar&&r(this.calendar);for(const e of this.calendars)r(e);return t}toLocalInput(e){const t=/^\d{4}-\d{2}-\d{2}$/.test(e)?new Date(`${e}T09:00:00`):new Date(e);if(Number.isNaN(t.getTime()))return"";const r=e=>String(e).padStart(2,"0");return`${t.getFullYear()}-${r(t.getMonth()+1)}-${r(t.getDate())}T${r(t.getHours())}:${r(t.getMinutes())}`}fromLocalInput(e){return new Date(e).toISOString()}get isRecurring(){return Boolean(this.event?.recurring||this.event?.rrule)}get isCrossCalendarMove(){return Boolean(this.event&&this.calendar&&this.calendar!==this.event.calendar)}get calendarMoveBlocked(){return this.isRecurring&&this.isCrossCalendarMove}get recurrenceRuleEditable(){return!this.event||(!this.isRecurring||("series"===this.recurScope||"future"===this.recurScope))}onCalendarChange(e){const t=e.target.value;this.selectCalendar(t)}selectCalendar(e){this.calendar=e,this.event&&e!==this.event.calendar?this.isRecurring?this.moveNote="Recurring series cannot change calendars (avoids partial/orphan instances). Keep the original calendar or recreate as a one-off.":this.moveNote="Home Assistant cannot move events across calendars — Save will create on the new calendar, then delete from the old one.":this.moveNote=""}calendarColor(e){if(this.calendarColors[e])return this.calendarColors[e];const t=this.calendarOptions;return Me(Math.max(0,t.indexOf(e)))}calendarLabel(e){return e.replace(/^calendar\./,"").replace(/_/g," ")}close(){this.busy||this.dispatchEvent(new CustomEvent("form-cancel",{bubbles:!0,composed:!0}))}save(){if(this.busy)return;if(!(this.summary.trim()&&this.start&&this.end&&this.calendar))return;if(this.calendarMoveBlocked)return;const e=this.fromLocalInput(this.start);let t;this.recurrenceRuleEditable?t=Ze({freq:this.recurFreq,startIso:e,untilDate:this.recurUntil||void 0}):this.isRecurring&&(t=void 0);const r={summary:this.summary.trim(),description:this.description.trim()||void 0,location:this.location.trim()||void 0,start:e,end:this.fromLocalInput(this.end),calendar:this.calendar,rrule:t??void 0},i=this.isCrossCalendarMove,s={mode:this.event?"edit":"create",input:r,original:this.event??void 0,crossCalendarMove:i,recurrenceScope:this.isRecurring?this.recurScope:void 0,reminder:this.remindersAvailable?{enabled:this.reminderEnabled,minutes_before:this.reminderMinutes,notify_service:this.reminderNotify.trim(),message:this.reminderMessage.trim()}:void 0};this.dispatchEvent(new CustomEvent("form-save",{detail:s,bubbles:!0,composed:!0}))}render(){const e=this.event?"Edit event":"New event",t=this.calendarOptions,r=this.event?.rrule?function(e){switch(Qe(e)){case"daily":return"Daily";case"weekly":return"Weekly";case"monthly":return"Monthly";case"yearly":return"Yearly";default:return e?"Repeats":""}}(this.event.rrule):"";return j`
+  `,e([ue({attribute:!1})],it.prototype,"anchorDate",void 0),e([ue({attribute:!1})],it.prototype,"events",void 0),e([ue({attribute:!1})],it.prototype,"calendars",void 0),e([ue({attribute:!1})],it.prototype,"calendarColors",void 0),e([ue({attribute:!1})],it.prototype,"weather",void 0),e([ue({type:Number})],it.prototype,"maxVisible",void 0),it=e([le("hac-month-grid")],it);const at=["SU","MO","TU","WE","TH","FR","SA"];function nt(e){if(!e)return"none";const t=/FREQ=(DAILY|WEEKLY|MONTHLY|YEARLY)/i.exec(e);return t?t[1].toLowerCase():"none"}function st(e){if("none"===e.freq)return;const t=[`FREQ=${e.freq.toUpperCase()}`];if("weekly"===e.freq){const i=/^\d{4}-\d{2}-\d{2}$/.test(e.startIso)?new Date(`${e.startIso}T12:00:00`):new Date(e.startIso);Number.isNaN(i.getTime())||t.push(`BYDAY=${r=i,at[r.getDay()]}`)}var r;return e.untilDate&&/^\d{4}-\d{2}-\d{2}$/.test(e.untilDate)&&t.push(`UNTIL=${e.untilDate.replace(/-/g,"")}`),t.join(";")}let ot=class extends oe{constructor(){super(...arguments),this.calendars=[],this.calendarColors={},this.event=null,this.defaults={},this.busy=!1,this.errorMessage="",this.remindersAvailable=!1,this.reminderDefaults={},this.reminder=null,this.summary="",this.description="",this.location="",this.start="",this.end="",this.calendar="",this.moveNote="",this.reminderEnabled=!1,this.reminderMinutes=30,this.reminderNotify="notify.mobile_app_phone",this.reminderMessage="",this.hydrateKey="",this.recurFreq="none",this.recurUntil="",this.recurScope="this"}connectedCallback(){super.connectedCallback(),this.hydrateEventFields(!0),this.applyReminderFields(!0)}updated(e){e.has("event")||e.has("defaults")?(this.hydrateEventFields(),this.applyReminderFields(!0)):(e.has("reminder")||e.has("reminderDefaults"))&&this.applyReminderFields(!1)}eventKey(){return this.event?`edit:${this.event.calendar}:${this.event.uid}:${this.event.recurrence_id??""}`:`create:${this.defaults.start??""}:${this.defaults.end??""}:${this.defaults.calendar??""}`}hydrateEventFields(e=!1){const t=this.eventKey();(e||t!==this.hydrateKey)&&(this.hydrateKey=t,this.event?(this.summary=this.event.summary,this.description=this.event.description??"",this.location=this.event.location??"",this.start=this.toLocalInput(this.event.start),this.end=this.toLocalInput(this.event.end),this.calendar=this.event.calendar,this.recurFreq=nt(this.event.rrule),this.recurUntil=function(e){if(!e)return"";const t=/UNTIL=(\d{8})/i.exec(e);if(!t)return"";const r=t[1];return`${r.slice(0,4)}-${r.slice(4,6)}-${r.slice(6,8)}`}(this.event.rrule),this.recurScope=this.event.recurrence_id?"this":"series"):(this.summary="",this.description="",this.location="",this.start=this.toLocalInput(this.defaults.start??(new Date).toISOString()),this.end=this.toLocalInput(this.defaults.end??new Date(Date.now()+36e5).toISOString()),this.calendar=this.defaults.calendar??this.calendars[0]??"",this.recurFreq="none",this.recurUntil="",this.recurScope="this"),this.moveNote="")}applyReminderFields(e){if(this.reminder)return this.reminderEnabled=Boolean(this.reminder.enabled),this.reminderMinutes=this.reminder.minutes_before,this.reminderNotify=this.reminder.notify_service,void(this.reminderMessage=this.reminder.message??"");e&&(this.reminderEnabled=!1,this.reminderMinutes=this.reminderDefaults.minutes_before??30,this.reminderNotify=this.reminderDefaults.notify_service||"notify.mobile_app_phone",this.reminderMessage="")}get calendarOptions(){const e=new Set,t=[],r=r=>{r&&!e.has(r)&&(e.add(r),t.push(r))};this.event?.calendar&&r(this.event.calendar),this.calendar&&r(this.calendar);for(const e of this.calendars)r(e);return t}toLocalInput(e){const t=/^\d{4}-\d{2}-\d{2}$/.test(e)?new Date(`${e}T09:00:00`):new Date(e);if(Number.isNaN(t.getTime()))return"";const r=e=>String(e).padStart(2,"0");return`${t.getFullYear()}-${r(t.getMonth()+1)}-${r(t.getDate())}T${r(t.getHours())}:${r(t.getMinutes())}`}fromLocalInput(e){return new Date(e).toISOString()}get isRecurring(){return Boolean(this.event?.recurring||this.event?.rrule)}get isCrossCalendarMove(){return Boolean(this.event&&this.calendar&&this.calendar!==this.event.calendar)}get calendarMoveBlocked(){return this.isRecurring&&this.isCrossCalendarMove}get recurrenceRuleEditable(){return!this.event||(!this.isRecurring||("series"===this.recurScope||"future"===this.recurScope))}onCalendarChange(e){const t=e.target.value;this.selectCalendar(t)}selectCalendar(e){this.calendar=e,this.event&&e!==this.event.calendar?this.isRecurring?this.moveNote="Recurring series cannot change calendars (avoids partial/orphan instances). Keep the original calendar or recreate as a one-off.":this.moveNote="Home Assistant cannot move events across calendars — Save will create on the new calendar, then delete from the old one.":this.moveNote=""}calendarColor(e){if(this.calendarColors[e])return this.calendarColors[e];const t=this.calendarOptions;return Te(Math.max(0,t.indexOf(e)))}calendarLabel(e){return e.replace(/^calendar\./,"").replace(/_/g," ")}close(){this.busy||this.dispatchEvent(new CustomEvent("form-cancel",{bubbles:!0,composed:!0}))}save(){if(this.busy)return;if(!(this.summary.trim()&&this.start&&this.end&&this.calendar))return;if(this.calendarMoveBlocked)return;const e=this.fromLocalInput(this.start);let t;this.recurrenceRuleEditable?t=st({freq:this.recurFreq,startIso:e,untilDate:this.recurUntil||void 0}):this.isRecurring&&(t=void 0);const r={summary:this.summary.trim(),description:this.description.trim()||void 0,location:this.location.trim()||void 0,start:e,end:this.fromLocalInput(this.end),calendar:this.calendar,rrule:t??void 0},i=this.isCrossCalendarMove,a={mode:this.event?"edit":"create",input:r,original:this.event??void 0,crossCalendarMove:i,recurrenceScope:this.isRecurring?this.recurScope:void 0,reminder:this.remindersAvailable?{enabled:this.reminderEnabled,minutes_before:this.reminderMinutes,notify_service:this.reminderNotify.trim(),message:this.reminderMessage.trim()}:void 0};this.dispatchEvent(new CustomEvent("form-save",{detail:a,bubbles:!0,composed:!0}))}render(){const e=this.event?"Edit event":"New event",t=this.calendarOptions,r=this.event?.rrule?function(e){switch(nt(e)){case"daily":return"Daily";case"weekly":return"Weekly";case"monthly":return"Monthly";case"yearly":return"Yearly";default:return e?"Repeats":""}}(this.event.rrule):"";return j`
       <div class="form-backdrop" @click=${this.close}>
         <div
           class="form-panel"
@@ -1665,7 +1885,7 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
           </div>
         </div>
       </div>
-    `}};Xe.styles=Ae,e([ue({attribute:!1})],Xe.prototype,"calendars",void 0),e([ue({attribute:!1})],Xe.prototype,"calendarColors",void 0),e([ue({attribute:!1})],Xe.prototype,"event",void 0),e([ue({attribute:!1})],Xe.prototype,"defaults",void 0),e([ue({type:Boolean})],Xe.prototype,"busy",void 0),e([ue({type:String})],Xe.prototype,"errorMessage",void 0),e([ue({type:Boolean})],Xe.prototype,"remindersAvailable",void 0),e([ue({attribute:!1})],Xe.prototype,"reminderDefaults",void 0),e([ue({attribute:!1})],Xe.prototype,"reminder",void 0),e([pe()],Xe.prototype,"summary",void 0),e([pe()],Xe.prototype,"description",void 0),e([pe()],Xe.prototype,"location",void 0),e([pe()],Xe.prototype,"start",void 0),e([pe()],Xe.prototype,"end",void 0),e([pe()],Xe.prototype,"calendar",void 0),e([pe()],Xe.prototype,"moveNote",void 0),e([pe()],Xe.prototype,"reminderEnabled",void 0),e([pe()],Xe.prototype,"reminderMinutes",void 0),e([pe()],Xe.prototype,"reminderNotify",void 0),e([pe()],Xe.prototype,"reminderMessage",void 0),e([pe()],Xe.prototype,"hydrateKey",void 0),e([pe()],Xe.prototype,"recurFreq",void 0),e([pe()],Xe.prototype,"recurUntil",void 0),e([pe()],Xe.prototype,"recurScope",void 0),Xe=e([de("hac-event-form")],Xe);let et=class extends oe{constructor(){super(...arguments),this.config={type:`custom:${fe}`},this.view="month",this.anchorDate=new Date,this.events=[],this.formOpen=!1,this.editing=null,this.formDefaults={},this.formBusy=!1,this.formError="",this.status=`HA Calendar Card v${me}`,this.statusKind="info",this.loading=!1,this.loadFailed=!1,this.pendingDuplicate=null,this.loadGeneration=0,this.hasLoadedOnce=!1,this.formReminder=null,this.hiddenCalendars=[],this.nowTick=Date.now(),this.weatherForecast=[],this.calendarColors={},this.pollTimer=null,this.clockTimer=null,this.hadHass=!1,this.weatherEntityLoaded=null,this.weatherFetchInFlight=!1,this.registryUnsub=null,this.colorLoadGeneration=0,this.subscribedConnection=null,this.panelStyledAncestors=[],this.panelResizeObserver=null,this.panelHost=null}setConfig(e){if(!e)throw new Error("Invalid configuration");const t=ze(e);this.config={title:"Calendar",entities:[...ye],initial_view:"month",day_start_hour:6,day_end_hour:22,show_demo_when_empty:!1,...e,weather_entity:t,type:e.type??`custom:${fe}`},this.view=this.config.initial_view??"month"}static getStubConfig(){return{title:"Calendar",entities:[...ye],initial_view:"month"}}getCardSize(){return 10}connectedCallback(){super.connectedCallback(),this.ensureFonts(),this.startTimers(),this.syncPanelLayout(),this.refreshCalendarColors(),this.subscribeRegistryColors()}firstUpdated(){this.syncPanelLayout()}disconnectedCallback(){super.disconnectedCallback(),this.clearTimers(),this.clearPanelLayout(),this.unsubscribeRegistryColors()}ensureFonts(){const e="ha-calendar-card-fonts";if(document.getElementById(e))return;const t=document.createElement("link");t.id=e,t.rel="stylesheet",t.href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Nunito:wght@500;600;700;800&display=swap",document.head.appendChild(t)}syncPanelLayout(){const e=this.closest("hui-panel-view");if(!e)return void this.clearPanelLayout();this.setAttribute("data-layout","panel");const t=[e,this.closest("hui-card")].filter(e=>Boolean(e));if(this.panelHost!==e){this.clearPanelAncestorStyles(),this.panelHost=e;for(const e of t)this.stylePanelAncestor(e),this.panelStyledAncestors.push(e);this.panelResizeObserver?.disconnect(),this.panelResizeObserver=new ResizeObserver(()=>this.applyPanelHeight()),this.panelResizeObserver.observe(e)}this.applyPanelHeight()}stylePanelAncestor(e){e.dataset.hacPanelStyled="1",e.style.setProperty("display","flex"),e.style.setProperty("flex-direction","column"),e.style.setProperty("flex","1 1 auto"),e.style.setProperty("height","100%"),e.style.setProperty("max-height","100%"),e.style.setProperty("min-height","0"),e.style.setProperty("overflow","hidden"),e.style.setProperty("box-sizing","border-box")}applyPanelHeight(){const e=this.panelHost;if(!e)return;const t=e.clientHeight;t>0?this.style.setProperty("--hac-panel-height",`${t}px`):this.style.setProperty("--hac-panel-height","calc(100dvh - var(--header-height, 56px) - var(--safe-area-inset-top, 0px) - var(--safe-area-inset-bottom, 0px))")}clearPanelAncestorStyles(){for(const e of this.panelStyledAncestors)if("1"===e.dataset.hacPanelStyled){delete e.dataset.hacPanelStyled;for(const t of["display","flex-direction","flex","height","max-height","min-height","overflow","box-sizing"])e.style.removeProperty(t)}this.panelStyledAncestors=[]}clearPanelLayout(){this.panelResizeObserver?.disconnect(),this.panelResizeObserver=null,this.panelHost=null,this.clearPanelAncestorStyles(),this.removeAttribute("data-layout"),this.style.removeProperty("--hac-panel-height")}startTimers(){this.clearTimers(),this.clockTimer=window.setInterval(()=>{this.nowTick=Date.now()},3e4),this.pollTimer=window.setInterval(()=>{this.refreshEvents({silent:!0}),this.refreshWeatherForecast(!0)},6e4)}clearTimers(){null!=this.clockTimer&&(window.clearInterval(this.clockTimer),this.clockTimer=null),null!=this.pollTimer&&(window.clearInterval(this.pollTimer),this.pollTimer=null)}updated(e){if(this.syncPanelLayout(),e.has("config")||e.has("anchorDate")||e.has("view"))return this.refreshEvents(),this.refreshWeatherForecast(!0),void(e.has("config")&&(this.refreshCalendarColors(),this.subscribeRegistryColors()));if(e.has("hass")){const e=Boolean(this.hass);e&&!this.hadHass?(this.hadHass=!0,this.refreshEvents(),this.refreshWeatherForecast(!0),this.refreshCalendarColors(),this.subscribeRegistryColors()):e?(this.refreshWeatherForecast(!1),this.subscribeRegistryColors()):(this.hadHass=!1,this.unsubscribeRegistryColors())}}entities(){return this.config.entities?.length?[...this.config.entities]:[...ye]}formCalendars(){const e=this.entities(),t=this.hass?new _e(this.hass).listWritableCalendars(e):e,r=this.editing?.calendar;return r&&!t.includes(r)?[r,...t]:t}calendarColor(e){if(this.calendarColors[e])return this.calendarColors[e];const t=this.entities();return Me(Math.max(0,t.indexOf(e)))}async refreshCalendarColors(){const e=this.entities(),t=++this.colorLoadGeneration,r=He(e,{},this.hass);if(this.calendarColors=r,!this.hass)return;const i=await async function(e,t){const r=[...new Set(t.filter(Boolean))],i={};if(!r.length)return i;try{const t=await e.callWS({type:"config/entity_registry/get_entries",entity_ids:r});for(const e of r){const r=Oe(t?.[e]);Te(r)&&(i[e]=Re(r))}return i}catch{}try{const t=await e.callWS({type:"config/entity_registry/list"}),s=new Map((t??[]).filter(e=>e?.entity_id).map(e=>[e.entity_id,e]));for(const e of r){const t=Oe(s.get(e));Te(t)&&(i[e]=Re(t))}}catch{}return i}(this.hass,e);t===this.colorLoadGeneration&&(this.calendarColors=He(e,i,this.hass))}subscribeRegistryColors(){const e=this.hass?.connection;e?.subscribeEvents&&(this.registryUnsub&&this.subscribedConnection===e||(this.unsubscribeRegistryColors(),this.subscribedConnection=e,e.subscribeEvents(()=>{this.refreshCalendarColors()},"entity_registry_updated").then(t=>{this.hass?.connection===e?(this.registryUnsub=t,this.subscribedConnection=e):t()}).catch(()=>{})))}unsubscribeRegistryColors(){if(this.registryUnsub){try{this.registryUnsub()}catch{}this.registryUnsub=null}this.subscribedConnection=null}calendarLabel(e){return e.replace(/^calendar\./,"").replace(/_/g," ")}filteredEvents(){if(!this.hiddenCalendars.length)return this.events;const e=new Set(this.hiddenCalendars);return this.events.filter(t=>!e.has(t.calendar))}toggleCalendarFilter(e){this.hiddenCalendars.includes(e)?this.hiddenCalendars=this.hiddenCalendars.filter(t=>t!==e):this.hiddenCalendars=[...this.hiddenCalendars,e]}range(){const e=new Date(this.anchorDate);if(e.setHours(0,0,0,0),"day"===this.view){const t=new Date(e);return t.setDate(t.getDate()+1),{start:e,end:t}}if("month"===this.view){const t=new Date(e.getFullYear(),e.getMonth(),1),r=(t.getDay()+6)%7;t.setDate(t.getDate()-r);const i=new Date(t);return i.setDate(i.getDate()+42),{start:t,end:i}}const t=(e.getDay()+6)%7;e.setDate(e.getDate()-t);const r=new Date(e);return r.setDate(r.getDate()+7),{start:e,end:r}}async refreshEvents(e){const t=++this.loadGeneration,r=Boolean(e?.silent)&&this.hasLoadedOnce;if(!this.hass)return this.events=this.demoEvents(),this.loadFailed=!1,this.hasLoadedOnce=!0,this.loading=!1,this.status="Preview mode — demo events (no hass)",void(this.statusKind="info");r||(this.loading=!0);const i=new _e(this.hass),{start:s,end:n}=this.range(),a=this.entities();try{const e=await i.getEvents(a,s,n);if(t!==this.loadGeneration)return;if(this.loadFailed=!1,this.hasLoadedOnce=!0,e.events.length){this.events=e.events;const t=e.errors.length?` · ${e.errors.length} calendar(s) failed`:"";this.status=`${e.events.length} event(s)${t}`,this.statusKind=e.errors.length?"warn":"info"}else e.anySuccess?(this.events=this.config.show_demo_when_empty?this.demoEvents():[],this.status=this.config.show_demo_when_empty?"No events — showing demo blocks":"No events in this range",this.statusKind="info"):(this.events=this.config.show_demo_when_empty?this.demoEvents():[],this.loadFailed=!this.config.show_demo_when_empty,this.status=e.errors.length?`Could not load: ${e.errors.join(", ")} — check entity ids`:"No calendars loaded",this.statusKind="error")}catch(e){if(t!==this.loadGeneration)return;this.events=[],this.loadFailed=!0,this.hasLoadedOnce=!0,this.status=`Load failed: ${e instanceof Error?e.message:String(e)}`,this.statusKind="error"}finally{t===this.loadGeneration&&(this.loading=!1)}}demoEvents(){const e=new Date(this.anchorDate);e.setHours(0,0,0,0);const t=(t,r,i,s,n)=>{const a=new Date(e);a.setDate(a.getDate()+t),a.setHours(r,0,0,0);const o=new Date(a);return o.setHours(r+i,0,0,0),{uid:`demo-${s}-${t}-${r}`,summary:s,start:a.toISOString(),end:o.toISOString(),calendar:n}},r=this.entities();return[t(0,9,1,"Morning standup",r[0]??"calendar.family"),t(0,11,2,"Deep work",r[1]??"calendar.personal"),t(1,14,1,"School pickup",r[0]??"calendar.family"),t(2,10,1,"Dentist",r[2]??"calendar.work"),t(4,16,2,"Soccer practice",r[0]??"calendar.family"),t(5,12,1,"Lunch with Sam",r[1]??"calendar.personal")]}shift(e){const t=new Date(this.anchorDate);"month"===this.view?t.setMonth(t.getMonth()+e):"day"===this.view?t.setDate(t.getDate()+e):t.setDate(t.getDate()+7*e),this.anchorDate=t}remindersAvailable(){return Boolean(this.hass&&new Ee(this.hass).isAvailable())}reminderDefaults(){return{minutes_before:this.config.reminder_minutes_before??30,notify_service:this.config.reminder_notify_service??"notify.mobile_app_phone"}}weatherEntityId(){return ze(this.config)}weather(){return function(e,t,r){if(!e||!t)return null;const i=e.states[t];if(!i)return null;const s=i.attributes??{},n=r&&r.length?r:Fe(s);return{entityId:t,state:i.state,temperature:"number"==typeof s.temperature?s.temperature:void 0,unit:"string"==typeof s.temperature_unit?s.temperature_unit:"string"==typeof s.unit_of_measurement?s.unit_of_measurement:"°",humidity:"number"==typeof s.humidity?s.humidity:void 0,forecast:n}}(this.hass,this.weatherEntityId(),this.weatherForecast)}async refreshWeatherForecast(e=!1){const t=this.weatherEntityId();if(!this.hass||!t)return this.weatherForecast=[],void(this.weatherEntityLoaded=null);if((e||this.weatherEntityLoaded!==t||!this.weatherForecast.length)&&!this.weatherFetchInFlight){this.weatherFetchInFlight=!0;try{const e=await async function(e,t){const r=e.states[t];if(r){const e=Fe(r.attributes??{});if(e.length)return e}const i=["daily","twice_daily","hourly"];for(const r of i)try{const i=Ie(await e.callService("weather","get_forecasts",{type:r},{entity_id:t},!1,!0),t);if(i.length)return i}catch{}return[]}(this.hass,t);this.weatherForecast=e,this.weatherEntityLoaded=t}catch{}finally{this.weatherFetchInFlight=!1}}}openCreate(e){this.editing=null,this.formError="",this.formBusy=!1,this.formReminder=null,this.formDefaults={start:(e?.start??new Date).toISOString(),end:(e?.end??new Date(Date.now()+36e5)).toISOString(),calendar:this.entities()[0]},this.formOpen=!0}openEdit(e){this.editing=e,this.formError="",this.formBusy=!1,this.formDefaults={},this.formReminder=null,this.formOpen=!0,this.loadReminderForEvent(e)}async loadReminderForEvent(e){if(this.hass&&this.remindersAvailable())try{const t=await new Ee(this.hass).getReminder(e.calendar,e.uid);if(!this.formOpen||this.editing?.uid!==e.uid)return;this.formReminder=t?{enabled:t.enabled,minutes_before:t.minutes_before,notify_service:t.notify_service,message:t.message??""}:null}catch{}}async syncReminder(e){if(!this.hass||!e.reminder||!this.remindersAvailable())return null;const t=new Ee(this.hass);if(!e.reminder.enabled)return await t.clearReminder(e.calendar,e.uid),"reminder cleared";if(!e.reminder.notify_service.trim())throw new Error("Reminder notify service is required");return await t.setReminder({calendar_entity_id:e.calendar,event_uid:e.uid,event_start:e.start,event_summary:e.summary,minutes_before:e.reminder.minutes_before,notify_service:e.reminder.notify_service.trim(),message:e.reminder.message,enabled:!0}),"reminder saved"}async onFormSave(e){const{mode:t,input:r,original:i,reminder:s,crossCalendarMove:n,recurrenceScope:a}=e.detail;if(!this.hass)return void(this.formError="No Home Assistant connection — cannot save.");this.formBusy=!0,this.formError="";const o=new _e(this.hass);let l=null;const d=Boolean(i&&(n||r.calendar&&r.calendar!==i.calendar));try{if("create"===t){const e=await o.createEvent(r);e.uid&&s?.enabled?l=await this.syncReminder({calendar:r.calendar,uid:e.uid,start:r.start,summary:r.summary,reminder:s}):s?.enabled&&!e.uid&&(l="event created; reminder skipped (no confirmed event uid yet)"),this.formOpen=!1,this.status=`Created “${r.summary}” on ${r.calendar}${r.rrule?" (recurring)":""}${l?` · ${l}`:""}`,this.statusKind="info"}else if(d&&i){if(i.recurring||i.rrule)return void(this.formError="Recurring events cannot change calendars. Keep the original calendar or recreate as a one-off.");const e=await o.moveEventToCalendar(i,r.calendar,{...r,calendar:r.calendar,rrule:void 0});if("moved"===e.status){if(this.remindersAvailable())try{await new Ee(this.hass).clearReminder(i.calendar,i.uid)}catch{}s&&(l=await this.syncReminder({calendar:r.calendar,uid:e.newUid,start:r.start,summary:r.summary,reminder:s})),this.formOpen=!1,this.pendingDuplicate=null,this.status=`Moved “${r.summary}” ${i.calendar} → ${r.calendar}${l?` · ${l}`:""}`,this.statusKind="info"}else{if("create_failed"===e.status)return this.formError=`Move aborted (create failed): ${e.error}`,this.status=this.formError,void(this.statusKind="error");if("delete_failed"===e.status)this.formOpen=!1,this.pendingDuplicate=e.pending,this.status=`Copy exists on ${r.calendar}, but the old event could not be removed.`,this.statusKind="warn";else if("blocked_recurring"===e.status)return void(this.formError=e.reason)}}else if(i){const{recurrenceId:e,recurrenceRange:t}=function(e,t="this"){if(!Boolean(e.recurring||e.rrule||e.recurrence_id))return{};if("series"===t)return{};const r=e.recurrence_id;return r?"future"===t?{recurrenceId:r,recurrenceRange:"THISANDFUTURE"}:{recurrenceId:r}:{}}(i,a??"this");await o.updateEvent(i.calendar,i.uid,{...r,calendar:i.calendar},e,t),s&&(l=await this.syncReminder({calendar:i.calendar,uid:i.uid,start:r.start,summary:r.summary,reminder:s})),this.formOpen=!1,this.status=`Updated “${r.summary}”${i.rrule||r.rrule?` · ${a??"this"}`:""}${l?` · ${l}`:""}`,this.statusKind="info"}await this.refreshEvents()}catch(e){this.formError=e instanceof Error?e.message:String(e),this.status=this.formError,this.statusKind="error"}finally{this.formBusy=!1}}async cleanupDuplicate(){if(!this.hass||!this.pendingDuplicate)return;const e=this.pendingDuplicate,t=new _e(this.hass);try{await t.deleteEvent(e.entityId,e.uid),this.pendingDuplicate=null,this.status=`Removed old copy of “${e.summary}” from ${e.entityId}`,this.statusKind="info",await this.refreshEvents()}catch(e){this.status=`Cleanup failed: ${e instanceof Error?e.message:String(e)}`,this.statusKind="error"}}dismissDuplicate(){this.pendingDuplicate=null,this.status="Duplicate warning dismissed — old copy may still exist",this.statusKind="warn"}rangeLabel(){if("month"===this.view)return this.anchorDate.toLocaleDateString(void 0,{month:"long",year:"numeric"});const{start:e,end:t}=this.range();if("day"===this.view)return e.toLocaleDateString(void 0,{weekday:"long",month:"short",day:"numeric"});const r=new Date(t);r.setDate(r.getDate()-1);const i={month:"short",day:"numeric"};return`${e.toLocaleDateString(void 0,i)} – ${r.toLocaleDateString(void 0,i)}`}clockDateLabel(){return this.nowTick,(new Date).toLocaleDateString(void 0,{weekday:"long",month:"long",day:"numeric"})}clockTimeLabel(){return this.nowTick,(new Date).toLocaleTimeString(void 0,{hour:"numeric",minute:"2-digit"})}render(){const e=this.config.title??"Calendar",t=this.entities(),r=this.filteredEvents(),i=this.weather(),s=i?.forecast?.slice(0,7)??[],n=this.hasLoadedOnce&&!this.loading&&!this.loadFailed&&0===r.length&&Boolean(this.hass)&&!this.config.show_demo_when_empty,a=this.hasLoadedOnce&&!this.loading&&this.loadFailed&&!this.formOpen,o=this.loading&&this.hasLoadedOnce;return j`
+    `}};ot.styles=Ce,e([ue({attribute:!1})],ot.prototype,"calendars",void 0),e([ue({attribute:!1})],ot.prototype,"calendarColors",void 0),e([ue({attribute:!1})],ot.prototype,"event",void 0),e([ue({attribute:!1})],ot.prototype,"defaults",void 0),e([ue({type:Boolean})],ot.prototype,"busy",void 0),e([ue({type:String})],ot.prototype,"errorMessage",void 0),e([ue({type:Boolean})],ot.prototype,"remindersAvailable",void 0),e([ue({attribute:!1})],ot.prototype,"reminderDefaults",void 0),e([ue({attribute:!1})],ot.prototype,"reminder",void 0),e([pe()],ot.prototype,"summary",void 0),e([pe()],ot.prototype,"description",void 0),e([pe()],ot.prototype,"location",void 0),e([pe()],ot.prototype,"start",void 0),e([pe()],ot.prototype,"end",void 0),e([pe()],ot.prototype,"calendar",void 0),e([pe()],ot.prototype,"moveNote",void 0),e([pe()],ot.prototype,"reminderEnabled",void 0),e([pe()],ot.prototype,"reminderMinutes",void 0),e([pe()],ot.prototype,"reminderNotify",void 0),e([pe()],ot.prototype,"reminderMessage",void 0),e([pe()],ot.prototype,"hydrateKey",void 0),e([pe()],ot.prototype,"recurFreq",void 0),e([pe()],ot.prototype,"recurUntil",void 0),e([pe()],ot.prototype,"recurScope",void 0),ot=e([le("hac-event-form")],ot);let ct=class extends oe{constructor(){super(...arguments),this.config={type:`custom:${fe}`},this.view="month",this.anchorDate=new Date,this.events=[],this.formOpen=!1,this.editing=null,this.formDefaults={},this.formBusy=!1,this.formError="",this.status=`HA Calendar Card v${me}`,this.statusKind="info",this.loading=!1,this.loadFailed=!1,this.pendingDuplicate=null,this.loadGeneration=0,this.hasLoadedOnce=!1,this.formReminder=null,this.hiddenCalendars=[],this.nowTick=Date.now(),this.weatherForecast=[],this.calendarColors={},this.themePreference="auto",this.resolvedTheme="light",this.monthPickerOpen=!1,this.pickerYear=(new Date).getFullYear(),this.pollTimer=null,this.clockTimer=null,this.hadHass=!1,this.weatherEntityLoaded=null,this.weatherFetchInFlight=!1,this.registryUnsub=null,this.colorLoadGeneration=0,this.subscribedConnection=null,this.panelStyledAncestors=[],this.panelResizeObserver=null,this.panelHost=null,this.themeMediaQuery=null,this.themeMediaHandler=null,this.onDocPointerDown=null}setConfig(e){if(!e)throw new Error("Invalid configuration");const t=Be(e);this.config={title:"Calendar",entities:[...ye],initial_view:"month",theme:"auto",day_start_hour:6,day_end_hour:22,show_demo_when_empty:!1,...e,weather_entity:t,type:e.type??`custom:${fe}`},this.view=this.config.initial_view??"month",this.applyThemePreference(ze(this.config.theme))}static getStubConfig(){return{title:"Calendar",entities:[...ye],initial_view:"month"}}getCardSize(){return 10}connectedCallback(){super.connectedCallback(),this.ensureFonts(),this.startTimers(),this.syncPanelLayout(),this.bindThemeMedia(),this.bindPickerDismiss(),this.applyThemePreference(ze(this.config.theme??"auto")),this.refreshCalendarColors(),this.subscribeRegistryColors()}firstUpdated(){this.syncPanelLayout(),this.syncThemeAttribute()}disconnectedCallback(){super.disconnectedCallback(),this.clearTimers(),this.clearPanelLayout(),this.unsubscribeRegistryColors(),this.unbindThemeMedia(),this.unbindPickerDismiss()}ensureFonts(){const e="ha-calendar-card-fonts";if(document.getElementById(e))return;const t=document.createElement("link");t.id=e,t.rel="stylesheet",t.href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Nunito:wght@500;600;700;800&family=Quicksand:wght@500;600;700&display=swap",document.head.appendChild(t)}syncPanelLayout(){const e=this.closest("hui-panel-view");if(!e)return void this.clearPanelLayout();this.setAttribute("data-layout","panel");const t=[e,this.closest("hui-card")].filter(e=>Boolean(e));if(this.panelHost!==e){this.clearPanelAncestorStyles(),this.panelHost=e;for(const e of t)this.stylePanelAncestor(e),this.panelStyledAncestors.push(e);this.panelResizeObserver?.disconnect(),this.panelResizeObserver=new ResizeObserver(()=>this.applyPanelHeight()),this.panelResizeObserver.observe(e)}this.applyPanelHeight()}stylePanelAncestor(e){e.dataset.hacPanelStyled="1",e.style.setProperty("display","flex"),e.style.setProperty("flex-direction","column"),e.style.setProperty("flex","1 1 auto"),e.style.setProperty("height","100%"),e.style.setProperty("max-height","100%"),e.style.setProperty("min-height","0"),e.style.setProperty("overflow","hidden"),e.style.setProperty("box-sizing","border-box")}applyPanelHeight(){const e=this.panelHost;if(!e)return;const t=e.clientHeight;t>0?this.style.setProperty("--hac-panel-height",`${t}px`):this.style.setProperty("--hac-panel-height","calc(100dvh - var(--header-height, 56px) - var(--safe-area-inset-top, 0px) - var(--safe-area-inset-bottom, 0px))")}clearPanelAncestorStyles(){for(const e of this.panelStyledAncestors)if("1"===e.dataset.hacPanelStyled){delete e.dataset.hacPanelStyled;for(const t of["display","flex-direction","flex","height","max-height","min-height","overflow","box-sizing"])e.style.removeProperty(t)}this.panelStyledAncestors=[]}clearPanelLayout(){this.panelResizeObserver?.disconnect(),this.panelResizeObserver=null,this.panelHost=null,this.clearPanelAncestorStyles(),this.removeAttribute("data-layout"),this.style.removeProperty("--hac-panel-height")}startTimers(){this.clearTimers(),this.clockTimer=window.setInterval(()=>{this.nowTick=Date.now()},3e4),this.pollTimer=window.setInterval(()=>{this.refreshEvents({silent:!0}),this.refreshWeatherForecast(!0)},6e4)}clearTimers(){null!=this.clockTimer&&(window.clearInterval(this.clockTimer),this.clockTimer=null),null!=this.pollTimer&&(window.clearInterval(this.pollTimer),this.pollTimer=null)}updated(e){if(this.syncPanelLayout(),e.has("config")||e.has("anchorDate")||e.has("view"))return this.refreshEvents(),this.refreshWeatherForecast(!0),void(e.has("config")&&(this.refreshCalendarColors(),this.subscribeRegistryColors()));if(e.has("hass")){const e=Boolean(this.hass);e&&!this.hadHass?(this.hadHass=!0,this.refreshEvents(),this.refreshWeatherForecast(!0),this.refreshCalendarColors(),this.subscribeRegistryColors()):e?(this.refreshWeatherForecast(!1),this.subscribeRegistryColors()):(this.hadHass=!1,this.unsubscribeRegistryColors())}}entities(){return this.config.entities?.length?[...this.config.entities]:[...ye]}formCalendars(){const e=this.entities(),t=this.hass?new xe(this.hass).listWritableCalendars(e):e,r=this.editing?.calendar;return r&&!t.includes(r)?[r,...t]:t}calendarColor(e){if(this.calendarColors[e])return this.calendarColors[e];const t=this.entities();return Te(Math.max(0,t.indexOf(e)))}async refreshCalendarColors(){const e=this.entities(),t=++this.colorLoadGeneration,r=He(e,{},this.hass);if(this.calendarColors=r,!this.hass)return;const i=await async function(e,t){const r=[...new Set(t.filter(Boolean))],i={};if(!r.length)return i;try{const t=await e.callWS({type:"config/entity_registry/get_entries",entity_ids:r});for(const e of r){const r=Oe(t?.[e]);Me(r)&&(i[e]=Pe(r))}return i}catch{}try{const t=await e.callWS({type:"config/entity_registry/list"}),a=new Map((t??[]).filter(e=>e?.entity_id).map(e=>[e.entity_id,e]));for(const e of r){const t=Oe(a.get(e));Me(t)&&(i[e]=Pe(t))}}catch{}return i}(this.hass,e);t===this.colorLoadGeneration&&(this.calendarColors=He(e,i,this.hass))}subscribeRegistryColors(){const e=this.hass?.connection;e?.subscribeEvents&&(this.registryUnsub&&this.subscribedConnection===e||(this.unsubscribeRegistryColors(),this.subscribedConnection=e,e.subscribeEvents(()=>{this.refreshCalendarColors()},"entity_registry_updated").then(t=>{this.hass?.connection===e?(this.registryUnsub=t,this.subscribedConnection=e):t()}).catch(()=>{})))}unsubscribeRegistryColors(){if(this.registryUnsub){try{this.registryUnsub()}catch{}this.registryUnsub=null}this.subscribedConnection=null}calendarLabel(e){return e.replace(/^calendar\./,"").replace(/_/g," ")}filteredEvents(){if(!this.hiddenCalendars.length)return this.events;const e=new Set(this.hiddenCalendars);return this.events.filter(t=>!e.has(t.calendar))}toggleCalendarFilter(e){this.hiddenCalendars.includes(e)?this.hiddenCalendars=this.hiddenCalendars.filter(t=>t!==e):this.hiddenCalendars=[...this.hiddenCalendars,e]}range(){const e=new Date(this.anchorDate);if(e.setHours(0,0,0,0),"day"===this.view){const t=new Date(e);return t.setDate(t.getDate()+1),{start:e,end:t}}if("month"===this.view){const t=new Date(e.getFullYear(),e.getMonth(),1),r=(t.getDay()+6)%7;t.setDate(t.getDate()-r);const i=new Date(t);return i.setDate(i.getDate()+42),{start:t,end:i}}const t=(e.getDay()+6)%7;e.setDate(e.getDate()-t);const r=new Date(e);return r.setDate(r.getDate()+7),{start:e,end:r}}async refreshEvents(e){const t=++this.loadGeneration,r=Boolean(e?.silent)&&this.hasLoadedOnce;if(!this.hass)return this.events=this.demoEvents(),this.loadFailed=!1,this.hasLoadedOnce=!0,this.loading=!1,this.status="Preview mode — demo events (no hass)",void(this.statusKind="info");r||(this.loading=!0);const i=new xe(this.hass),{start:a,end:n}=this.range(),s=this.entities();try{const e=await i.getEvents(s,a,n);if(t!==this.loadGeneration)return;if(this.loadFailed=!1,this.hasLoadedOnce=!0,e.events.length){this.events=e.events;const t=e.errors.length?` · ${e.errors.length} calendar(s) failed`:"";this.status=`${e.events.length} event(s)${t}`,this.statusKind=e.errors.length?"warn":"info"}else e.anySuccess?(this.events=this.config.show_demo_when_empty?this.demoEvents():[],this.status=this.config.show_demo_when_empty?"No events — showing demo blocks":"No events in this range",this.statusKind="info"):(this.events=this.config.show_demo_when_empty?this.demoEvents():[],this.loadFailed=!this.config.show_demo_when_empty,this.status=e.errors.length?`Could not load: ${e.errors.join(", ")} — check entity ids`:"No calendars loaded",this.statusKind="error")}catch(e){if(t!==this.loadGeneration)return;this.events=[],this.loadFailed=!0,this.hasLoadedOnce=!0,this.status=`Load failed: ${e instanceof Error?e.message:String(e)}`,this.statusKind="error"}finally{t===this.loadGeneration&&(this.loading=!1)}}demoEvents(){const e=new Date(this.anchorDate);e.setHours(0,0,0,0);const t=(t,r,i,a,n)=>{const s=new Date(e);s.setDate(s.getDate()+t),s.setHours(r,0,0,0);const o=new Date(s);return o.setHours(r+i,0,0,0),{uid:`demo-${a}-${t}-${r}`,summary:a,start:s.toISOString(),end:o.toISOString(),calendar:n}},r=this.entities();return[t(0,9,1,"Morning standup",r[0]??"calendar.family"),t(0,11,2,"Deep work",r[1]??"calendar.personal"),t(1,14,1,"School pickup",r[0]??"calendar.family"),t(2,10,1,"Dentist",r[2]??"calendar.work"),t(4,16,2,"Soccer practice",r[0]??"calendar.family"),t(5,12,1,"Lunch with Sam",r[1]??"calendar.personal")]}shift(e){const t=new Date(this.anchorDate);"month"===this.view?t.setMonth(t.getMonth()+e):"day"===this.view?t.setDate(t.getDate()+e):t.setDate(t.getDate()+7*e),this.anchorDate=t}remindersAvailable(){return Boolean(this.hass&&new Ee(this.hass).isAvailable())}reminderDefaults(){return{minutes_before:this.config.reminder_minutes_before??30,notify_service:this.config.reminder_notify_service??"notify.mobile_app_phone"}}weatherEntityId(){return Be(this.config)}weather(){return function(e,t,r){if(!e||!t)return null;const i=e.states[t];if(!i)return null;const a=i.attributes??{},n=r&&r.length?r:Ye(a);return{entityId:t,state:i.state,temperature:"number"==typeof a.temperature?a.temperature:void 0,unit:"string"==typeof a.temperature_unit?a.temperature_unit:"string"==typeof a.unit_of_measurement?a.unit_of_measurement:"°",humidity:"number"==typeof a.humidity?a.humidity:void 0,forecast:n}}(this.hass,this.weatherEntityId(),this.weatherForecast)}async refreshWeatherForecast(e=!1){const t=this.weatherEntityId();if(!this.hass||!t)return this.weatherForecast=[],void(this.weatherEntityLoaded=null);if((e||this.weatherEntityLoaded!==t||!this.weatherForecast.length)&&!this.weatherFetchInFlight){this.weatherFetchInFlight=!0;try{const e=await async function(e,t){const r=e.states[t];if(r){const e=Ye(r.attributes??{});if(e.length)return e}const i=["daily","twice_daily","hourly"];for(const r of i)try{const i=We(await e.callService("weather","get_forecasts",{type:r},{entity_id:t},!1,!0),t);if(i.length)return i}catch{}return[]}(this.hass,t);this.weatherForecast=e,this.weatherEntityLoaded=t}catch{}finally{this.weatherFetchInFlight=!1}}}openCreate(e){this.editing=null,this.formError="",this.formBusy=!1,this.formReminder=null,this.formDefaults={start:(e?.start??new Date).toISOString(),end:(e?.end??new Date(Date.now()+36e5)).toISOString(),calendar:this.entities()[0]},this.formOpen=!0}openEdit(e){this.editing=e,this.formError="",this.formBusy=!1,this.formDefaults={},this.formReminder=null,this.formOpen=!0,this.loadReminderForEvent(e)}async loadReminderForEvent(e){if(this.hass&&this.remindersAvailable())try{const t=await new Ee(this.hass).getReminder(e.calendar,e.uid);if(!this.formOpen||this.editing?.uid!==e.uid)return;this.formReminder=t?{enabled:t.enabled,minutes_before:t.minutes_before,notify_service:t.notify_service,message:t.message??""}:null}catch{}}async syncReminder(e){if(!this.hass||!e.reminder||!this.remindersAvailable())return null;const t=new Ee(this.hass);if(!e.reminder.enabled)return await t.clearReminder(e.calendar,e.uid),"reminder cleared";if(!e.reminder.notify_service.trim())throw new Error("Reminder notify service is required");return await t.setReminder({calendar_entity_id:e.calendar,event_uid:e.uid,event_start:e.start,event_summary:e.summary,minutes_before:e.reminder.minutes_before,notify_service:e.reminder.notify_service.trim(),message:e.reminder.message,enabled:!0}),"reminder saved"}async onFormSave(e){const{mode:t,input:r,original:i,reminder:a,crossCalendarMove:n,recurrenceScope:s}=e.detail;if(!this.hass)return void(this.formError="No Home Assistant connection — cannot save.");this.formBusy=!0,this.formError="";const o=new xe(this.hass);let c=null;const l=Boolean(i&&(n||r.calendar&&r.calendar!==i.calendar));try{if("create"===t){const e=await o.createEvent(r);e.uid&&a?.enabled?c=await this.syncReminder({calendar:r.calendar,uid:e.uid,start:r.start,summary:r.summary,reminder:a}):a?.enabled&&!e.uid&&(c="event created; reminder skipped (no confirmed event uid yet)"),this.formOpen=!1,this.status=`Created “${r.summary}” on ${r.calendar}${r.rrule?" (recurring)":""}${c?` · ${c}`:""}`,this.statusKind="info"}else if(l&&i){if(i.recurring||i.rrule)return void(this.formError="Recurring events cannot change calendars. Keep the original calendar or recreate as a one-off.");const e=await o.moveEventToCalendar(i,r.calendar,{...r,calendar:r.calendar,rrule:void 0});if("moved"===e.status){if(this.remindersAvailable())try{await new Ee(this.hass).clearReminder(i.calendar,i.uid)}catch{}a&&(c=await this.syncReminder({calendar:r.calendar,uid:e.newUid,start:r.start,summary:r.summary,reminder:a})),this.formOpen=!1,this.pendingDuplicate=null,this.status=`Moved “${r.summary}” ${i.calendar} → ${r.calendar}${c?` · ${c}`:""}`,this.statusKind="info"}else{if("create_failed"===e.status)return this.formError=`Move aborted (create failed): ${e.error}`,this.status=this.formError,void(this.statusKind="error");if("delete_failed"===e.status)this.formOpen=!1,this.pendingDuplicate=e.pending,this.status=`Copy exists on ${r.calendar}, but the old event could not be removed.`,this.statusKind="warn";else if("blocked_recurring"===e.status)return void(this.formError=e.reason)}}else if(i){const{recurrenceId:e,recurrenceRange:t}=function(e,t="this"){if(!Boolean(e.recurring||e.rrule||e.recurrence_id))return{};if("series"===t)return{};const r=e.recurrence_id;return r?"future"===t?{recurrenceId:r,recurrenceRange:"THISANDFUTURE"}:{recurrenceId:r}:{}}(i,s??"this");await o.updateEvent(i.calendar,i.uid,{...r,calendar:i.calendar},e,t),a&&(c=await this.syncReminder({calendar:i.calendar,uid:i.uid,start:r.start,summary:r.summary,reminder:a})),this.formOpen=!1,this.status=`Updated “${r.summary}”${i.rrule||r.rrule?` · ${s??"this"}`:""}${c?` · ${c}`:""}`,this.statusKind="info"}await this.refreshEvents()}catch(e){this.formError=e instanceof Error?e.message:String(e),this.status=this.formError,this.statusKind="error"}finally{this.formBusy=!1}}async cleanupDuplicate(){if(!this.hass||!this.pendingDuplicate)return;const e=this.pendingDuplicate,t=new xe(this.hass);try{await t.deleteEvent(e.entityId,e.uid),this.pendingDuplicate=null,this.status=`Removed old copy of “${e.summary}” from ${e.entityId}`,this.statusKind="info",await this.refreshEvents()}catch(e){this.status=`Cleanup failed: ${e instanceof Error?e.message:String(e)}`,this.statusKind="error"}}dismissDuplicate(){this.pendingDuplicate=null,this.status="Duplicate warning dismissed — old copy may still exist",this.statusKind="warn"}applyThemePreference(e){this.themePreference=e,this.resolvedTheme=Fe(e),this.syncThemeAttribute()}syncThemeAttribute(){this.setAttribute("data-theme",this.resolvedTheme)}cycleTheme(){const e="light"===(t=this.themePreference)?"dark":"dark"===t?"auto":"light";var t;!function(e){try{localStorage.setItem(Le,e)}catch{}}(e),this.applyThemePreference(e)}bindThemeMedia(){this.unbindThemeMedia(),"undefined"!=typeof window&&window.matchMedia&&(this.themeMediaQuery=window.matchMedia("(prefers-color-scheme: dark)"),this.themeMediaHandler=()=>{"auto"===this.themePreference&&(this.resolvedTheme=Fe("auto"),this.syncThemeAttribute())},this.themeMediaQuery.addEventListener("change",this.themeMediaHandler))}unbindThemeMedia(){this.themeMediaQuery&&this.themeMediaHandler&&this.themeMediaQuery.removeEventListener("change",this.themeMediaHandler),this.themeMediaQuery=null,this.themeMediaHandler=null}bindPickerDismiss(){this.unbindPickerDismiss(),this.onDocPointerDown=e=>{if(!this.monthPickerOpen)return;const t=e.composedPath();if(t.includes(this)){const e=t.some(e=>e instanceof HTMLElement&&(e.classList.contains("month-picker")||e.classList.contains("range-label")||e.classList.contains("range-wrap")));if(e)return}this.monthPickerOpen=!1},document.addEventListener("pointerdown",this.onDocPointerDown,!0)}unbindPickerDismiss(){this.onDocPointerDown&&(document.removeEventListener("pointerdown",this.onDocPointerDown,!0),this.onDocPointerDown=null)}toggleMonthPicker(){this.monthPickerOpen=!this.monthPickerOpen,this.monthPickerOpen&&(this.pickerYear=this.anchorDate.getFullYear())}shiftPickerYear(e){this.pickerYear+=e}jumpToMonth(e){const t=new Date(this.anchorDate),r=t.getDate();t.setDate(1),t.setFullYear(this.pickerYear),t.setMonth(e);const i=new Date(this.pickerYear,e+1,0).getDate();t.setDate(Math.min(r,i)),this.anchorDate=t,this.monthPickerOpen=!1}monthNamesShort(){return Array.from({length:12},(e,t)=>new Date(2e3,t,1).toLocaleDateString(void 0,{month:"short"}))}rangeLabel(){if("month"===this.view)return this.anchorDate.toLocaleDateString(void 0,{month:"long",year:"numeric"});const{start:e,end:t}=this.range();if("day"===this.view)return e.toLocaleDateString(void 0,{weekday:"long",month:"short",day:"numeric"});const r=new Date(t);r.setDate(r.getDate()-1);const i={month:"short",day:"numeric"};return`${e.toLocaleDateString(void 0,i)} – ${r.toLocaleDateString(void 0,i)}`}clockDateLabel(){return this.nowTick,(new Date).toLocaleDateString(void 0,{weekday:"long",month:"long",day:"numeric"})}clockTimeLabel(){return this.nowTick,(new Date).toLocaleTimeString(void 0,{hour:"numeric",minute:"2-digit"})}render(){const e=this.config.title??"Calendar",t=this.entities(),r=this.filteredEvents(),i=this.weather(),a=i?.forecast?.slice(0,7)??[],n="dark"===this.resolvedTheme,s=i?Ve(i.state,n):null,o=this.hasLoadedOnce&&!this.loading&&!this.loadFailed&&0===r.length&&Boolean(this.hass)&&!this.config.show_demo_when_empty,c=this.hasLoadedOnce&&!this.loading&&this.loadFailed&&!this.formOpen,l=this.loading&&this.hasLoadedOnce,d=this.monthNamesShort();return j`
       <div class="shell">
         ${this.pendingDuplicate?j`
               <div class="banner" role="status">
@@ -1694,23 +1914,35 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
             <div class="clock-time">${this.clockTimeLabel()}</div>
           </div>
           <div class="weather-now">
-            ${i?j`
-                  <div class="temp">
-                    ${Le(i.state)}
-                    ${null!=i.temperature?`${Math.round(i.temperature)}${i.unit??"°"}`:""}
+            ${i&&s?j`
+                  <div
+                    class="weather-blob"
+                    style="--hac-wx-soft:${s.soft};--hac-wx-accent:${s.accent};--hac-wx-ink:${s.ink}"
+                  >
+                    <span class="weather-icon-halo" aria-hidden="true"
+                      >${Ge(i.state)}</span
+                    >
+                    <span class="temp"
+                      >${null!=i.temperature?`${Math.round(i.temperature)}${i.unit??"°"}`:(u=i.state,Ie[u]??u.replace(/-/g," "))}</span
+                    >
                   </div>
-                  <div class="cond">${l=i.state,Ne[l]??l.replace(/-/g," ")}</div>
+                  <div class="cond">${function(e){return{sunny:"Sunny skies","clear-night":"Clear night",partlycloudy:"Partly cloudy",cloudy:"Cloudy",fog:"A bit foggy",rainy:"Rainy",pouring:"Pouring rain",hail:"Hail",snowy:"Snowy","snowy-rainy":"Wintry mix",lightning:"Stormy","lightning-rainy":"Thunderstorms",windy:"Breezy","windy-variant":"Windy",exceptional:"Weather alert"}[e]??e.replace(/-/g," ")}(i.state)}</div>
                 `:j`<div class="weather-stub">
                   ${this.weatherEntityId()?"Weather unavailable":"Add weather_entity"}
                 </div>`}
           </div>
           <div class="forecast-strip" aria-label="Forecast">
-            ${s.length?s.map(e=>{const t=new Date(e.datetime);return j`
-                    <div class="forecast-day">
+            ${a.length?a.map((e,t)=>{const r=new Date(e.datetime),i=Ve(e.condition,n);return j`
+                    <div
+                      class="forecast-day"
+                      style="--hac-wx-day-soft:${i.soft};--hac-wx-day-ink:${i.ink};animation-delay:${40*t}ms"
+                    >
                       <span class="d"
-                        >${t.toLocaleDateString(void 0,{weekday:"short"})}</span
+                        >${r.toLocaleDateString(void 0,{weekday:"short"})}</span
                       >
-                      <span class="g">${Le(e.condition)}</span>
+                      <span class="g" aria-hidden="true"
+                        >${Ge(e.condition)}</span
+                      >
                       <span class="t"
                         >${null!=e.temperature?`${Math.round(e.temperature)}°`:"—"}</span
                       >
@@ -1753,7 +1985,7 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
               <button
                 class="nav-btn"
                 type="button"
-                @click=${()=>{this.anchorDate=new Date}}
+                @click=${()=>{this.anchorDate=new Date,this.monthPickerOpen=!1}}
               >
                 Today
               </button>
@@ -1766,7 +1998,57 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
                 ›
               </button>
             </div>
-            <div class="range-label">${this.rangeLabel()}</div>
+            <div class="range-wrap">
+              <button
+                type="button"
+                class="range-label"
+                aria-haspopup="dialog"
+                aria-expanded=${this.monthPickerOpen?"true":"false"}
+                aria-label="Jump to month and year"
+                @click=${()=>this.toggleMonthPicker()}
+              >
+                ${this.rangeLabel()}
+                <span class="caret" aria-hidden="true">▾</span>
+              </button>
+              ${this.monthPickerOpen?j`
+                    <div
+                      class="month-picker"
+                      role="dialog"
+                      aria-label="Choose month and year"
+                    >
+                      <div class="month-picker-year">
+                        <button
+                          type="button"
+                          class="nav-btn"
+                          aria-label="Previous year"
+                          @click=${()=>this.shiftPickerYear(-1)}
+                        >
+                          ‹
+                        </button>
+                        <span class="year">${this.pickerYear}</span>
+                        <button
+                          type="button"
+                          class="nav-btn"
+                          aria-label="Next year"
+                          @click=${()=>this.shiftPickerYear(1)}
+                        >
+                          ›
+                        </button>
+                      </div>
+                      <div class="month-picker-grid">
+                        ${d.map((e,t)=>j`
+                            <button
+                              type="button"
+                              aria-current=${this.anchorDate.getFullYear()===this.pickerYear&&this.anchorDate.getMonth()===t?"true":"false"}
+                              @click=${()=>this.jumpToMonth(t)}
+                            >
+                              ${e}
+                            </button>
+                          `)}
+                      </div>
+                    </div>
+                  `:W}
+            </div>
             <div class="view-toggle" role="group" aria-label="View">
               <button
                 type="button"
@@ -1790,6 +2072,18 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
                 Month
               </button>
             </div>
+            <button
+              type="button"
+              class="nav-btn theme-btn"
+              aria-label="Theme: ${Ue(this.themePreference)}. Click to cycle light, dark, auto."
+              title="Theme: ${Ue(this.themePreference)}"
+              @click=${()=>this.cycleTheme()}
+            >
+              <span class="glyph" aria-hidden="true"
+                >${h=this.themePreference,"light"===h?"☀":"dark"===h?"☾":"◐"}</span
+              >
+              ${Ue(this.themePreference)}
+            </button>
           </div>
           <button
             class="primary-btn add-btn"
@@ -1811,8 +2105,8 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
                   <p>Fetching events for ${this.rangeLabel()}.</p>
                 </div>
               `:W}
-          ${o?j`<div class="loading-veil"></div>`:W}
-          ${a?j`
+          ${l?j`<div class="loading-veil"></div>`:W}
+          ${c?j`
                 <div class="state-panel" data-kind="error">
                   <div class="state-mark" aria-hidden="true"></div>
                   <h2>Couldn’t load calendars</h2>
@@ -1835,7 +2129,7 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
                   </div>
                 </div>
               `:W}
-          ${n&&"month"!==this.view?j`
+          ${o&&"month"!==this.view?j`
                 <div class="state-panel" data-kind="empty">
                   <div class="state-mark" aria-hidden="true"></div>
                   <h2>Nothing scheduled</h2>
@@ -1901,7 +2195,7 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
         <div class="status" data-kind=${this.statusKind}>
           ${this.loading?j`<span class="spinner" aria-hidden="true"></span>`:W}
           <span>${this.status}</span>
-          ${"error"!==this.statusKind||a?W:j`<button
+          ${"error"!==this.statusKind||c?W:j`<button
                 class="ghost-btn"
                 type="button"
                 style="min-height:1.75rem;padding:0.2rem 0.6rem;font-size:0.78rem"
@@ -1911,9 +2205,9 @@ function e(e,t,r,i){var s,n=arguments.length,a=n<3?t:null===i?i=Object.getOwnPro
               </button>`}
         </div>
       </div>
-    `;var l}};et.styles=[Se,a`
+    `;var h,u}};ct.styles=[Se,s`
       :host {
         position: relative;
       }
-    `],e([ue({attribute:!1})],et.prototype,"hass",void 0),e([pe()],et.prototype,"config",void 0),e([pe()],et.prototype,"view",void 0),e([pe()],et.prototype,"anchorDate",void 0),e([pe()],et.prototype,"events",void 0),e([pe()],et.prototype,"formOpen",void 0),e([pe()],et.prototype,"editing",void 0),e([pe()],et.prototype,"formDefaults",void 0),e([pe()],et.prototype,"formBusy",void 0),e([pe()],et.prototype,"formError",void 0),e([pe()],et.prototype,"status",void 0),e([pe()],et.prototype,"statusKind",void 0),e([pe()],et.prototype,"loading",void 0),e([pe()],et.prototype,"loadFailed",void 0),e([pe()],et.prototype,"pendingDuplicate",void 0),e([pe()],et.prototype,"loadGeneration",void 0),e([pe()],et.prototype,"hasLoadedOnce",void 0),e([pe()],et.prototype,"formReminder",void 0),e([pe()],et.prototype,"hiddenCalendars",void 0),e([pe()],et.prototype,"nowTick",void 0),e([pe()],et.prototype,"weatherForecast",void 0),e([pe()],et.prototype,"calendarColors",void 0),et=e([de(fe)],et),window.customCards=window.customCards||[],window.customCards.push({type:fe,name:"HA Calendar Card",description:"Skylight-style month/week/day calendar with create/edit and safe calendar moves",preview:!0}),console.info(`%c HA-CALENDAR-CARD %c ${me} `,"background:#3d9b8f;color:#fff;padding:2px 4px;border-radius:4px 0 0 4px","background:#2c3340;color:#fff;padding:2px 4px;border-radius:0 4px 4px 0");export{et as HaCalendarCard};
+    `],e([ue({attribute:!1})],ct.prototype,"hass",void 0),e([pe()],ct.prototype,"config",void 0),e([pe()],ct.prototype,"view",void 0),e([pe()],ct.prototype,"anchorDate",void 0),e([pe()],ct.prototype,"events",void 0),e([pe()],ct.prototype,"formOpen",void 0),e([pe()],ct.prototype,"editing",void 0),e([pe()],ct.prototype,"formDefaults",void 0),e([pe()],ct.prototype,"formBusy",void 0),e([pe()],ct.prototype,"formError",void 0),e([pe()],ct.prototype,"status",void 0),e([pe()],ct.prototype,"statusKind",void 0),e([pe()],ct.prototype,"loading",void 0),e([pe()],ct.prototype,"loadFailed",void 0),e([pe()],ct.prototype,"pendingDuplicate",void 0),e([pe()],ct.prototype,"loadGeneration",void 0),e([pe()],ct.prototype,"hasLoadedOnce",void 0),e([pe()],ct.prototype,"formReminder",void 0),e([pe()],ct.prototype,"hiddenCalendars",void 0),e([pe()],ct.prototype,"nowTick",void 0),e([pe()],ct.prototype,"weatherForecast",void 0),e([pe()],ct.prototype,"calendarColors",void 0),e([pe()],ct.prototype,"themePreference",void 0),e([pe()],ct.prototype,"resolvedTheme",void 0),e([pe()],ct.prototype,"monthPickerOpen",void 0),e([pe()],ct.prototype,"pickerYear",void 0),ct=e([le(fe)],ct),window.customCards=window.customCards||[],window.customCards.push({type:fe,name:"HA Calendar Card",description:"Skylight-style month/week/day calendar with create/edit and safe calendar moves",preview:!0}),console.info(`%c HA-CALENDAR-CARD %c ${me} `,"background:#3d9b8f;color:#fff;padding:2px 4px;border-radius:4px 0 0 4px","background:#2c3340;color:#fff;padding:2px 4px;border-radius:0 4px 4px 0");export{ct as HaCalendarCard};
 //# sourceMappingURL=ha-calendar-card.js.map
