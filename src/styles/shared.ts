@@ -961,6 +961,66 @@ export const formStyles = css`
     opacity: 0.65;
   }
 
+  .cal-select-row {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+  }
+
+  .cal-select-row select {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .cal-swatch {
+    width: 1.1rem;
+    height: 1.1rem;
+    border-radius: 50%;
+    flex: 0 0 auto;
+    box-shadow: inset 0 0 0 1px rgba(44, 51, 64, 0.12);
+  }
+
+  .cal-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.45rem;
+  }
+
+  .cal-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border: 1px solid var(--hac-line);
+    background: #f7f8fa;
+    border-radius: 999px;
+    padding: 0.2rem 0.55rem 0.2rem 0.35rem;
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--hac-ink);
+    cursor: pointer;
+    text-transform: capitalize;
+  }
+
+  .cal-legend-item[data-active="true"] {
+    border-color: var(--hac-accent);
+    background: #fff;
+    box-shadow: 0 0 0 2px rgba(61, 155, 143, 0.12);
+  }
+
+  .cal-legend-item:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
+
+  .cal-legend-item .dot {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+    flex: 0 0 auto;
+  }
+
   textarea {
     min-height: 4.5rem;
     resize: vertical;

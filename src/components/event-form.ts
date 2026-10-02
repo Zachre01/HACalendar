@@ -6,6 +6,8 @@ import type {
   CalendarEventInput,
   ReminderFormState,
 } from "../types";
+import { fallbackCalendarColor } from "../utils/calendar-colors";
+import type { CalendarColorMap } from "../utils/calendar-colors";
 import {
   buildRrule,
   parseRruleFreq,
@@ -37,6 +39,8 @@ export class HacEventForm extends LitElement {
 
   /** Writable calendars from card config (any source ↔ any target). */
   @property({ attribute: false }) calendars: string[] = [];
+  /** Resolved HA/palette colors keyed by calendar entity id. */
+  @property({ attribute: false }) calendarColors: CalendarColorMap = {};
   @property({ attribute: false }) event: CalendarEvent | null = null;
   @property({ attribute: false }) defaults: {
     start?: string;
@@ -197,6 +201,10 @@ export class HacEventForm extends LitElement {
 
   private onCalendarChange(e: Event): void {
     const next = (e.target as HTMLSelectElement).value;
+    this.selectCalendar(next);
+  }
+
+  private selectCalendar(next: string): void {
     this.calendar = next;
     if (this.event && next !== this.event.calendar) {
       if (this.isRecurring) {
@@ -209,6 +217,19 @@ export class HacEventForm extends LitElement {
     } else {
       this.moveNote = "";
     }
+  }
+
+  private calendarColor(entityId: string): string {
+    if (this.calendarColors[entityId]) {
+      return this.calendarColors[entityId];
+    }
+    const options = this.calendarOptions;
+    const idx = Math.max(0, options.indexOf(entityId));
+    return fallbackCalendarColor(idx);
+  }
+
+  private calendarLabel(entityId: string): string {
+    return entityId.replace(/^calendar\./, "").replace(/_/g, " ");
   }
 
   private close(): void {
@@ -309,19 +330,49 @@ export class HacEventForm extends LitElement {
           />
 
           <label for="calendar">Calendar</label>
-          <select
-            id="calendar"
-            ?disabled=${this.busy || options.length === 0}
-            @change=${this.onCalendarChange}
-          >
+          <div class="cal-select-row">
+            <span
+              class="cal-swatch"
+              style="background:${this.calendarColor(this.calendar)}"
+              aria-hidden="true"
+            ></span>
+            <select
+              id="calendar"
+              ?disabled=${this.busy || options.length === 0}
+              @change=${this.onCalendarChange}
+            >
+              ${options.map(
+                (id) => html`
+                  <option value=${id} ?selected=${id === this.calendar}>
+                    ${this.calendarLabel(id)}
+                  </option>
+                `
+              )}
+            </select>
+          </div>
+          <div class="cal-legend" role="list" aria-label="Calendar colors">
             ${options.map(
               (id) => html`
-                <option value=${id} ?selected=${id === this.calendar}>
-                  ${id}
-                </option>
+                <button
+                  type="button"
+                  class="cal-legend-item"
+                  role="listitem"
+                  ?disabled=${this.busy}
+                  data-active=${id === this.calendar ? "true" : "false"}
+                  @click=${() => {
+                    if (this.busy) return;
+                    this.selectCalendar(id);
+                  }}
+                >
+                  <span
+                    class="dot"
+                    style="background:${this.calendarColor(id)}"
+                  ></span>
+                  ${this.calendarLabel(id)}
+                </button>
               `
             )}
-          </select>
+          </div>
           ${this.event
             ? html`<p class="hint">
                 Changing calendar moves the event to any other configured
