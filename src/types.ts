@@ -1,4 +1,5 @@
 export type CalendarViewMode = "day" | "week" | "month";
+export type ThemeMode = "light" | "dark" | "auto";
 
 export interface HaCalendarCardConfig {
   type: string;
@@ -6,6 +7,11 @@ export interface HaCalendarCardConfig {
   /** calendar.* entity ids to show; placeholders OK */
   entities?: string[];
   initial_view?: CalendarViewMode;
+  /**
+   * Color theme. `auto` follows the system preference.
+   * User toggle also persists to localStorage and overrides until cleared.
+   */
+  theme?: ThemeMode;
   /** Hour grid bounds (inclusive start, exclusive end) */
   day_start_hour?: number;
   day_end_hour?: number;

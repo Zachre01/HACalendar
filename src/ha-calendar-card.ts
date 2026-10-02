@@ -19,6 +19,7 @@ import type {
   HomeAssistant,
   PendingDuplicate,
   ReminderFormState,
+  ThemeMode,
   WeatherDay,
   WeatherSummary,
 } from "./types";
@@ -30,12 +31,25 @@ import {
   type CalendarColorMap,
 } from "./utils/calendar-colors";
 import {
+  cycleThemeMode,
+  readThemePreference,
+  resolveTheme,
+  themeToggleGlyph,
+  themeToggleLabel,
+  writeThemePreference,
+  type ResolvedTheme,
+} from "./utils/theme";
+import {
   fetchWeatherForecast,
   readWeatherSummary,
   resolveWeatherEntityId,
-  weatherGlyph,
   weatherLabel,
 } from "./utils/weather";
+import {
+  friendlyWeatherLabel,
+  weatherGlyphCute,
+  weatherMood,
+} from "./utils/weather-ui";
 import "./components/time-grid";
 import "./components/month-grid";
 import "./components/event-form";
@@ -84,6 +98,14 @@ export class HaCalendarCard extends LitElement {
   @state() private weatherForecast: WeatherDay[] = [];
   /** Resolved CSS colors per calendar.* (HA registry first, palette fallback) */
   @state() private calendarColors: CalendarColorMap = {};
+  /** User/config theme preference (light | dark | auto) */
+  @state() private themePreference: ThemeMode = "auto";
+  /** Applied theme after resolving auto → system */
+  @state() private resolvedTheme: ResolvedTheme = "light";
+  /** Month/year jump picker open */
+  @state() private monthPickerOpen = false;
+  /** Year shown inside the month picker (may differ from anchor while browsing) */
+  @state() private pickerYear = new Date().getFullYear();
 
   private pollTimer: number | null = null;
   private clockTimer: number | null = null;
@@ -97,6 +119,9 @@ export class HaCalendarCard extends LitElement {
   private panelStyledAncestors: HTMLElement[] = [];
   private panelResizeObserver: ResizeObserver | null = null;
   private panelHost: HTMLElement | null = null;
+  private themeMediaQuery: MediaQueryList | null = null;
+  private themeMediaHandler: ((e: MediaQueryListEvent) => void) | null = null;
+  private onDocPointerDown: ((e: Event) => void) | null = null;
 
   public setConfig(config: HaCalendarCardConfig): void {
     if (!config) {
@@ -107,6 +132,7 @@ export class HaCalendarCard extends LitElement {
       title: "Calendar",
       entities: [...PLACEHOLDER_CALENDARS],
       initial_view: "month",
+      theme: "auto",
       day_start_hour: DAY_START_HOUR,
       day_end_hour: DAY_END_HOUR,
       show_demo_when_empty: false,
@@ -116,6 +142,7 @@ export class HaCalendarCard extends LitElement {
       type: config.type ?? `custom:${CARD_NAME}`,
     };
     this.view = this.config.initial_view ?? "month";
+    this.applyThemePreference(readThemePreference(this.config.theme));
   }
 
   public static getStubConfig(): Partial<HaCalendarCardConfig> {
@@ -135,12 +162,18 @@ export class HaCalendarCard extends LitElement {
     this.ensureFonts();
     this.startTimers();
     this.syncPanelLayout();
+    this.bindThemeMedia();
+    this.bindPickerDismiss();
+    this.applyThemePreference(
+      readThemePreference(this.config.theme ?? "auto")
+    );
     void this.refreshCalendarColors();
     this.subscribeRegistryColors();
   }
 
   protected firstUpdated(): void {
     this.syncPanelLayout();
+    this.syncThemeAttribute();
   }
 
   disconnectedCallback(): void {
@@ -148,6 +181,8 @@ export class HaCalendarCard extends LitElement {
     this.clearTimers();
     this.clearPanelLayout();
     this.unsubscribeRegistryColors();
+    this.unbindThemeMedia();
+    this.unbindPickerDismiss();
   }
 
   private ensureFonts(): void {
@@ -842,6 +877,100 @@ export class HaCalendarCard extends LitElement {
     this.statusKind = "warn";
   }
 
+  private applyThemePreference(mode: ThemeMode): void {
+    this.themePreference = mode;
+    this.resolvedTheme = resolveTheme(mode);
+    this.syncThemeAttribute();
+  }
+
+  private syncThemeAttribute(): void {
+    this.setAttribute("data-theme", this.resolvedTheme);
+  }
+
+  private cycleTheme(): void {
+    const next = cycleThemeMode(this.themePreference);
+    writeThemePreference(next);
+    this.applyThemePreference(next);
+  }
+
+  private bindThemeMedia(): void {
+    this.unbindThemeMedia();
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    this.themeMediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    this.themeMediaHandler = () => {
+      if (this.themePreference === "auto") {
+        this.resolvedTheme = resolveTheme("auto");
+        this.syncThemeAttribute();
+      }
+    };
+    this.themeMediaQuery.addEventListener("change", this.themeMediaHandler);
+  }
+
+  private unbindThemeMedia(): void {
+    if (this.themeMediaQuery && this.themeMediaHandler) {
+      this.themeMediaQuery.removeEventListener("change", this.themeMediaHandler);
+    }
+    this.themeMediaQuery = null;
+    this.themeMediaHandler = null;
+  }
+
+  private bindPickerDismiss(): void {
+    this.unbindPickerDismiss();
+    this.onDocPointerDown = (e: Event) => {
+      if (!this.monthPickerOpen) return;
+      const path = e.composedPath();
+      if (path.includes(this)) {
+        const inPicker = path.some(
+          (n) =>
+            n instanceof HTMLElement &&
+            (n.classList.contains("month-picker") ||
+              n.classList.contains("range-label") ||
+              n.classList.contains("range-wrap"))
+        );
+        if (inPicker) return;
+      }
+      this.monthPickerOpen = false;
+    };
+    document.addEventListener("pointerdown", this.onDocPointerDown, true);
+  }
+
+  private unbindPickerDismiss(): void {
+    if (this.onDocPointerDown) {
+      document.removeEventListener("pointerdown", this.onDocPointerDown, true);
+      this.onDocPointerDown = null;
+    }
+  }
+
+  private toggleMonthPicker(): void {
+    this.monthPickerOpen = !this.monthPickerOpen;
+    if (this.monthPickerOpen) {
+      this.pickerYear = this.anchorDate.getFullYear();
+    }
+  }
+
+  private shiftPickerYear(delta: number): void {
+    this.pickerYear += delta;
+  }
+
+  private jumpToMonth(monthIndex: number): void {
+    const next = new Date(this.anchorDate);
+    const day = next.getDate();
+    next.setDate(1);
+    next.setFullYear(this.pickerYear);
+    next.setMonth(monthIndex);
+    // Clamp day into the target month
+    const lastDay = new Date(this.pickerYear, monthIndex + 1, 0).getDate();
+    next.setDate(Math.min(day, lastDay));
+    this.anchorDate = next;
+    this.monthPickerOpen = false;
+  }
+
+  private monthNamesShort(): string[] {
+    return Array.from({ length: 12 }, (_, i) =>
+      new Date(2000, i, 1).toLocaleDateString(undefined, { month: "short" })
+    );
+  }
+
   private rangeLabel(): string {
     if (this.view === "month") {
       return this.anchorDate.toLocaleDateString(undefined, {
@@ -886,6 +1015,8 @@ export class HaCalendarCard extends LitElement {
     const visibleEvents = this.filteredEvents();
     const weather = this.weather();
     const forecast = weather?.forecast?.slice(0, 7) ?? [];
+    const dark = this.resolvedTheme === "dark";
+    const nowMood = weather ? weatherMood(weather.state, dark) : null;
     const showEmpty =
       this.hasLoadedOnce &&
       !this.loading &&
@@ -897,6 +1028,7 @@ export class HaCalendarCard extends LitElement {
       this.hasLoadedOnce && !this.loading && this.loadFailed && !this.formOpen;
     // Only veil on intentional (non-silent) loads after first paint
     const showLoadingVeil = this.loading && this.hasLoadedOnce;
+    const months = this.monthNamesShort();
 
     return html`
       <div class="shell">
@@ -929,15 +1061,22 @@ export class HaCalendarCard extends LitElement {
             <div class="clock-time">${this.clockTimeLabel()}</div>
           </div>
           <div class="weather-now">
-            ${weather
+            ${weather && nowMood
               ? html`
-                  <div class="temp">
-                    ${weatherGlyph(weather.state)}
-                    ${weather.temperature != null
-                      ? `${Math.round(weather.temperature)}${weather.unit ?? "°"}`
-                      : ""}
+                  <div
+                    class="weather-blob"
+                    style="--hac-wx-soft:${nowMood.soft};--hac-wx-accent:${nowMood.accent};--hac-wx-ink:${nowMood.ink}"
+                  >
+                    <span class="weather-icon-halo" aria-hidden="true"
+                      >${weatherGlyphCute(weather.state)}</span
+                    >
+                    <span class="temp"
+                      >${weather.temperature != null
+                        ? `${Math.round(weather.temperature)}${weather.unit ?? "°"}`
+                        : weatherLabel(weather.state)}</span
+                    >
                   </div>
-                  <div class="cond">${weatherLabel(weather.state)}</div>
+                  <div class="cond">${friendlyWeatherLabel(weather.state)}</div>
                 `
               : html`<div class="weather-stub">
                   ${this.weatherEntityId()
@@ -947,16 +1086,22 @@ export class HaCalendarCard extends LitElement {
           </div>
           <div class="forecast-strip" aria-label="Forecast">
             ${forecast.length
-              ? forecast.map((day) => {
+              ? forecast.map((day, i) => {
                   const d = new Date(day.datetime);
+                  const mood = weatherMood(day.condition, dark);
                   return html`
-                    <div class="forecast-day">
+                    <div
+                      class="forecast-day"
+                      style="--hac-wx-day-soft:${mood.soft};--hac-wx-day-ink:${mood.ink};animation-delay:${i * 40}ms"
+                    >
                       <span class="d"
                         >${d.toLocaleDateString(undefined, {
                           weekday: "short",
                         })}</span
                       >
-                      <span class="g">${weatherGlyph(day.condition)}</span>
+                      <span class="g" aria-hidden="true"
+                        >${weatherGlyphCute(day.condition)}</span
+                      >
                       <span class="t"
                         >${day.temperature != null
                           ? `${Math.round(day.temperature)}°`
@@ -1008,6 +1153,7 @@ export class HaCalendarCard extends LitElement {
                 type="button"
                 @click=${() => {
                   this.anchorDate = new Date();
+                  this.monthPickerOpen = false;
                 }}
               >
                 Today
@@ -1021,7 +1167,66 @@ export class HaCalendarCard extends LitElement {
                 ›
               </button>
             </div>
-            <div class="range-label">${this.rangeLabel()}</div>
+            <div class="range-wrap">
+              <button
+                type="button"
+                class="range-label"
+                aria-haspopup="dialog"
+                aria-expanded=${this.monthPickerOpen ? "true" : "false"}
+                aria-label="Jump to month and year"
+                @click=${() => this.toggleMonthPicker()}
+              >
+                ${this.rangeLabel()}<span class="caret" aria-hidden="true"
+                  >▾</span
+                >
+              </button>
+              ${this.monthPickerOpen
+                ? html`
+                    <div
+                      class="month-picker"
+                      role="dialog"
+                      aria-label="Choose month and year"
+                    >
+                      <div class="month-picker-year">
+                        <button
+                          type="button"
+                          class="nav-btn"
+                          aria-label="Previous year"
+                          @click=${() => this.shiftPickerYear(-1)}
+                        >
+                          ‹
+                        </button>
+                        <span class="year">${this.pickerYear}</span>
+                        <button
+                          type="button"
+                          class="nav-btn"
+                          aria-label="Next year"
+                          @click=${() => this.shiftPickerYear(1)}
+                        >
+                          ›
+                        </button>
+                      </div>
+                      <div class="month-picker-grid">
+                        ${months.map(
+                          (name, idx) => html`
+                            <button
+                              type="button"
+                              aria-current=${this.anchorDate.getFullYear() ===
+                                this.pickerYear &&
+                              this.anchorDate.getMonth() === idx
+                                ? "true"
+                                : "false"}
+                              @click=${() => this.jumpToMonth(idx)}
+                            >
+                              ${name}
+                            </button>
+                          `
+                        )}
+                      </div>
+                    </div>
+                  `
+                : nothing}
+            </div>
             <div class="view-toggle" role="group" aria-label="View">
               <button
                 type="button"
@@ -1051,6 +1256,18 @@ export class HaCalendarCard extends LitElement {
                 Month
               </button>
             </div>
+            <button
+              type="button"
+              class="nav-btn theme-btn"
+              aria-label="Theme: ${themeToggleLabel(this.themePreference)}. Click to cycle light, dark, auto."
+              title="Theme: ${themeToggleLabel(this.themePreference)}"
+              @click=${() => this.cycleTheme()}
+            >
+              <span class="glyph" aria-hidden="true"
+                >${themeToggleGlyph(this.themePreference)}</span
+              >
+              ${themeToggleLabel(this.themePreference)}
+            </button>
           </div>
           <button
             class="primary-btn add-btn"

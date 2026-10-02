@@ -8,7 +8,7 @@ Inspired by Daylight/Skylight aesthetics — **own codebase**, not a fork of tho
 
 ## Status
 
-- **Card v0.7.2** — filter pills, event chips, and form calendar indicators use each calendar’s Home Assistant color (entity registry `options.calendar.color`); built-in palette only when HA has none. Includes v0.7.1 panel/mobile single-scroll layout, weather config alias, recurring RRULE, Skylight-style UI, safe cross-calendar moves (one-off), HACS packaging, optional reminder hooks
+- **Card v0.8.0** — dark/light/auto theme toggle (localStorage + `theme` config), clickable month/year picker, friendlier weather header chips; keeps HA calendar colors, panel single-scroll, recurring, and Skylight layout
 - **Integration v0.1.0** — `custom_components/ha_calendar_reminders` scaffold (storage + services + best-effort scheduler)
 - Notify delivery is **best-effort** until validated on your stack. Recurring **cross-calendar moves** remain blocked (prefer clear UX over partial series copies).
 - Event notifications can stay on your existing HA automations — the reminder integration is optional.
@@ -34,7 +34,7 @@ Private / custom-repo install — not yet in the HACS default store.
 
 ```yaml
 resources:
-  - url: /local/ha-calendar-card.js?v=0.7.2
+  - url: /local/ha-calendar-card.js?v=0.8.0
     type: module
 ```
 
@@ -75,6 +75,7 @@ cards:
       - calendar.torn
       - calendar.calendar
     initial_view: month
+    theme: auto
     weather_entity: weather.forecast_home
     # weather: weather.forecast_home   # alias also accepted
     # reminder_notify_service: notify.mobile_app_phone
@@ -91,6 +92,7 @@ entities:
   - calendar.personal
   - calendar.work
 initial_view: month
+theme: auto
 weather_entity: weather.home
 ```
 
@@ -99,6 +101,7 @@ weather_entity: weather.home
 | `title` | `Calendar` | Centered brand / header label |
 | `entities` | placeholders | List of `calendar.*` entity ids (filter pills) |
 | `initial_view` | `month` | `month`, `week`, or `day` |
+| `theme` | `auto` | `light`, `dark`, or `auto` (follows system). Toolbar toggle cycles modes and persists to `localStorage` |
 | `weather_entity` | — | **Canonical** optional `weather.*` for header + month chips |
 | `weather` | — | Alias for `weather_entity` (same effect) |
 | `day_start_hour` / `day_end_hour` | `6` / `22` | Visible hour range (day/week) |
@@ -106,11 +109,19 @@ weather_entity: weather.home
 | `reminder_minutes_before` | `30` | Prefill for reminder form |
 | `show_demo_when_empty` | `false` | Dev-only demo blocks |
 
+### Theme
+
+Default is **`auto`** (system light/dark). The toolbar **theme** button cycles Light → Dark → Auto. The last choice is stored in `localStorage` (`ha-calendar-card-theme`) and overrides the YAML default until cleared. Light keeps the Skylight look; dark is a cohesive warm-slate companion with the same accents and calendar colors.
+
+### Month / year jump
+
+Click the centered date range label (e.g. **October 2026**) to open a month/year picker. Use the year chevrons and tap a month to jump — prev/next still step by view.
+
 ### Weather
 
 Canonical key is **`weather_entity`**. The shorter `weather:` key is accepted as an alias and normalized at config time.
 
-Forecasts prefer the entity’s `forecast` attribute when present; on modern Home Assistant (attribute removed) the card calls `weather.get_forecasts` (`daily` → `twice_daily` → `hourly`) so the header strip and month day chips stay populated.
+Forecasts prefer the entity’s `forecast` attribute when present; on modern Home Assistant (attribute removed) the card calls `weather.get_forecasts` (`daily` → `twice_daily` → `hourly`) so the header strip and month day chips stay populated. The header uses soft condition-tinted chips and warmer weather typography in both themes.
 
 ### Recurring events
 
