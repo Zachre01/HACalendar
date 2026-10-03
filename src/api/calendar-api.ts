@@ -6,6 +6,7 @@ import type {
   PendingDuplicate,
   RawCalendarApiEvent,
 } from "../types";
+import { applyDoneMarker, parseDoneSummary } from "../utils/event-done";
 import { formatHassError } from "../utils/ha-error";
 
 /** HA CalendarEntityFeature.CREATE_EVENT */
@@ -50,9 +51,12 @@ export function normalizeApiEvent(
   if (!start || !end) return null;
 
   const rrule = raw.rrule ?? undefined;
+  const { completed, displaySummary } = parseDoneSummary(
+    raw.summary ?? "(no title)"
+  );
   return {
     uid: raw.uid ?? `${entityId}:${start}:${raw.summary ?? "event"}`,
-    summary: raw.summary ?? "(no title)",
+    summary: displaySummary,
     description: raw.description ?? undefined,
     location: raw.location ?? undefined,
     start,
@@ -62,6 +66,7 @@ export function normalizeApiEvent(
     recurring: Boolean(rrule || raw.recurrence_id),
     rrule,
     recurrence_id: raw.recurrence_id ?? undefined,
+    completed,
   };
 }
 
@@ -89,7 +94,7 @@ function toHaDateTime(value: string, allDay: boolean | undefined): string {
 function toWsEventPayload(input: CalendarEventInput): Record<string, unknown> {
   // HA websocket schema uses rfc5545 field names: dtstart / dtend / rrule
   const payload: Record<string, unknown> = {
-    summary: input.summary,
+    summary: applyDoneMarker(input.summary, Boolean(input.completed)),
     description: input.description ?? "",
     location: input.location ?? "",
     dtstart: toHaDateTime(input.start, input.all_day),
@@ -325,7 +330,7 @@ export class CalendarApi {
   private async createEventViaService(input: CalendarEventInput): Promise<void> {
     await this.hass.callService("calendar", "create_event", {
       entity_id: input.calendar,
-      summary: input.summary,
+      summary: applyDoneMarker(input.summary, Boolean(input.completed)),
       description: input.description ?? "",
       location: input.location ?? "",
       start_date_time: input.all_day
@@ -438,7 +443,7 @@ export class CalendarApi {
     await this.hass.callService("calendar", "update_event", {
       entity_id: entityId,
       uid,
-      summary: patch.summary,
+      summary: applyDoneMarker(patch.summary, Boolean(patch.completed)),
       description: patch.description,
       location: patch.location,
       start_date_time: patch.all_day
@@ -549,6 +554,7 @@ export class CalendarApi {
       end: patched?.end ?? event.end,
       all_day: patched?.all_day ?? event.all_day,
       calendar: targetCalendar,
+      completed: patched?.completed ?? event.completed,
     };
 
     // 1) Create on target first — source untouched if this fails

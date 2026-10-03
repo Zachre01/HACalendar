@@ -65,6 +65,7 @@ export interface ReminderFormState {
 /** Minimal HA event shape used by the card */
 export interface CalendarEvent {
   uid: string;
+  /** Display title with done marker stripped */
   summary: string;
   description?: string;
   location?: string;
@@ -75,9 +76,15 @@ export interface CalendarEvent {
   recurring?: boolean;
   rrule?: string;
   recurrence_id?: string;
+  /**
+   * Completed on the same calendar (not a move).
+   * Persisted as a `✓ ` title prefix in HA — see `utils/event-done.ts`.
+   */
+  completed?: boolean;
 }
 
 export interface CalendarEventInput {
+  /** Display title (no done marker); API layer applies `✓ ` when completed */
   summary: string;
   description?: string;
   location?: string;
@@ -87,6 +94,8 @@ export interface CalendarEventInput {
   calendar: string;
   /** RFC 5545 RRULE without prefix, e.g. FREQ=WEEKLY;BYDAY=MO */
   rrule?: string | null;
+  /** Persist as `✓ ` title prefix when true */
+  completed?: boolean;
 }
 
 /** Raw event from REST /api/calendars or get_events */

@@ -74,6 +74,8 @@ export class HacEventForm extends LitElement {
   @state() private location = "";
   @state() private start = "";
   @state() private end = "";
+  /** Completed on the same calendar (persisted as `✓ ` title prefix). */
+  @state() private completed = false;
   /** When true, start/end are YYYY-MM-DD (inclusive end in the UI). */
   @state() private allDay = false;
   @state() private calendar = "";
@@ -135,6 +137,7 @@ export class HacEventForm extends LitElement {
       this.summary = this.event.summary;
       this.description = this.event.description ?? "";
       this.location = this.event.location ?? "";
+      this.completed = Boolean(this.event.completed);
       this.allDay = Boolean(
         this.event.all_day || /^\d{4}-\d{2}-\d{2}$/.test(this.event.start)
       );
@@ -157,6 +160,7 @@ export class HacEventForm extends LitElement {
       this.summary = "";
       this.description = "";
       this.location = "";
+      this.completed = false;
       const defStart = this.defaults.start ?? new Date().toISOString();
       const defEnd =
         this.defaults.end ??
@@ -546,6 +550,7 @@ export class HacEventForm extends LitElement {
       all_day: this.allDay,
       calendar: this.calendar,
       rrule: rrule === undefined ? undefined : rrule,
+      completed: this.completed,
     };
     const crossCalendarMove = this.isCrossCalendarMove;
     const detail: EventFormSaveDetail = {
@@ -759,6 +764,24 @@ export class HacEventForm extends LitElement {
               this.summary = (e.target as HTMLInputElement).value;
             }}
           />
+
+          <div class="done-row">
+            <label class="done-toggle" for="done">
+              <input
+                id="done"
+                type="checkbox"
+                .checked=${this.completed}
+                ?disabled=${this.busy}
+                @change=${(e: Event) => {
+                  this.completed = (e.target as HTMLInputElement).checked;
+                }}
+              />
+              <span class="done-label">Done</span>
+            </label>
+            <span class="done-hint"
+              >Stays on this calendar · shown with strikethrough on chips</span
+            >
+          </div>
 
           <label for="calendar">Calendar</label>
           <div class="cal-select-row">

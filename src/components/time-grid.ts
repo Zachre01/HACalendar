@@ -182,6 +182,18 @@ export class HacTimeGrid extends LitElement {
     );
   }
 
+  private onToggleDone(ev: CalendarEvent, e: Event): void {
+    e.stopPropagation();
+    e.preventDefault();
+    this.dispatchEvent(
+      new CustomEvent("event-toggle-done", {
+        detail: ev,
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+
   private onDayOpen(day: Date): void {
     this.dispatchEvent(
       new CustomEvent("day-select", {
@@ -269,22 +281,40 @@ export class HacTimeGrid extends LitElement {
               ${allDay.map((ev) => {
                 const calShort = ev.calendar.replace(/^calendar\./, "");
                 return html`
-                  <button
-                    type="button"
+                  <div
                     class="allday-chip"
+                    data-done=${ev.completed ? "true" : "false"}
                     style="background:${this.calendarColor(ev.calendar)}"
-                    title=${ev.rrule || ev.recurring
-                      ? `${ev.summary} (repeats) · ${calShort}`
-                      : `${ev.summary} · ${calShort}`}
-                    @click=${(e: Event) => {
-                      e.stopPropagation();
-                      this.onEventClick(ev);
-                    }}
                   >
-                    ${ev.rrule || ev.recurring
-                      ? html`<span class="recur" aria-hidden="true">↻</span>`
-                      : nothing}<span class="chip-title">${ev.summary}</span>
-                  </button>
+                    <button
+                      type="button"
+                      class="done-check"
+                      role="checkbox"
+                      aria-checked=${ev.completed ? "true" : "false"}
+                      aria-label=${ev.completed
+                        ? `Mark “${ev.summary}” not done`
+                        : `Mark “${ev.summary}” done`}
+                      title=${ev.completed ? "Mark not done" : "Mark done"}
+                      @click=${(e: Event) => this.onToggleDone(ev, e)}
+                    >
+                      ${ev.completed ? "✓" : nothing}
+                    </button>
+                    <button
+                      type="button"
+                      class="chip-main"
+                      title=${ev.rrule || ev.recurring
+                        ? `${ev.summary} (repeats) · ${calShort}`
+                        : `${ev.summary} · ${calShort}`}
+                      @click=${(e: Event) => {
+                        e.stopPropagation();
+                        this.onEventClick(ev);
+                      }}
+                    >
+                      ${ev.rrule || ev.recurring
+                        ? html`<span class="recur" aria-hidden="true">↻</span>`
+                        : nothing}<span class="chip-title">${ev.summary}</span>
+                    </button>
+                  </div>
                 `;
               })}
             </div>
@@ -328,28 +358,39 @@ export class HacTimeGrid extends LitElement {
                   <div
                     class="event-block"
                     style=${style}
-                    role="button"
-                    tabindex="0"
+                    data-done=${ev.completed ? "true" : "false"}
                     data-recurring=${ev.rrule || ev.recurring ? "true" : "false"}
-                    title=${ev.rrule || ev.recurring
-                      ? `${ev.summary} (repeats)`
-                      : ev.summary}
-                    @click=${(e: Event) => {
-                      e.stopPropagation();
-                      this.onEventClick(ev);
-                    }}
-                    @keydown=${(e: KeyboardEvent) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        this.onEventClick(ev);
-                      }
-                    }}
                   >
-                    <strong
-                      >${ev.rrule || ev.recurring ? "↻ " : ""}${ev.summary}</strong
+                    <button
+                      type="button"
+                      class="done-check"
+                      role="checkbox"
+                      aria-checked=${ev.completed ? "true" : "false"}
+                      aria-label=${ev.completed
+                        ? `Mark “${ev.summary}” not done`
+                        : `Mark “${ev.summary}” done`}
+                      title=${ev.completed ? "Mark not done" : "Mark done"}
+                      @click=${(e: Event) => this.onToggleDone(ev, e)}
                     >
-                    <span class="time-tag">${this.formatTime(ev)}</span>
-                    <span class="cal-tag">${calShort}</span>
+                      ${ev.completed ? "✓" : nothing}
+                    </button>
+                    <button
+                      type="button"
+                      class="chip-main"
+                      title=${ev.rrule || ev.recurring
+                        ? `${ev.summary} (repeats)`
+                        : ev.summary}
+                      @click=${(e: Event) => {
+                        e.stopPropagation();
+                        this.onEventClick(ev);
+                      }}
+                    >
+                      <strong
+                        >${ev.rrule || ev.recurring ? "↻ " : ""}${ev.summary}</strong
+                      >
+                      <span class="time-tag">${this.formatTime(ev)}</span>
+                      <span class="cal-tag">${calShort}</span>
+                    </button>
                   </div>
                 `;
               })}

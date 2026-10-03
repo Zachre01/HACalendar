@@ -683,6 +683,76 @@ export class HaCalendarCard extends LitElement {
     void this.loadReminderForEvent(ev);
   }
 
+  /**
+   * Chip checkbox: toggle completed on the same calendar (no move).
+   * Recurring: this occurrence when `recurrence_id` exists; otherwise whole series.
+   */
+  private toggleDoneBusy = false;
+
+  private async onToggleDone(e: CustomEvent<CalendarEvent>): Promise<void> {
+    const ev = e.detail;
+    if (!this.hass || this.toggleDoneBusy) return;
+
+    this.toggleDoneBusy = true;
+    const nextCompleted = !ev.completed;
+    // Optimistic chip update so strikethrough feels instant
+    this.events = this.events.map((item) =>
+      item.uid === ev.uid &&
+      item.calendar === ev.calendar &&
+      item.recurrence_id === ev.recurrence_id &&
+      item.start === ev.start
+        ? { ...item, completed: nextCompleted }
+        : item
+    );
+
+    const api = new CalendarApi(this.hass);
+    const scope =
+      ev.recurrence_id || ev.recurring || ev.rrule
+        ? ev.recurrence_id
+          ? "this"
+          : "series"
+        : "this";
+    const { recurrenceId, recurrenceRange } = recurrenceParams(ev, scope);
+
+    try {
+      await api.updateEvent(
+        ev.calendar,
+        ev.uid,
+        {
+          summary: ev.summary,
+          description: ev.description,
+          location: ev.location,
+          start: ev.start,
+          end: ev.end,
+          all_day: ev.all_day,
+          calendar: ev.calendar,
+          completed: nextCompleted,
+        },
+        recurrenceId,
+        recurrenceRange
+      );
+      this.status = nextCompleted
+        ? `Marked “${ev.summary}” done`
+        : `Marked “${ev.summary}” not done`;
+      this.statusKind = "info";
+      await this.refreshEvents();
+    } catch (err) {
+      // Revert optimistic state
+      this.events = this.events.map((item) =>
+        item.uid === ev.uid &&
+        item.calendar === ev.calendar &&
+        item.recurrence_id === ev.recurrence_id &&
+        item.start === ev.start
+          ? { ...item, completed: ev.completed }
+          : item
+      );
+      this.status = formatHassError(err, "Could not update done state");
+      this.statusKind = "error";
+    } finally {
+      this.toggleDoneBusy = false;
+    }
+  }
+
   private async loadReminderForEvent(ev: CalendarEvent): Promise<void> {
     if (!this.hass || !this.remindersAvailable()) return;
     try {
@@ -1429,6 +1499,8 @@ export class HaCalendarCard extends LitElement {
                   .weather=${weather}
                   @event-select=${(e: CustomEvent<CalendarEvent>) =>
                     this.openEdit(e.detail)}
+                  @event-toggle-done=${(e: CustomEvent<CalendarEvent>) =>
+                    void this.onToggleDone(e)}
                   @day-select=${(e: CustomEvent<{ date: Date }>) =>
                     this.openDayView(e.detail.date)}
                   @slot-create=${(
@@ -1448,6 +1520,8 @@ export class HaCalendarCard extends LitElement {
                   .nowTick=${this.nowTick}
                   @event-select=${(e: CustomEvent<CalendarEvent>) =>
                     this.openEdit(e.detail)}
+                  @event-toggle-done=${(e: CustomEvent<CalendarEvent>) =>
+                    void this.onToggleDone(e)}
                   @day-select=${(e: CustomEvent<{ date: Date }>) =>
                     this.openDayView(e.detail.date)}
                   @slot-create=${(
