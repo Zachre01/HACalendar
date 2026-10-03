@@ -73,6 +73,8 @@ export class HacEventForm extends LitElement {
   @state() private location = "";
   @state() private start = "";
   @state() private end = "";
+  /** When true, start/end are YYYY-MM-DD (inclusive end in the UI). */
+  @state() private allDay = false;
   @state() private calendar = "";
   @state() private moveNote = "";
   @state() private reminderEnabled = false;
@@ -89,6 +91,9 @@ export class HacEventForm extends LitElement {
   @state() private scopePrompt: ScopePromptKind | null = null;
   /** Simple confirm for one-off delete */
   @state() private confirmDelete = false;
+  /** Last timed start/end so toggling All day off can restore clock times. */
+  private savedTimedStart = "";
+  private savedTimedEnd = "";
 
   connectedCallback(): void {
     super.connectedCallback();
@@ -122,13 +127,28 @@ export class HacEventForm extends LitElement {
     const key = this.eventKey();
     if (!force && key === this.hydrateKey) return;
     this.hydrateKey = key;
+    this.savedTimedStart = "";
+    this.savedTimedEnd = "";
 
     if (this.event) {
       this.summary = this.event.summary;
       this.description = this.event.description ?? "";
       this.location = this.event.location ?? "";
-      this.start = this.toLocalInput(this.event.start);
-      this.end = this.toLocalInput(this.event.end);
+      this.allDay = Boolean(
+        this.event.all_day || /^\d{4}-\d{2}-\d{2}$/.test(this.event.start)
+      );
+      if (this.allDay) {
+        this.start = this.event.start.slice(0, 10);
+        this.end = this.exclusiveEndToInclusive(
+          this.start,
+          this.event.end.slice(0, 10)
+        );
+      } else {
+        this.start = this.toLocalInput(this.event.start);
+        this.end = this.toLocalInput(this.event.end);
+        this.savedTimedStart = this.start;
+        this.savedTimedEnd = this.end;
+      }
       this.calendar = this.event.calendar;
       this.recurFreq = parseRruleFreq(this.event.rrule);
       this.recurUntil = parseRruleUntil(this.event.rrule);
@@ -136,13 +156,25 @@ export class HacEventForm extends LitElement {
       this.summary = "";
       this.description = "";
       this.location = "";
-      this.start = this.toLocalInput(
-        this.defaults.start ?? new Date().toISOString()
-      );
-      this.end = this.toLocalInput(
+      const defStart = this.defaults.start ?? new Date().toISOString();
+      const defEnd =
         this.defaults.end ??
-          new Date(Date.now() + 60 * 60 * 1000).toISOString()
-      );
+        new Date(Date.now() + 60 * 60 * 1000).toISOString();
+      this.allDay = /^\d{4}-\d{2}-\d{2}$/.test(defStart);
+      if (this.allDay) {
+        this.start = defStart.slice(0, 10);
+        this.end = this.exclusiveEndToInclusive(
+          this.start,
+          /^\d{4}-\d{2}-\d{2}$/.test(defEnd)
+            ? defEnd.slice(0, 10)
+            : this.start
+        );
+      } else {
+        this.start = this.toLocalInput(defStart);
+        this.end = this.toLocalInput(defEnd);
+        this.savedTimedStart = this.start;
+        this.savedTimedEnd = this.end;
+      }
       this.calendar = this.defaults.calendar ?? this.calendars[0] ?? "";
       this.recurFreq = "none";
       this.recurUntil = "";
@@ -205,6 +237,89 @@ export class HacEventForm extends LitElement {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
   }
 
+  private datePart(value: string): string {
+    return value.slice(0, 10);
+  }
+
+  private addDays(dateStr: string, days: number): string {
+    const d = new Date(`${dateStr}T12:00:00`);
+    d.setDate(d.getDate() + days);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+
+  /**
+   * HA all-day end is exclusive. Form shows the last inclusive day
+   * (one-day event: start === end in the UI).
+   */
+  private exclusiveEndToInclusive(
+    startDate: string,
+    exclusiveEnd: string
+  ): string {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(exclusiveEnd)) return startDate;
+    if (exclusiveEnd <= startDate) return startDate;
+    return this.addDays(exclusiveEnd, -1);
+  }
+
+  /** Inclusive UI end → HA exclusive end date (at least start+1). */
+  private inclusiveEndToExclusive(
+    startDate: string,
+    inclusiveEnd: string
+  ): string {
+    const end =
+      /^\d{4}-\d{2}-\d{2}$/.test(inclusiveEnd) && inclusiveEnd >= startDate
+        ? inclusiveEnd
+        : startDate;
+    return this.addDays(end, 1);
+  }
+
+  private onAllDayChange(e: Event): void {
+    const checked = (e.target as HTMLInputElement).checked;
+    if (checked === this.allDay) return;
+    if (checked) {
+      // Remember clock times, switch to date-only (inclusive end)
+      if (this.start.includes("T")) this.savedTimedStart = this.start;
+      if (this.end.includes("T")) this.savedTimedEnd = this.end;
+      const startDate = this.datePart(this.start);
+      let endDate = this.datePart(this.end);
+      if (endDate < startDate) endDate = startDate;
+      this.start = startDate;
+      this.end = endDate;
+      this.allDay = true;
+    } else {
+      const startDate = this.datePart(this.start);
+      const endDate = this.datePart(this.end);
+      const defaultStart = `${startDate}T09:00`;
+      const defaultEnd = `${endDate >= startDate ? endDate : startDate}T10:00`;
+      const restoreStart =
+        this.savedTimedStart &&
+        this.datePart(this.savedTimedStart) === startDate
+          ? this.savedTimedStart
+          : this.savedTimedStart
+            ? `${startDate}T${this.savedTimedStart.slice(11, 16) || "09:00"}`
+            : defaultStart;
+      const restoreEnd =
+        this.savedTimedEnd &&
+        this.datePart(this.savedTimedEnd) === endDate
+          ? this.savedTimedEnd
+          : this.savedTimedEnd
+            ? `${endDate >= startDate ? endDate : startDate}T${this.savedTimedEnd.slice(11, 16) || "10:00"}`
+            : defaultEnd;
+      this.start = restoreStart;
+      this.end =
+        restoreEnd > restoreStart
+          ? restoreEnd
+          : `${this.datePart(restoreStart)}T10:00`;
+      if (this.end <= this.start) {
+        // Same-day fallback 9–10am
+        this.start = `${startDate}T09:00`;
+        this.end = `${startDate}T10:00`;
+      }
+      this.allDay = false;
+    }
+    this.refreshValidation();
+  }
+
   private get untilInvalid(): boolean {
     return (
       this.recurFreq !== "none" &&
@@ -212,12 +327,23 @@ export class HacEventForm extends LitElement {
     );
   }
 
+  private get allDayRangeInvalid(): boolean {
+    if (!this.allDay || !this.start || !this.end) return false;
+    return this.end < this.start;
+  }
+
+  /** Timed recurring only — multi-day all-day series are valid. */
   private get recurringMultiDay(): boolean {
+    if (this.allDay) return false;
     if (this.recurFreq === "none" || !this.start || !this.end) return false;
     return this.start.slice(0, 10) !== this.end.slice(0, 10);
   }
 
   private refreshValidation(): void {
+    if (this.allDayRangeInvalid) {
+      this.validationError = "End date must be on or after the start date.";
+      return;
+    }
     if (this.untilInvalid) {
       this.validationError =
         "Until must be on or after the event start date.";
@@ -314,7 +440,7 @@ export class HacEventForm extends LitElement {
       return;
     }
     this.refreshValidation();
-    if (this.untilInvalid) {
+    if (this.untilInvalid || this.allDayRangeInvalid) {
       return;
     }
     // Multi-day + recurrence: normalize end onto start day before save
@@ -364,15 +490,25 @@ export class HacEventForm extends LitElement {
 
   private emitSave(scope: RecurrenceEditScope | undefined): void {
     this.refreshValidation();
-    if (this.untilInvalid) {
+    if (this.untilInvalid || this.allDayRangeInvalid) {
       return;
     }
     // Ensure multi-day recurring end is normalized (scope dialog path)
-    if (this.recurFreq !== "none") {
+    if (!this.allDay && this.recurFreq !== "none") {
       const { end, adjusted } = normalizeRecurringTimedEnd(this.start, this.end);
       if (adjusted) this.end = end;
     }
-    const startIso = this.fromLocalInput(this.start);
+
+    let startIso: string;
+    let endIso: string;
+    if (this.allDay) {
+      startIso = this.datePart(this.start);
+      endIso = this.inclusiveEndToExclusive(startIso, this.datePart(this.end));
+    } else {
+      startIso = this.fromLocalInput(this.start);
+      endIso = this.fromLocalInput(this.end);
+    }
+
     // This-occurrence edits must not change the series RRULE
     const allowRruleChange =
       !this.event ||
@@ -405,7 +541,8 @@ export class HacEventForm extends LitElement {
       description: this.description.trim() || undefined,
       location: this.location.trim() || undefined,
       start: startIso,
-      end: this.fromLocalInput(this.end),
+      end: endIso,
+      all_day: this.allDay,
       calendar: this.calendar,
       rrule: rrule === undefined ? undefined : rrule,
     };
@@ -672,34 +809,58 @@ export class HacEventForm extends LitElement {
               </p>`
             : nothing}
 
+          <label class="reminder-toggle" for="all-day">
+            <input
+              id="all-day"
+              type="checkbox"
+              .checked=${this.allDay}
+              ?disabled=${this.busy}
+              @change=${(e: Event) => this.onAllDayChange(e)}
+            />
+            All day
+          </label>
+
           <div class="row-2">
             <div>
-              <label for="start">Start</label>
+              <label for="start">${this.allDay ? "Start date" : "Start"}</label>
               <input
                 id="start"
-                type="datetime-local"
+                type=${this.allDay ? "date" : "datetime-local"}
                 .value=${this.start}
                 ?disabled=${this.busy}
                 @input=${(e: Event) => {
                   this.start = (e.target as HTMLInputElement).value;
+                  if (!this.allDay && this.start.includes("T")) {
+                    this.savedTimedStart = this.start;
+                  }
                   this.refreshValidation();
                 }}
               />
             </div>
             <div>
-              <label for="end">End</label>
+              <label for="end">${this.allDay ? "End date" : "End"}</label>
               <input
                 id="end"
-                type="datetime-local"
+                type=${this.allDay ? "date" : "datetime-local"}
                 .value=${this.end}
+                min=${this.allDay && this.start ? this.start : ""}
                 ?disabled=${this.busy}
                 @input=${(e: Event) => {
                   this.end = (e.target as HTMLInputElement).value;
+                  if (!this.allDay && this.end.includes("T")) {
+                    this.savedTimedEnd = this.end;
+                  }
                   this.refreshValidation();
                 }}
               />
             </div>
           </div>
+          ${this.allDay
+            ? html`<p class="hint">
+                All-day events use dates only. End date is the last day of the
+                event (saved exclusive for Home Assistant).
+              </p>`
+            : nothing}
 
           <label for="location">Location</label>
           <input
@@ -872,7 +1033,9 @@ export class HacEventForm extends LitElement {
             : null}
           ${this.validationError
             ? html`<p
-                class="hint ${this.untilInvalid ? "error" : "warn"}"
+                class="hint ${this.untilInvalid || this.allDayRangeInvalid
+                  ? "error"
+                  : "warn"}"
                 role="alert"
               >
                 ${this.validationError}
@@ -904,7 +1067,8 @@ export class HacEventForm extends LitElement {
                 class="primary"
                 ?disabled=${this.busy ||
                 this.calendarMoveBlocked ||
-                this.untilInvalid}
+                this.untilInvalid ||
+                this.allDayRangeInvalid}
                 @click=${() => this.onSaveClick()}
               >
                 ${this.busy
