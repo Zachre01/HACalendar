@@ -8,6 +8,7 @@ Inspired by Daylight/Skylight aesthetics — **own codebase**, not a fork of tho
 
 ## Status
 
+- **Card v0.9.2** — scoped recurring edit/delete use websocket `calendar/event/update|delete` only (no phantom `calendar.update_event` fallback); service fallbacks only when registered
 - **Card v0.9.1** — recurring create: floating local `dtstart`/`dtend` + timed `UNTIL=…THHMMSS` (Local Calendar WS); real HA error text (no `[object Object]`); Until ≥ start validation; multi-day timed + daily RRULE normalized to same-day duration
 - **Card v0.9.0** — event form **Delete**; recurring Save/Delete always prompt for scope (**This occurrence** / **This and future** / **Entire series**) matching HA `recurrence_id` + `THISANDFUTURE`
 - **Card v0.8.1** — day/week time grids join the panel flex cascade (`min-height: 0`) so only one body scrollport remains (same sizing idea as the v0.7.1 month/panel fix)
@@ -37,7 +38,7 @@ Private / custom-repo install — not yet in the HACS default store.
 
 ```yaml
 resources:
-  - url: /local/ha-calendar-card.js?v=0.9.1
+  - url: /local/ha-calendar-card.js?v=0.9.2
     type: module
 ```
 
@@ -129,7 +130,7 @@ Forecasts prefer the entity’s `forecast` attribute when present; on modern Hom
 ### Recurring events
 
 - **Create** with Repeat: daily / weekly / monthly / yearly (optional until date). Sent as RFC 5545 `rrule` via websocket `calendar/event/create` (required — the REST `calendar.create_event` service does not accept `rrule`).
-- **Edit / Delete** a series always opens a scope prompt before applying: **This occurrence only**, **This and future** (`recurrence_id` + `THISANDFUTURE`), or **Entire series** (uid only). One-off delete asks for a simple confirm.
+- **Edit / Delete** use websocket `calendar/event/update` and `calendar/event/delete` (same as the HA frontend). Scoped recurring ops pass `recurrence_id` / `recurrence_range` (`THISANDFUTURE`); there is no core `calendar.update_event` service — service fallbacks run only when that action is actually registered. Edit/Delete of a series always opens a scope prompt: **This occurrence only**, **This and future**, or **Entire series**. One-off delete asks for a simple confirm.
 - Month/week/day mark repeating events with a **↻** indicator.
 - **Cross-calendar moves stay blocked** for recurring events (clear UX; avoids orphaning instances). Same-calendar edits work. One-off moves still use create→confirm→delete.
 
