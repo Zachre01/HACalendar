@@ -1,4 +1,4 @@
-export const CARD_VERSION = "0.9.7";
+export const CARD_VERSION = "0.9.8";
 export const CARD_NAME = "ha-calendar-card";
 export const CARD_EDITOR_NAME = "ha-calendar-card-editor";
 
@@ -6,6 +6,12 @@ export const CARD_EDITOR_NAME = "ha-calendar-card-editor";
 export const DAY_START_HOUR = 6;
 export const DAY_END_HOUR = 22;
 export const HOUR_HEIGHT_PX = 56;
+
+/**
+ * Max event chips shown per day cell in month view before a “+N more” line.
+ * Override per card with `month_max_events`.
+ */
+export const MONTH_MAX_VISIBLE_EVENTS = 6;
 
 /** Gentle background refetch — not tied to hass state churn */
 export const EVENT_POLL_MS = 60_000;

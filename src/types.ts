@@ -15,6 +15,11 @@ export interface HaCalendarCardConfig {
   /** Hour grid bounds (inclusive start, exclusive end) */
   day_start_hour?: number;
   day_end_hour?: number;
+  /**
+   * Max event chips per day in month view before “+N more”.
+   * Defaults to `MONTH_MAX_VISIBLE_EVENTS` (6).
+   */
+  month_max_events?: number;
   /** When true, show demo blocks if HA returns no events (dev only) */
   show_demo_when_empty?: boolean;
   /**

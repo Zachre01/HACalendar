@@ -1,5 +1,6 @@
 import { LitElement, html, nothing, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
+import { MONTH_MAX_VISIBLE_EVENTS } from "../const";
 import { fallbackCalendarColor } from "../utils/calendar-colors";
 import type { CalendarColorMap } from "../utils/calendar-colors";
 import type { CalendarEvent, WeatherSummary } from "../types";
@@ -87,7 +88,8 @@ export class HacMonthGrid extends LitElement {
       flex: 1 1 auto;
       display: grid;
       grid-template-columns: repeat(7, minmax(0, 1fr));
-      grid-auto-rows: minmax(5.5rem, 1fr);
+      /* Tall enough for ~6 chips + “+N more” when not panel-filling */
+      grid-auto-rows: minmax(9.5rem, 1fr);
       min-height: 0;
     }
 
@@ -261,6 +263,8 @@ export class HacMonthGrid extends LitElement {
       font-weight: 700;
       color: var(--hac-muted, #8a93a3);
       padding: 0.05rem 0.2rem;
+      cursor: pointer;
+      flex: 0 0 auto;
     }
 
     .empty {
@@ -272,7 +276,7 @@ export class HacMonthGrid extends LitElement {
 
     @media (max-width: 720px) {
       .cells {
-        grid-auto-rows: minmax(4.75rem, 1fr);
+        grid-auto-rows: minmax(7.5rem, 1fr);
       }
 
       :host([data-fill]) .cells {
@@ -300,7 +304,8 @@ export class HacMonthGrid extends LitElement {
   @property({ attribute: false }) calendars: string[] = [];
   @property({ attribute: false }) calendarColors: CalendarColorMap = {};
   @property({ attribute: false }) weather: WeatherSummary | null = null;
-  @property({ type: Number }) maxVisible = 3;
+  /** Cap chips per day; excess become “+N more” (opens day view on click). */
+  @property({ type: Number }) maxVisible = MONTH_MAX_VISIBLE_EVENTS;
 
   private get monthStart(): Date {
     const d = startOfDay(this.anchorDate);

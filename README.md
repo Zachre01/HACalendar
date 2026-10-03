@@ -8,6 +8,7 @@ Inspired by Daylight/Skylight aesthetics — **own codebase**, not a fork of tho
 
 ## Status
 
+- **Card v0.9.8** — month view shows up to **6** event chips per day (`MONTH_MAX_VISIBLE_EVENTS`), then **+N more**; optional YAML `month_max_events` override; click day / +more → day view (unchanged)
 - **Card v0.9.7** — mark events **Done** on the same calendar (checkbox on month/day/week/all-day chips + event form); strikethrough + muted chip styling; persisted as a `✓ ` title prefix in HA (survives reload); not a move-to-Done-calendar flow
 - **Card v0.9.6** — day/week views show an **All day** strip above the hour grid listing every all-day / date-only / midnight full-day event (stacked or wrapped chips — none hidden); timed events stay in the hour grid; chip click opens edit
 - **Card v0.9.5** — month view: single-click a day (empty cell / “+N more”) opens day view for that date; double-click still adds an event; week day headers open day view; event chips still edit
@@ -33,7 +34,7 @@ Private / custom-repo install — not yet in the HACS default store.
 4. Download **HA Calendar Card**, refresh Lovelace
 5. Add the card (see [Card YAML](#card-yaml))
 
-**After updating the card (HACS redownload or manual copy):** bump the Lovelace resource query string (`?v=0.9.7`, then `?v=0.9.8`, …) and hard-refresh the browser (or clear site cache). Home Assistant and browsers often keep serving the previous `ha-calendar-card.js` until the URL changes. Confirm the loaded build via the event form title (`v0.9.7`) or the browser console line `ha-calendar-card` / `v0.9.7`.
+**After updating the card (HACS redownload or manual copy):** bump the Lovelace resource query string (`?v=0.9.8`, then `?v=0.9.9`, …) and hard-refresh the browser (or clear site cache). Home Assistant and browsers often keep serving the previous `ha-calendar-card.js` until the URL changes. Confirm the loaded build via the event form title (`v0.9.8`) or the browser console line `ha-calendar-card` / `v0.9.8`.
 
 `hacs.json` targets the **card plugin only**. The integration is installed separately (below).
 
@@ -45,7 +46,7 @@ Private / custom-repo install — not yet in the HACS default store.
 
 ```yaml
 resources:
-  - url: /local/ha-calendar-card.js?v=0.9.7
+  - url: /local/ha-calendar-card.js?v=0.9.8
     type: module
 ```
 
@@ -93,6 +94,7 @@ cards:
     # weather: weather.forecast_home   # alias also accepted
     # reminder_notify_service: notify.mobile_app_phone
     # reminder_minutes_before: 30
+    # month_max_events: 6   # chips per day before “+N more” (default 6)
 ```
 
 Card-only snippet (e.g. masonry):
@@ -118,6 +120,7 @@ weather_entity: weather.home
 | `weather_entity` | — | **Canonical** optional `weather.*` for header + month chips |
 | `weather` | — | Alias for `weather_entity` (same effect) |
 | `day_start_hour` / `day_end_hour` | `6` / `22` | Visible hour range (day/week) |
+| `month_max_events` | `6` | Max event chips per day in month view before **+N more** |
 | `reminder_notify_service` | `notify.mobile_app_phone` | Prefill for reminder form |
 | `reminder_minutes_before` | `30` | Prefill for reminder form |
 | `show_demo_when_empty` | `false` | Dev-only demo blocks |
