@@ -894,6 +894,7 @@ export const gridStyles = css`
     /* Content (hours) defines height; :host scrolls — do not force 100% here */
     box-sizing: border-box;
     position: relative;
+    --hac-day-head-h: 3.2rem;
   }
 
   .time-grid[data-mode="day"] {
@@ -908,17 +909,19 @@ export const gridStyles = css`
   .day-head {
     position: sticky;
     top: 0;
-    z-index: 2;
+    z-index: 4;
     background: color-mix(in srgb, var(--hac-surface, #fff) 96%, transparent);
     backdrop-filter: blur(6px);
     border-bottom: 1px solid var(--hac-line-strong, #d8dde6);
     padding: 0.55rem 0.3rem;
     text-align: center;
+    min-height: var(--hac-day-head-h);
+    box-sizing: border-box;
   }
 
   .corner {
     left: 0;
-    z-index: 3;
+    z-index: 5;
   }
 
   .day-head {
@@ -930,6 +933,104 @@ export const gridStyles = css`
     color: var(--hac-muted, #8a93a3);
     text-transform: uppercase;
     letter-spacing: 0.04em;
+  }
+
+  .allday-gutter,
+  .allday-cell {
+    position: sticky;
+    top: var(--hac-day-head-h);
+    z-index: 3;
+    background: color-mix(in srgb, var(--hac-surface-muted, #fafbfc) 96%, transparent);
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--hac-line-strong, #d8dde6);
+    box-sizing: border-box;
+  }
+
+  .allday-gutter {
+    left: 0;
+    z-index: 4;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    padding: 0.35rem 0.4rem 0.35rem 0.2rem;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--hac-muted, #8a93a3);
+    border-right: 1px solid var(--hac-line, #e8ebf0);
+    line-height: 1.2;
+    min-height: 2.1rem;
+  }
+
+  .allday-cell {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 0.22rem;
+    padding: 0.3rem 0.28rem;
+    border-left: 1px solid var(--hac-line, #e8ebf0);
+    min-height: 2.1rem;
+    min-width: 0;
+  }
+
+  .allday-cell[data-today="true"] {
+    background: color-mix(in srgb, var(--hac-today-head, #fff6f1) 92%, transparent);
+  }
+
+  .allday-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    border: 0;
+    border-radius: 6px;
+    padding: 0.18rem 0.35rem;
+    font: inherit;
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1.25;
+    color: #fff;
+    text-align: left;
+    cursor: pointer;
+    overflow: hidden;
+    box-shadow: 0 1px 0 var(--hac-shadow-soft, rgba(44, 51, 64, 0.06));
+    transition: transform 140ms ease, filter 140ms ease, box-shadow 140ms ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .allday-chip:hover,
+  .allday-chip:focus-visible {
+    transform: translateY(-1px);
+    filter: brightness(1.04);
+    box-shadow: 0 4px 10px var(--hac-shadow-soft, rgba(44, 51, 64, 0.12));
+    outline: none;
+  }
+
+  .allday-chip .recur {
+    flex: 0 0 auto;
+    opacity: 0.95;
+  }
+
+  .allday-chip .chip-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .time-grid[data-mode="day"] .allday-cell {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .time-grid[data-mode="day"] .allday-chip {
+    width: auto;
+    max-width: 100%;
+    flex: 0 1 auto;
   }
 
   .day-head[data-clickable="true"] {
@@ -1083,6 +1184,16 @@ export const gridStyles = css`
     .event-block {
       font-size: 0.7rem;
       padding: 0.22rem 0.3rem;
+    }
+
+    .allday-gutter {
+      font-size: 0.56rem;
+      padding-right: 0.28rem;
+    }
+
+    .allday-chip {
+      font-size: 0.64rem;
+      padding: 0.14rem 0.28rem;
     }
   }
 `;
