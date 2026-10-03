@@ -1503,7 +1503,7 @@ declare global {
 }
 
 console.info(
-  `%c HA-CALENDAR-CARD %c ${CARD_VERSION} `,
-  "background:#3d9b8f;color:#fff;padding:2px 4px;border-radius:4px 0 0 4px",
-  "background:#2c3340;color:#fff;padding:2px 4px;border-radius:0 4px 4px 0"
+  `%c ${CARD_NAME} %c v${CARD_VERSION} `,
+  "background:#3d9b8f;color:#fff;font-weight:700;padding:2px 6px;border-radius:4px 0 0 4px",
+  "background:#2c3340;color:#fff;font-weight:700;padding:2px 6px;border-radius:0 4px 4px 0"
 );

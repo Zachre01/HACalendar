@@ -1,5 +1,6 @@
 import { LitElement, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
+import { CARD_VERSION } from "../const";
 import { formStyles } from "../styles/shared";
 import type {
   CalendarEvent,
@@ -737,7 +738,10 @@ export class HacEventForm extends LitElement {
           role="dialog"
           aria-label=${title}
         >
-          <h2>${title}</h2>
+          <div class="form-title-row">
+            <h2>${title}</h2>
+            <span class="form-version" title="Loaded card build">v${CARD_VERSION}</span>
+          </div>
           <p class="form-sub">
             ${this.event
               ? this.isRecurring
@@ -809,16 +813,18 @@ export class HacEventForm extends LitElement {
               </p>`
             : nothing}
 
-          <label class="reminder-toggle" for="all-day">
-            <input
-              id="all-day"
-              type="checkbox"
-              .checked=${this.allDay}
-              ?disabled=${this.busy}
-              @change=${(e: Event) => this.onAllDayChange(e)}
-            />
-            All day
-          </label>
+          <div class="all-day-row">
+            <label class="all-day-toggle" for="all-day">
+              <input
+                id="all-day"
+                type="checkbox"
+                .checked=${this.allDay}
+                ?disabled=${this.busy}
+                @change=${(e: Event) => this.onAllDayChange(e)}
+              />
+              <span class="all-day-label">All day</span>
+            </label>
+          </div>
 
           <div class="row-2">
             <div>

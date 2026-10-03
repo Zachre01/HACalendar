@@ -8,6 +8,7 @@ Inspired by Daylight/Skylight aesthetics — **own codebase**, not a fork of tho
 
 ## Status
 
+- **Card v0.9.4** — event form shows loaded build (`v0.9.4` near title); **All day** is a clear emphasized row; browser console logs `ha-calendar-card` + version on load (helps confirm you are not on a cached older JS)
 - **Card v0.9.3** — event form **All day** checkbox: date-only start/end (HA exclusive end), timed restore 9–10am / previous times; works with recurring create/edit
 - **Card v0.9.2** — scoped recurring edit/delete use websocket `calendar/event/update|delete` only (no phantom `calendar.update_event` fallback); service fallbacks only when registered
 - **Card v0.9.1** — recurring create: floating local `dtstart`/`dtend` + timed `UNTIL=…THHMMSS` (Local Calendar WS); real HA error text (no `[object Object]`); Until ≥ start validation; multi-day timed + daily RRULE normalized to same-day duration
@@ -29,6 +30,8 @@ Private / custom-repo install — not yet in the HACS default store.
 4. Download **HA Calendar Card**, refresh Lovelace
 5. Add the card (see [Card YAML](#card-yaml))
 
+**After updating the card (HACS redownload or manual copy):** bump the Lovelace resource query string (`?v=0.9.4`, then `?v=0.9.5`, …) and hard-refresh the browser (or clear site cache). Home Assistant and browsers often keep serving the previous `ha-calendar-card.js` until the URL changes. Confirm the loaded build via the event form title (`v0.9.4`) or the browser console line `ha-calendar-card` / `v0.9.4`.
+
 `hacs.json` targets the **card plugin only**. The integration is installed separately (below).
 
 ### Manual card install (`/config/www`)
@@ -39,9 +42,11 @@ Private / custom-repo install — not yet in the HACS default store.
 
 ```yaml
 resources:
-  - url: /local/ha-calendar-card.js?v=0.9.3
+  - url: /local/ha-calendar-card.js?v=0.9.4
     type: module
 ```
+
+Bump `?v=` whenever you replace the file so browsers fetch the new build.
 
 ## Install the reminders integration
 
