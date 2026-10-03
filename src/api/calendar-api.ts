@@ -11,6 +11,19 @@ import { formatHassError } from "../utils/ha-error";
 /** HA CalendarEntityFeature.CREATE_EVENT */
 const FEATURE_CREATE_EVENT = 1;
 
+/**
+ * True when HA has registered the given calendar service/action.
+ * Core HA only ships `create_event` + `get_events`; update/delete are
+ * websocket commands. Custom/older installs may expose more — probe first.
+ */
+function hasCalendarService(
+  hass: HomeAssistant,
+  service: string
+): boolean {
+  const calendar = hass.services?.calendar;
+  return Boolean(calendar && service in calendar);
+}
+
 function getCalendarDate(
   value: RawCalendarApiEvent["start"] | undefined
 ): string | undefined {
@@ -275,7 +288,9 @@ export class CalendarApi {
             `Recurring create failed: ${formatHassError(wsErr)}`
           );
         }
-        // Non-recurring: try service fallback below
+        if (!hasCalendarService(this.hass, "create_event")) {
+          throw new Error(formatHassError(wsErr, "Calendar create failed"));
+        }
         try {
           await this.createEventViaService(input);
         } catch (serviceErr) {
@@ -297,6 +312,11 @@ export class CalendarApi {
       );
     }
 
+    if (!hasCalendarService(this.hass, "create_event")) {
+      throw new Error(
+        "Calendar create failed: Home Assistant websocket (callWS) is required, and calendar.create_event is not available."
+      );
+    }
     await this.createEventViaService(input);
     const resolved = await this.findCreatedEvent(input);
     return { uid: resolved?.uid };
@@ -349,6 +369,12 @@ export class CalendarApi {
     }
   }
 
+  /**
+   * Update via websocket `calendar/event/update` (HA frontend path).
+   * Scoped recurring edits (`recurrence_id` / `THISANDFUTURE` / rrule) require WS —
+   * core HA has no `calendar.update_event` service. Service fallback only when
+   * that action is actually registered and the edit is unscoped.
+   */
   async updateEvent(
     entityId: string,
     uid: string,
@@ -356,78 +382,139 @@ export class CalendarApi {
     recurrenceId?: string,
     recurrenceRange?: string
   ): Promise<void> {
-    try {
-      const msg: Record<string, unknown> = {
-        type: "calendar/event/update",
-        entity_id: entityId,
-        uid,
-        event: toWsEventPayload(patch),
-      };
-      if (recurrenceId) msg.recurrence_id = recurrenceId;
-      if (recurrenceRange) msg.recurrence_range = recurrenceRange;
-      await this.hass.callWS(msg);
-      return;
-    } catch (wsErr) {
-      // Service path has no rrule / recurrence_range — WS is required for series edits
-      if (patch.rrule || recurrenceRange) {
-        throw new Error(formatHassError(wsErr, "Calendar update failed"));
-      }
+    const event = toWsEventPayload(patch);
+    const scoped = Boolean(
+      recurrenceId || recurrenceRange || patch.rrule || patch.rrule === null
+    );
+
+    if (this.hass.callWS) {
       try {
-        await this.hass.callService("calendar", "update_event", {
+        const msg: Record<string, unknown> = {
+          type: "calendar/event/update",
           entity_id: entityId,
           uid,
-          summary: patch.summary,
-          description: patch.description,
-          location: patch.location,
-          start_date_time: patch.all_day
-            ? undefined
-            : toHaDateTime(patch.start, false),
-          end_date_time: patch.all_day
-            ? undefined
-            : toHaDateTime(patch.end, false),
-        });
-      } catch (serviceErr) {
-        throw new Error(
-          formatHassError(
-            serviceErr,
-            formatHassError(wsErr, "Calendar update failed")
-          )
-        );
+          event,
+        };
+        if (recurrenceId) msg.recurrence_id = recurrenceId;
+        if (recurrenceRange) msg.recurrence_range = recurrenceRange;
+        await this.hass.callWS(msg);
+        return;
+      } catch (wsErr) {
+        if (scoped || !hasCalendarService(this.hass, "update_event")) {
+          throw new Error(formatHassError(wsErr, "Calendar update failed"));
+        }
+        try {
+          await this.updateEventViaService(entityId, uid, patch);
+          return;
+        } catch (serviceErr) {
+          throw new Error(
+            formatHassError(
+              serviceErr,
+              formatHassError(wsErr, "Calendar update failed")
+            )
+          );
+        }
       }
     }
+
+    if (scoped) {
+      throw new Error(
+        "Calendar update failed: Home Assistant websocket (callWS) is required for recurring / scoped edits."
+      );
+    }
+    if (!hasCalendarService(this.hass, "update_event")) {
+      throw new Error(
+        "Calendar update failed: Home Assistant websocket (callWS) is required, and calendar.update_event is not available."
+      );
+    }
+    await this.updateEventViaService(entityId, uid, patch);
   }
 
+  private async updateEventViaService(
+    entityId: string,
+    uid: string,
+    patch: CalendarEventInput
+  ): Promise<void> {
+    await this.hass.callService("calendar", "update_event", {
+      entity_id: entityId,
+      uid,
+      summary: patch.summary,
+      description: patch.description,
+      location: patch.location,
+      start_date_time: patch.all_day
+        ? undefined
+        : toHaDateTime(patch.start, false),
+      end_date_time: patch.all_day
+        ? undefined
+        : toHaDateTime(patch.end, false),
+      start_date: patch.all_day ? patch.start.slice(0, 10) : undefined,
+      end_date: patch.all_day ? patch.end.slice(0, 10) : undefined,
+    });
+  }
+
+  /**
+   * Delete via websocket `calendar/event/delete` (HA frontend path).
+   * Scoped recurring deletes require WS — never fall back to a whole-series
+   * service call when `recurrence_id` / `recurrence_range` is set.
+   */
   async deleteEvent(
     entityId: string,
     uid: string,
     recurrenceId?: string,
     recurrenceRange?: string
   ): Promise<void> {
-    try {
-      const msg: Record<string, unknown> = {
-        type: "calendar/event/delete",
-        entity_id: entityId,
-        uid,
-      };
-      if (recurrenceId) msg.recurrence_id = recurrenceId;
-      if (recurrenceRange) msg.recurrence_range = recurrenceRange;
-      await this.hass.callWS(msg);
-      return;
-    } catch (wsErr) {
+    const scoped = Boolean(recurrenceId || recurrenceRange);
+
+    if (this.hass.callWS) {
       try {
-        await this.hass.callService("calendar", "delete_event", {
+        const msg: Record<string, unknown> = {
+          type: "calendar/event/delete",
           entity_id: entityId,
           uid,
-        });
-      } catch (serviceErr) {
-        throw new Error(
-          formatHassError(
-            serviceErr,
-            formatHassError(wsErr, "Calendar delete failed")
-          )
-        );
+        };
+        if (recurrenceId) msg.recurrence_id = recurrenceId;
+        if (recurrenceRange) msg.recurrence_range = recurrenceRange;
+        await this.hass.callWS(msg);
+        return;
+      } catch (wsErr) {
+        if (scoped || !hasCalendarService(this.hass, "delete_event")) {
+          throw new Error(formatHassError(wsErr, "Calendar delete failed"));
+        }
+        try {
+          await this.deleteEventViaService(entityId, uid);
+          return;
+        } catch (serviceErr) {
+          throw new Error(
+            formatHassError(
+              serviceErr,
+              formatHassError(wsErr, "Calendar delete failed")
+            )
+          );
+        }
       }
     }
+
+    if (scoped) {
+      throw new Error(
+        "Calendar delete failed: Home Assistant websocket (callWS) is required for recurring / scoped deletes."
+      );
+    }
+    if (!hasCalendarService(this.hass, "delete_event")) {
+      throw new Error(
+        "Calendar delete failed: Home Assistant websocket (callWS) is required, and calendar.delete_event is not available."
+      );
+    }
+    await this.deleteEventViaService(entityId, uid);
+  }
+
+  private async deleteEventViaService(
+    entityId: string,
+    uid: string
+  ): Promise<void> {
+    await this.hass.callService("calendar", "delete_event", {
+      entity_id: entityId,
+      uid,
+    });
   }
 
   /**
