@@ -1146,12 +1146,29 @@ export const formStyles = css`
     }
   }
 
+  .form-title-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin: 0 0 0.35rem;
+  }
+
   .form-panel h2 {
     font-family: var(--hac-font-display, "Manrope", sans-serif);
     font-size: 1.28rem;
-    margin: 0 0 0.35rem;
+    margin: 0;
     letter-spacing: -0.02em;
     font-weight: 800;
+  }
+
+  .form-version {
+    flex-shrink: 0;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--hac-muted, #8a93a3);
+    font-variant-numeric: tabular-nums;
   }
 
   .form-sub {
@@ -1493,6 +1510,44 @@ export const formStyles = css`
 
   .recur-block code {
     font-size: 0.78em;
+  }
+
+  .all-day-row {
+    margin: 0.85rem 0 0.65rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid var(--hac-line, #e8ebf0);
+    border-radius: 10px;
+    background: color-mix(
+      in srgb,
+      var(--hac-accent, #3d9b8f) 10%,
+      var(--hac-surface, #fff)
+    );
+  }
+
+  .all-day-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--hac-ink, #2c3340);
+    text-transform: none;
+    letter-spacing: 0;
+    cursor: pointer;
+  }
+
+  .all-day-toggle input {
+    width: 1.15rem;
+    height: 1.15rem;
+    min-height: auto;
+    margin: 0;
+    accent-color: var(--hac-accent, #3d9b8f);
+    cursor: pointer;
+  }
+
+  .all-day-label {
+    line-height: 1.2;
   }
 
   .reminder-toggle {
