@@ -8,6 +8,7 @@ Inspired by Daylight/Skylight aesthetics — **own codebase**, not a fork of tho
 
 ## Status
 
+- **Card v0.9.7** — mark events **Done** on the same calendar (checkbox on month/day/week/all-day chips + event form); strikethrough + muted chip styling; persisted as a `✓ ` title prefix in HA (survives reload); not a move-to-Done-calendar flow
 - **Card v0.9.6** — day/week views show an **All day** strip above the hour grid listing every all-day / date-only / midnight full-day event (stacked or wrapped chips — none hidden); timed events stay in the hour grid; chip click opens edit
 - **Card v0.9.5** — month view: single-click a day (empty cell / “+N more”) opens day view for that date; double-click still adds an event; week day headers open day view; event chips still edit
 - **Card v0.9.4** — event form shows loaded build (`v0.9.4` near title); **All day** is a clear emphasized row; browser console logs `ha-calendar-card` + version on load (helps confirm you are not on a cached older JS)
@@ -32,7 +33,7 @@ Private / custom-repo install — not yet in the HACS default store.
 4. Download **HA Calendar Card**, refresh Lovelace
 5. Add the card (see [Card YAML](#card-yaml))
 
-**After updating the card (HACS redownload or manual copy):** bump the Lovelace resource query string (`?v=0.9.6`, then `?v=0.9.7`, …) and hard-refresh the browser (or clear site cache). Home Assistant and browsers often keep serving the previous `ha-calendar-card.js` until the URL changes. Confirm the loaded build via the event form title (`v0.9.6`) or the browser console line `ha-calendar-card` / `v0.9.6`.
+**After updating the card (HACS redownload or manual copy):** bump the Lovelace resource query string (`?v=0.9.7`, then `?v=0.9.8`, …) and hard-refresh the browser (or clear site cache). Home Assistant and browsers often keep serving the previous `ha-calendar-card.js` until the URL changes. Confirm the loaded build via the event form title (`v0.9.7`) or the browser console line `ha-calendar-card` / `v0.9.7`.
 
 `hacs.json` targets the **card plugin only**. The integration is installed separately (below).
 
@@ -44,7 +45,7 @@ Private / custom-repo install — not yet in the HACS default store.
 
 ```yaml
 resources:
-  - url: /local/ha-calendar-card.js?v=0.9.6
+  - url: /local/ha-calendar-card.js?v=0.9.7
     type: module
 ```
 
@@ -134,6 +135,16 @@ Click the centered date range label (e.g. **October 2026**) to open a month/year
 Canonical key is **`weather_entity`**. The shorter `weather:` key is accepted as an alias and normalized at config time.
 
 Forecasts prefer the entity’s `forecast` attribute when present; on modern Home Assistant (attribute removed) the card calls `weather.get_forecasts` (`daily` → `twice_daily` → `hourly`) so the header strip and month day chips stay populated. The header uses soft condition-tinted chips and warmer weather typography in both themes.
+
+### Completed events (Done)
+
+Mark an event **Done** without moving calendars:
+
+- **Chip checkbox** — every month chip, day/week timed block, and all-day strip chip has a small checkbox on the left. Tap it to toggle Done; the rest of the chip still opens the edit form.
+- **Event form** — **Done** checkbox under the title (same persistence).
+- **Look** — completed chips use a single strikethrough + muted opacity so Done is obvious without opening the event.
+- **Persistence** — Home Assistant local calendars have no dedicated “completed” field, so the card stores Done as a **title prefix**: `✓ ` (U+2713 + space) before the summary. On load the card strips the marker for a clean display title and re-applies it when saving/toggling. A legacy `[done] ` prefix is also recognized when reading. Outside this card you may see the `✓ ` in the raw HA event title — that is intentional so the state survives reload and other clients.
+- **Recurring chip toggle** — if the instance has a `recurrence_id`, Done updates **this occurrence only**; if there is no instance id (series master), the card updates the **entire series**. Editing Done from the event form still uses the normal recurring scope prompt (This / This and future / Entire series).
 
 ### Recurring events
 

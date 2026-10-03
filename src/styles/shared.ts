@@ -988,26 +988,87 @@ export const gridStyles = css`
     margin: 0;
     border: 0;
     border-radius: 6px;
-    padding: 0.18rem 0.35rem;
+    padding: 0.12rem 0.28rem 0.12rem 0.12rem;
     font: inherit;
     font-size: 0.7rem;
     font-weight: 700;
     line-height: 1.25;
     color: #fff;
     text-align: left;
-    cursor: pointer;
     overflow: hidden;
     box-shadow: 0 1px 0 var(--hac-shadow-soft, rgba(44, 51, 64, 0.06));
-    transition: transform 140ms ease, filter 140ms ease, box-shadow 140ms ease;
+    transition: transform 140ms ease, filter 140ms ease, box-shadow 140ms ease,
+      opacity 140ms ease;
     -webkit-tap-highlight-color: transparent;
+    background: transparent;
+  }
+
+  .allday-chip[data-done="true"] {
+    opacity: 0.62;
+    filter: saturate(0.75);
+  }
+
+  .allday-chip .chip-main {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    min-width: 0;
+    flex: 1 1 auto;
+    margin: 0;
+    border: 0;
+    padding: 0.06rem 0.1rem;
+    font: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+    color: inherit;
+    text-align: left;
+    background: transparent;
+    cursor: pointer;
+    overflow: hidden;
+  }
+
+  .allday-chip .chip-main:hover,
+  .allday-chip .chip-main:focus-visible {
+    outline: none;
   }
 
   .allday-chip:hover,
-  .allday-chip:focus-visible {
+  .allday-chip:focus-within {
     transform: translateY(-1px);
     filter: brightness(1.04);
     box-shadow: 0 4px 10px var(--hac-shadow-soft, rgba(44, 51, 64, 0.12));
-    outline: none;
+  }
+
+  .allday-chip[data-done="true"]:hover,
+  .allday-chip[data-done="true"]:focus-within {
+    filter: saturate(0.75) brightness(1.04);
+  }
+
+  .allday-chip .done-check {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.05rem;
+    height: 1.05rem;
+    margin: 0;
+    padding: 0;
+    border: 1.5px solid rgba(255, 255, 255, 0.9);
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 900;
+    line-height: 1;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .allday-chip .done-check[aria-checked="true"] {
+    background: rgba(255, 255, 255, 0.92);
+    color: #2c3340;
+    border-color: rgba(255, 255, 255, 0.95);
   }
 
   .allday-chip .recur {
@@ -1020,6 +1081,11 @@ export const gridStyles = css`
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .allday-chip[data-done="true"] .chip-title {
+    text-decoration: line-through;
+    text-decoration-thickness: 1.5px;
   }
 
   .time-grid[data-mode="day"] .allday-cell {
@@ -1127,32 +1193,96 @@ export const gridStyles = css`
     position: absolute;
     left: 3px;
     right: 3px;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.28rem;
     background: var(--hac-event);
     color: var(--hac-event-text);
     border-radius: 8px;
-    padding: 0.28rem 0.4rem;
+    padding: 0.22rem 0.35rem 0.22rem 0.22rem;
     font-size: 0.74rem;
     font-weight: 700;
     line-height: 1.25;
     overflow: hidden;
-    cursor: pointer;
     border: 0;
     box-shadow: 0 1px 0 var(--hac-shadow-soft, rgba(44, 51, 64, 0.06));
-    transition: transform 140ms ease, box-shadow 140ms ease, filter 140ms ease;
+    transition: transform 140ms ease, box-shadow 140ms ease, filter 140ms ease,
+      opacity 140ms ease;
     -webkit-tap-highlight-color: transparent;
   }
 
+  .event-block[data-done="true"] {
+    opacity: 0.62;
+    filter: saturate(0.75);
+  }
+
+  .event-block .done-check {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.05rem;
+    height: 1.05rem;
+    margin-top: 0.08rem;
+    padding: 0;
+    border: 1.5px solid rgba(255, 255, 255, 0.9);
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 900;
+    line-height: 1;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .event-block .done-check[aria-checked="true"] {
+    background: rgba(255, 255, 255, 0.92);
+    color: #2c3340;
+    border-color: rgba(255, 255, 255, 0.95);
+  }
+
+  .event-block .chip-main {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    overflow: hidden;
+  }
+
+  .event-block .chip-main:hover,
+  .event-block .chip-main:focus-visible,
   .event-block:hover,
-  .event-block:focus-visible {
+  .event-block:focus-within {
+    outline: none;
+  }
+
+  .event-block:hover,
+  .event-block:focus-within {
     transform: translateY(-1px) scale(1.01);
     box-shadow: 0 6px 14px var(--hac-shadow-soft, rgba(44, 51, 64, 0.12));
     filter: brightness(1.04);
-    outline: none;
+  }
+
+  .event-block[data-done="true"]:hover,
+  .event-block[data-done="true"]:focus-within {
+    filter: saturate(0.75) brightness(1.04);
   }
 
   .event-block strong {
     display: block;
     font-weight: 800;
+  }
+
+  .event-block[data-done="true"] strong {
+    text-decoration: line-through;
+    text-decoration-thickness: 1.5px;
   }
 
   .event-block .cal-tag {
@@ -1193,7 +1323,7 @@ export const gridStyles = css`
 
     .allday-chip {
       font-size: 0.64rem;
-      padding: 0.14rem 0.28rem;
+      padding: 0.1rem 0.22rem 0.1rem 0.1rem;
     }
   }
 `;
@@ -1629,6 +1759,50 @@ export const formStyles = css`
 
   .recur-block code {
     font-size: 0.78em;
+  }
+
+  .done-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem 0.75rem;
+    margin: 0.55rem 0 0.85rem;
+    padding: 0.45rem 0.65rem;
+    border: 1px solid var(--hac-line, #e8ebf0);
+    border-radius: 10px;
+    background: var(--hac-surface-muted, #f8f9fb);
+  }
+
+  .done-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: var(--hac-ink, #2c3340);
+    text-transform: none;
+    letter-spacing: 0;
+    cursor: pointer;
+  }
+
+  .done-toggle input {
+    width: 1.05rem;
+    height: 1.05rem;
+    min-height: auto;
+    margin: 0;
+    accent-color: var(--hac-accent, #3d9b8f);
+    cursor: pointer;
+  }
+
+  .done-label {
+    line-height: 1.2;
+  }
+
+  .done-hint {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--hac-muted, #8a93a3);
   }
 
   .all-day-row {

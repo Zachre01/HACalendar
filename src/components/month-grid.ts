@@ -166,25 +166,82 @@ export class HacMonthGrid extends LitElement {
     }
 
     .chip {
+      display: flex;
+      align-items: center;
+      gap: 0.18rem;
       border: 0;
       border-radius: 6px;
-      padding: 0.12rem 0.35rem;
+      padding: 0.08rem 0.28rem 0.08rem 0.1rem;
       font: inherit;
       font-size: 0.68rem;
       font-weight: 700;
       line-height: 1.25;
       color: #fff;
       text-align: left;
-      cursor: pointer;
       overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      transition: filter 120ms ease, transform 120ms ease;
+      transition: filter 120ms ease, transform 120ms ease, opacity 120ms ease;
+    }
+
+    .chip[data-done="true"] {
+      opacity: 0.62;
+      filter: saturate(0.75);
     }
 
     .chip:hover {
       filter: brightness(1.05);
       transform: translateY(-0.5px);
+    }
+
+    .chip[data-done="true"]:hover {
+      filter: saturate(0.75) brightness(1.05);
+    }
+
+    .chip .done-check {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 0.95rem;
+      height: 0.95rem;
+      margin: 0;
+      padding: 0;
+      border: 1.5px solid rgba(255, 255, 255, 0.9);
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      font-size: 0.65rem;
+      font-weight: 900;
+      line-height: 1;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .chip .done-check[aria-checked="true"] {
+      background: rgba(255, 255, 255, 0.92);
+      color: #2c3340;
+      border-color: rgba(255, 255, 255, 0.95);
+    }
+
+    .chip .chip-main {
+      flex: 1 1 auto;
+      min-width: 0;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      font-weight: inherit;
+      text-align: left;
+      cursor: pointer;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .chip[data-done="true"] .chip-main {
+      text-decoration: line-through;
+      text-decoration-thickness: 1.5px;
     }
 
     .chip .t {
@@ -224,7 +281,12 @@ export class HacMonthGrid extends LitElement {
 
       .chip {
         font-size: 0.62rem;
-        padding: 0.1rem 0.28rem;
+        padding: 0.08rem 0.22rem 0.08rem 0.08rem;
+      }
+
+      .chip .done-check {
+        width: 0.88rem;
+        height: 0.88rem;
       }
 
       .empty {
@@ -296,6 +358,19 @@ export class HacMonthGrid extends LitElement {
     this.clearDayClickTimer();
     this.dispatchEvent(
       new CustomEvent("event-select", {
+        detail: ev,
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+
+  private onToggleDone(ev: CalendarEvent, e: Event): void {
+    e.stopPropagation();
+    e.preventDefault();
+    this.clearDayClickTimer();
+    this.dispatchEvent(
+      new CustomEvent("event-toggle-done", {
         detail: ev,
         bubbles: true,
         composed: true,
@@ -376,21 +451,41 @@ export class HacMonthGrid extends LitElement {
                 <div class="events">
                   ${visible.map(
                     (ev) => html`
-                      <button
-                        type="button"
+                      <div
                         class="chip"
+                        data-done=${ev.completed ? "true" : "false"}
                         style="background:${this.calendarColor(ev.calendar)}"
-                        title=${ev.rrule || ev.recurring
-                          ? `${ev.summary} (repeats)`
-                          : ev.summary}
-                        @click=${(e: Event) => this.onEventClick(ev, e)}
                       >
-                        ${ev.rrule || ev.recurring
-                          ? html`<span class="recur" aria-hidden="true">↻</span>`
-                          : nothing}<span class="t"
-                          >${formatEventTime(ev)}</span
-                        >${ev.summary}
-                      </button>
+                        <button
+                          type="button"
+                          class="done-check"
+                          role="checkbox"
+                          aria-checked=${ev.completed ? "true" : "false"}
+                          aria-label=${ev.completed
+                            ? `Mark “${ev.summary}” not done`
+                            : `Mark “${ev.summary}” done`}
+                          title=${ev.completed ? "Mark not done" : "Mark done"}
+                          @click=${(e: Event) => this.onToggleDone(ev, e)}
+                        >
+                          ${ev.completed ? "✓" : nothing}
+                        </button>
+                        <button
+                          type="button"
+                          class="chip-main"
+                          title=${ev.rrule || ev.recurring
+                            ? `${ev.summary} (repeats)`
+                            : ev.summary}
+                          @click=${(e: Event) => this.onEventClick(ev, e)}
+                        >
+                          ${ev.rrule || ev.recurring
+                            ? html`<span class="recur" aria-hidden="true"
+                                >↻</span
+                              >`
+                            : nothing}<span class="t"
+                            >${formatEventTime(ev)}</span
+                          >${ev.summary}
+                        </button>
+                      </div>
                     `
                   )}
                   ${overflow > 0
