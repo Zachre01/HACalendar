@@ -7,6 +7,7 @@ import {
   DAY_END_HOUR,
   DAY_START_HOUR,
   EVENT_POLL_MS,
+  MONTH_MAX_VISIBLE_EVENTS,
   PLACEHOLDER_CALENDARS,
 } from "./const";
 import { CalendarApi, recurrenceParams } from "./api/calendar-api";
@@ -352,6 +353,15 @@ export class HaCalendarCard extends LitElement {
     return this.config.entities?.length
       ? [...this.config.entities]
       : [...PLACEHOLDER_CALENDARS];
+  }
+
+  /** Month chips per day before “+N more”; config override clamped to ≥ 1. */
+  private get monthMaxVisibleEvents(): number {
+    const raw = this.config.month_max_events;
+    if (typeof raw === "number" && Number.isFinite(raw)) {
+      return Math.max(1, Math.floor(raw));
+    }
+    return MONTH_MAX_VISIBLE_EVENTS;
   }
 
   private formCalendars(): string[] {
@@ -1497,6 +1507,7 @@ export class HaCalendarCard extends LitElement {
                   .calendars=${calendars}
                   .calendarColors=${this.calendarColors}
                   .weather=${weather}
+                  .maxVisible=${this.monthMaxVisibleEvents}
                   @event-select=${(e: CustomEvent<CalendarEvent>) =>
                     this.openEdit(e.detail)}
                   @event-toggle-done=${(e: CustomEvent<CalendarEvent>) =>
