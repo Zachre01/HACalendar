@@ -276,8 +276,24 @@ export class HacMonthGrid extends LitElement {
       );
   }
 
+  /** Distinguishes single-click (open day view) from double-click (create). */
+  private dayClickTimer: number | null = null;
+
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this.clearDayClickTimer();
+  }
+
+  private clearDayClickTimer(): void {
+    if (this.dayClickTimer !== null) {
+      window.clearTimeout(this.dayClickTimer);
+      this.dayClickTimer = null;
+    }
+  }
+
   private onEventClick(ev: CalendarEvent, e: Event): void {
     e.stopPropagation();
+    this.clearDayClickTimer();
     this.dispatchEvent(
       new CustomEvent("event-select", {
         detail: ev,
@@ -287,7 +303,26 @@ export class HacMonthGrid extends LitElement {
     );
   }
 
+  private onDayOpen(day: Date): void {
+    this.dispatchEvent(
+      new CustomEvent("day-select", {
+        detail: { date: startOfDay(day) },
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+
+  private onDayClick(day: Date): void {
+    this.clearDayClickTimer();
+    this.dayClickTimer = window.setTimeout(() => {
+      this.dayClickTimer = null;
+      this.onDayOpen(day);
+    }, 250);
+  }
+
   private onDayCreate(day: Date): void {
+    this.clearDayClickTimer();
     const start = new Date(day);
     start.setHours(9, 0, 0, 0);
     const end = new Date(start);
@@ -324,6 +359,8 @@ export class HacMonthGrid extends LitElement {
                 class="cell"
                 data-outside=${outside ? "true" : "false"}
                 data-today=${isToday ? "true" : "false"}
+                title="Click for day view · double-click to add event"
+                @click=${() => this.onDayClick(day)}
                 @dblclick=${() => this.onDayCreate(day)}
               >
                 <div class="cell-top">
