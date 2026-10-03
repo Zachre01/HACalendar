@@ -138,6 +138,16 @@ export class HacTimeGrid extends LitElement {
     );
   }
 
+  private onDayOpen(day: Date): void {
+    this.dispatchEvent(
+      new CustomEvent("day-select", {
+        detail: { date: startOfDay(day) },
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+
   private onSlotCreate(day: Date, hour: number): void {
     const start = new Date(day);
     start.setHours(hour, 0, 0, 0);
@@ -173,8 +183,25 @@ export class HacTimeGrid extends LitElement {
         <div class="corner"></div>
         ${days.map((d) => {
           const isToday = sameDay(d, today);
+          const openDayOnClick = this.mode === "week";
           return html`
-            <div class="day-head" data-today=${isToday ? "true" : "false"}>
+            <div
+              class="day-head"
+              data-today=${isToday ? "true" : "false"}
+              data-clickable=${openDayOnClick ? "true" : "false"}
+              title=${openDayOnClick ? "Open day view" : nothing}
+              role=${openDayOnClick ? "button" : nothing}
+              tabindex=${openDayOnClick ? 0 : nothing}
+              @click=${openDayOnClick ? () => this.onDayOpen(d) : undefined}
+              @keydown=${openDayOnClick
+                ? (e: KeyboardEvent) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      this.onDayOpen(d);
+                    }
+                  }
+                : undefined}
+            >
               <span
                 >${d.toLocaleDateString(undefined, {
                   weekday: "short",

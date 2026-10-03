@@ -664,6 +664,15 @@ export class HaCalendarCard extends LitElement {
     this.formOpen = true;
   }
 
+  /** Month cell / week day-header → focused day view for stacked events. */
+  private openDayView(date: Date): void {
+    const next = new Date(date);
+    next.setHours(0, 0, 0, 0);
+    this.anchorDate = next;
+    this.view = "day";
+    this.monthPickerOpen = false;
+  }
+
   private openEdit(ev: CalendarEvent): void {
     this.editing = ev;
     this.formError = "";
@@ -1420,6 +1429,8 @@ export class HaCalendarCard extends LitElement {
                   .weather=${weather}
                   @event-select=${(e: CustomEvent<CalendarEvent>) =>
                     this.openEdit(e.detail)}
+                  @day-select=${(e: CustomEvent<{ date: Date }>) =>
+                    this.openDayView(e.detail.date)}
                   @slot-create=${(
                     e: CustomEvent<{ start: Date; end: Date }>
                   ) => this.openCreate(e.detail)}
@@ -1437,6 +1448,8 @@ export class HaCalendarCard extends LitElement {
                   .nowTick=${this.nowTick}
                   @event-select=${(e: CustomEvent<CalendarEvent>) =>
                     this.openEdit(e.detail)}
+                  @day-select=${(e: CustomEvent<{ date: Date }>) =>
+                    this.openDayView(e.detail.date)}
                   @slot-create=${(
                     e: CustomEvent<{ start: Date; end: Date }>
                   ) => this.openCreate(e.detail)}

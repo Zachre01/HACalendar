@@ -932,6 +932,14 @@ export const gridStyles = css`
     letter-spacing: 0.04em;
   }
 
+  .day-head[data-clickable="true"] {
+    cursor: pointer;
+  }
+
+  .day-head[data-clickable="true"]:hover {
+    background: var(--hac-cell-hover, #f7fafc);
+  }
+
   .day-head .num {
     font-size: 1.05rem;
     font-weight: 800;
