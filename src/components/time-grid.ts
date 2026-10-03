@@ -38,6 +38,38 @@ function parseEventDate(value: string): Date {
   return new Date(value);
 }
 
+/** Date-only, flagged all-day, or midnight→midnight full-day (outside hour grid). */
+function isAllDayLike(ev: CalendarEvent): boolean {
+  if (ev.all_day) return true;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(ev.start)) return true;
+
+  const start = parseEventDate(ev.start);
+  const end = parseEventDate(ev.end);
+  const startMidnight =
+    start.getHours() === 0 &&
+    start.getMinutes() === 0 &&
+    start.getSeconds() === 0 &&
+    start.getMilliseconds() === 0;
+  if (!startMidnight || end <= start) return false;
+
+  const endMidnight =
+    end.getHours() === 0 &&
+    end.getMinutes() === 0 &&
+    end.getSeconds() === 0 &&
+    end.getMilliseconds() === 0;
+  if (endMidnight) return true;
+
+  return end.getTime() - start.getTime() >= 24 * 60 * 60 * 1000;
+}
+
+function eventTouchesDay(ev: CalendarEvent, day: Date): boolean {
+  const start = parseEventDate(ev.start);
+  const end = parseEventDate(ev.end);
+  const dayStart = startOfDay(day);
+  const dayEnd = addDays(dayStart, 1);
+  return start < dayEnd && end > dayStart;
+}
+
 @customElement("hac-time-grid")
 export class HacTimeGrid extends LitElement {
   static styles = gridStyles;
@@ -78,7 +110,19 @@ export class HacTimeGrid extends LitElement {
     return fallbackCalendarColor(idx);
   }
 
+  private allDayEventsForDay(day: Date): CalendarEvent[] {
+    return this.events
+      .filter((ev) => isAllDayLike(ev) && eventTouchesDay(ev, day))
+      .sort(
+        (a, b) =>
+          parseEventDate(a.start).getTime() - parseEventDate(b.start).getTime() ||
+          a.summary.localeCompare(b.summary)
+      );
+  }
+
   private eventStyle(ev: CalendarEvent, day: Date): string | null {
+    if (isAllDayLike(ev)) return null;
+
     const start = parseEventDate(ev.start);
     const end = parseEventDate(ev.end);
     const dayStart = new Date(day);
@@ -208,6 +252,41 @@ export class HacTimeGrid extends LitElement {
                 })}</span
               >
               <span class="num">${d.getDate()}</span>
+            </div>
+          `;
+        })}
+
+        <div class="allday-gutter" aria-hidden="true">All day</div>
+        ${days.map((day) => {
+          const isToday = sameDay(day, today);
+          const allDay = this.allDayEventsForDay(day);
+          return html`
+            <div
+              class="allday-cell"
+              data-today=${isToday ? "true" : "false"}
+              data-count=${String(allDay.length)}
+            >
+              ${allDay.map((ev) => {
+                const calShort = ev.calendar.replace(/^calendar\./, "");
+                return html`
+                  <button
+                    type="button"
+                    class="allday-chip"
+                    style="background:${this.calendarColor(ev.calendar)}"
+                    title=${ev.rrule || ev.recurring
+                      ? `${ev.summary} (repeats) · ${calShort}`
+                      : `${ev.summary} · ${calShort}`}
+                    @click=${(e: Event) => {
+                      e.stopPropagation();
+                      this.onEventClick(ev);
+                    }}
+                  >
+                    ${ev.rrule || ev.recurring
+                      ? html`<span class="recur" aria-hidden="true">↻</span>`
+                      : nothing}<span class="chip-title">${ev.summary}</span>
+                  </button>
+                `;
+              })}
             </div>
           `;
         })}
