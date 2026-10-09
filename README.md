@@ -8,8 +8,10 @@ Inspired by Daylight/Skylight aesthetics — **own codebase**, not a fork of tho
 
 ## Status
 
+- **Card v0.9.9** — **Done** is per calendar day for multi-day events (and single-day for the same storage): chip/form toggles scope to the visible day; other days of the span stay incomplete; stored as `hac-done:YYYY-MM-DD` description lines (legacy title `✓ ` still read)
 - **Card v0.9.8** — month view shows up to **6** event chips per day (`MONTH_MAX_VISIBLE_EVENTS`), then **+N more**; optional YAML `month_max_events` override; click day / +more → day view (unchanged)
-- **Card v0.9.7** — mark events **Done** on the same calendar (checkbox on month/day/week/all-day chips + event form); strikethrough + muted chip styling; persisted as a `✓ ` title prefix in HA (survives reload); not a move-to-Done-calendar flow
+- **Card v0.9.7** — mark events **Done** on the same calendar (checkbox on month/day/week/all-day chips + event form); strikethrough + muted chip styling; earlier builds used a whole-event `✓ ` title prefix
+
 - **Card v0.9.6** — day/week views show an **All day** strip above the hour grid listing every all-day / date-only / midnight full-day event (stacked or wrapped chips — none hidden); timed events stay in the hour grid; chip click opens edit
 - **Card v0.9.5** — month view: single-click a day (empty cell / “+N more”) opens day view for that date; double-click still adds an event; week day headers open day view; event chips still edit
 - **Card v0.9.4** — event form shows loaded build (`v0.9.4` near title); **All day** is a clear emphasized row; browser console logs `ha-calendar-card` + version on load (helps confirm you are not on a cached older JS)
@@ -143,11 +145,11 @@ Forecasts prefer the entity’s `forecast` attribute when present; on modern Hom
 
 Mark an event **Done** without moving calendars:
 
-- **Chip checkbox** — every month chip, day/week timed block, and all-day strip chip has a small checkbox on the left. Tap it to toggle Done; the rest of the chip still opens the edit form.
-- **Event form** — **Done** checkbox under the title (same persistence).
-- **Look** — completed chips use a single strikethrough + muted opacity so Done is obvious without opening the event.
-- **Persistence** — Home Assistant local calendars have no dedicated “completed” field, so the card stores Done as a **title prefix**: `✓ ` (U+2713 + space) before the summary. On load the card strips the marker for a clean display title and re-applies it when saving/toggling. A legacy `[done] ` prefix is also recognized when reading. Outside this card you may see the `✓ ` in the raw HA event title — that is intentional so the state survives reload and other clients.
-- **Recurring chip toggle** — if the instance has a `recurrence_id`, Done updates **this occurrence only**; if there is no instance id (series master), the card updates the **entire series**. Editing Done from the event form still uses the normal recurring scope prompt (This / This and future / Entire series).
+- **Chip checkbox** — every month chip, day/week timed block, and all-day strip chip has a small checkbox on the left. Tap it to toggle Done **for that day’s chip only**; the rest of the chip still opens the edit form. On a multi-day event, other days of the same span stay incomplete until you check them.
+- **Event form** — **Done** checkbox under the title applies to the **day you opened from** (month cell / week column / day view / all-day strip). The hint shows that day for multi-day events.
+- **Look** — a chip is struck through / muted only when **that day** is in the done-set for the event.
+- **Persistence** — Home Assistant local calendars have no dedicated “completed” field. The card stores per-day Done as hidden description lines: `hac-done:YYYY-MM-DD` (one line per done day). Those lines are stripped from the description field in the form UI and re-applied on save/toggle. Older builds used a whole-event title prefix `✓ ` (or `[done] `); that is still recognized on load (treated as done on every day of the span). The next per-day toggle migrates off the title prefix onto `hac-done:` lines. Outside this card you may see the sentinel lines in the raw HA description — that is intentional so state survives reload.
+- **Recurring chip toggle** — if the instance has a `recurrence_id`, Done updates **this occurrence only**; if there is no instance id (series master), the card updates the **entire series**. Editing Done from the event form still uses the normal recurring scope prompt (This / This and future / Entire series), and the checkbox itself remains day-scoped.
 
 ### Recurring events
 

@@ -8,7 +8,13 @@ import {
 import { fallbackCalendarColor } from "../utils/calendar-colors";
 import type { CalendarColorMap } from "../utils/calendar-colors";
 import { gridStyles } from "../styles/shared";
-import type { CalendarEvent, CalendarViewMode } from "../types";
+import type {
+  CalendarEvent,
+  CalendarViewMode,
+  EventSelectDetail,
+  ToggleDoneDetail,
+} from "../types";
+import { formatDayKey, isDoneOnDay } from "../utils/event-done";
 
 function startOfDay(d: Date): Date {
   const x = new Date(d);
@@ -172,22 +178,30 @@ export class HacTimeGrid extends LitElement {
     });
   }
 
-  private onEventClick(ev: CalendarEvent): void {
+  private onEventClick(ev: CalendarEvent, day: Date): void {
+    const detail: EventSelectDetail = {
+      event: ev,
+      day: formatDayKey(day),
+    };
     this.dispatchEvent(
       new CustomEvent("event-select", {
-        detail: ev,
+        detail,
         bubbles: true,
         composed: true,
       })
     );
   }
 
-  private onToggleDone(ev: CalendarEvent, e: Event): void {
+  private onToggleDone(ev: CalendarEvent, day: Date, e: Event): void {
     e.stopPropagation();
     e.preventDefault();
+    const detail: ToggleDoneDetail = {
+      event: ev,
+      day: formatDayKey(day),
+    };
     this.dispatchEvent(
       new CustomEvent("event-toggle-done", {
-        detail: ev,
+        detail,
         bubbles: true,
         composed: true,
       })
@@ -280,24 +294,27 @@ export class HacTimeGrid extends LitElement {
             >
               ${allDay.map((ev) => {
                 const calShort = ev.calendar.replace(/^calendar\./, "");
+                const dayDone = isDoneOnDay(ev, formatDayKey(day));
                 return html`
                   <div
                     class="allday-chip"
-                    data-done=${ev.completed ? "true" : "false"}
+                    data-done=${dayDone ? "true" : "false"}
                     style="background:${this.calendarColor(ev.calendar)}"
                   >
                     <button
                       type="button"
                       class="done-check"
                       role="checkbox"
-                      aria-checked=${ev.completed ? "true" : "false"}
-                      aria-label=${ev.completed
-                        ? `Mark “${ev.summary}” not done`
-                        : `Mark “${ev.summary}” done`}
-                      title=${ev.completed ? "Mark not done" : "Mark done"}
-                      @click=${(e: Event) => this.onToggleDone(ev, e)}
+                      aria-checked=${dayDone ? "true" : "false"}
+                      aria-label=${dayDone
+                        ? `Mark “${ev.summary}” not done for this day`
+                        : `Mark “${ev.summary}” done for this day`}
+                      title=${dayDone
+                        ? "Mark not done (this day)"
+                        : "Mark done (this day)"}
+                      @click=${(e: Event) => this.onToggleDone(ev, day, e)}
                     >
-                      ${ev.completed ? "✓" : nothing}
+                      ${dayDone ? "✓" : nothing}
                     </button>
                     <button
                       type="button"
@@ -307,7 +324,7 @@ export class HacTimeGrid extends LitElement {
                         : `${ev.summary} · ${calShort}`}
                       @click=${(e: Event) => {
                         e.stopPropagation();
-                        this.onEventClick(ev);
+                        this.onEventClick(ev, day);
                       }}
                     >
                       ${ev.rrule || ev.recurring
@@ -354,25 +371,28 @@ export class HacTimeGrid extends LitElement {
                 const style = this.eventStyle(ev, day);
                 if (!style) return nothing;
                 const calShort = ev.calendar.replace(/^calendar\./, "");
+                const dayDone = isDoneOnDay(ev, formatDayKey(day));
                 return html`
                   <div
                     class="event-block"
                     style=${style}
-                    data-done=${ev.completed ? "true" : "false"}
+                    data-done=${dayDone ? "true" : "false"}
                     data-recurring=${ev.rrule || ev.recurring ? "true" : "false"}
                   >
                     <button
                       type="button"
                       class="done-check"
                       role="checkbox"
-                      aria-checked=${ev.completed ? "true" : "false"}
-                      aria-label=${ev.completed
-                        ? `Mark “${ev.summary}” not done`
-                        : `Mark “${ev.summary}” done`}
-                      title=${ev.completed ? "Mark not done" : "Mark done"}
-                      @click=${(e: Event) => this.onToggleDone(ev, e)}
+                      aria-checked=${dayDone ? "true" : "false"}
+                      aria-label=${dayDone
+                        ? `Mark “${ev.summary}” not done for this day`
+                        : `Mark “${ev.summary}” done for this day`}
+                      title=${dayDone
+                        ? "Mark not done (this day)"
+                        : "Mark done (this day)"}
+                      @click=${(e: Event) => this.onToggleDone(ev, day, e)}
                     >
-                      ${ev.completed ? "✓" : nothing}
+                      ${dayDone ? "✓" : nothing}
                     </button>
                     <button
                       type="button"
@@ -382,7 +402,7 @@ export class HacTimeGrid extends LitElement {
                         : ev.summary}
                       @click=${(e: Event) => {
                         e.stopPropagation();
-                        this.onEventClick(ev);
+                        this.onEventClick(ev, day);
                       }}
                     >
                       <strong

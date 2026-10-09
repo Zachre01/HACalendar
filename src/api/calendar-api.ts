@@ -6,7 +6,13 @@ import type {
   PendingDuplicate,
   RawCalendarApiEvent,
 } from "../types";
-import { applyDoneMarker, parseDoneSummary } from "../utils/event-done";
+import {
+  applyDoneDates,
+  applyDoneMarker,
+  effectiveDoneDates,
+  parseDoneDescription,
+  parseDoneSummary,
+} from "../utils/event-done";
 import { formatHassError } from "../utils/ha-error";
 
 /** HA CalendarEntityFeature.CREATE_EVENT */
@@ -51,13 +57,16 @@ export function normalizeApiEvent(
   if (!start || !end) return null;
 
   const rrule = raw.rrule ?? undefined;
-  const { completed, displaySummary } = parseDoneSummary(
+  const { legacyTitleDone, displaySummary } = parseDoneSummary(
     raw.summary ?? "(no title)"
+  );
+  const { cleanDescription, doneDates } = parseDoneDescription(
+    raw.description
   );
   return {
     uid: raw.uid ?? `${entityId}:${start}:${raw.summary ?? "event"}`,
     summary: displaySummary,
-    description: raw.description ?? undefined,
+    description: cleanDescription || undefined,
     location: raw.location ?? undefined,
     start,
     end,
@@ -66,7 +75,9 @@ export function normalizeApiEvent(
     recurring: Boolean(rrule || raw.recurrence_id),
     rrule,
     recurrence_id: raw.recurrence_id ?? undefined,
-    completed,
+    doneDates,
+    legacyTitleDone: legacyTitleDone || undefined,
+    completed: legacyTitleDone || doneDates.length > 0,
   };
 }
 
@@ -93,9 +104,21 @@ function toHaDateTime(value: string, allDay: boolean | undefined): string {
 
 function toWsEventPayload(input: CalendarEventInput): Record<string, unknown> {
   // HA websocket schema uses rfc5545 field names: dtstart / dtend / rrule
+  // Prefer per-day description markers; fall back to legacy title ✓ only when
+  // doneDates is omitted (older call sites).
+  let summary: string;
+  let description: string;
+  if (input.doneDates !== undefined) {
+    summary = parseDoneSummary(input.summary).displaySummary;
+    const clean = parseDoneDescription(input.description).cleanDescription;
+    description = applyDoneDates(clean, input.doneDates);
+  } else {
+    summary = applyDoneMarker(input.summary, Boolean(input.completed));
+    description = input.description ?? "";
+  }
   const payload: Record<string, unknown> = {
-    summary: applyDoneMarker(input.summary, Boolean(input.completed)),
-    description: input.description ?? "",
+    summary,
+    description,
     location: input.location ?? "",
     dtstart: toHaDateTime(input.start, input.all_day),
     dtend: toHaDateTime(input.end, input.all_day),
@@ -328,10 +351,11 @@ export class CalendarApi {
   }
 
   private async createEventViaService(input: CalendarEventInput): Promise<void> {
+    const event = toWsEventPayload(input);
     await this.hass.callService("calendar", "create_event", {
       entity_id: input.calendar,
-      summary: applyDoneMarker(input.summary, Boolean(input.completed)),
-      description: input.description ?? "",
+      summary: event.summary,
+      description: event.description,
       location: input.location ?? "",
       start_date_time: input.all_day
         ? undefined
@@ -440,11 +464,12 @@ export class CalendarApi {
     uid: string,
     patch: CalendarEventInput
   ): Promise<void> {
+    const event = toWsEventPayload(patch);
     await this.hass.callService("calendar", "update_event", {
       entity_id: entityId,
       uid,
-      summary: applyDoneMarker(patch.summary, Boolean(patch.completed)),
-      description: patch.description,
+      summary: event.summary,
+      description: event.description,
       location: patch.location,
       start_date_time: patch.all_day
         ? undefined
@@ -554,7 +579,7 @@ export class CalendarApi {
       end: patched?.end ?? event.end,
       all_day: patched?.all_day ?? event.all_day,
       calendar: targetCalendar,
-      completed: patched?.completed ?? event.completed,
+      doneDates: patched?.doneDates ?? effectiveDoneDates(event),
     };
 
     // 1) Create on target first — source untouched if this fails
