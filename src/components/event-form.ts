@@ -10,6 +10,11 @@ import type {
 import { fallbackCalendarColor } from "../utils/calendar-colors";
 import type { CalendarColorMap } from "../utils/calendar-colors";
 import {
+  applyFormDoneForDay,
+  isDoneOnDay,
+  listEventDayKeys,
+} from "../utils/event-done";
+import {
   buildRrule,
   isUntilBeforeStart,
   normalizeRecurringTimedEnd,
@@ -53,6 +58,11 @@ export class HacEventForm extends LitElement {
   /** Resolved HA/palette colors keyed by calendar entity id. */
   @property({ attribute: false }) calendarColors: CalendarColorMap = {};
   @property({ attribute: false }) event: CalendarEvent | null = null;
+  /**
+   * YYYY-MM-DD of the chip/day that opened the form. Scopes the Done checkbox
+   * to that day for multi-day events (and single-day for consistency).
+   */
+  @property({ type: String }) doneDay = "";
   @property({ attribute: false }) defaults: {
     start?: string;
     end?: string;
@@ -74,7 +84,7 @@ export class HacEventForm extends LitElement {
   @state() private location = "";
   @state() private start = "";
   @state() private end = "";
-  /** Completed on the same calendar (persisted as `✓ ` title prefix). */
+  /** Done for `doneDay` (persisted as `hac-done:YYYY-MM-DD` in description). */
   @state() private completed = false;
   /** When true, start/end are YYYY-MM-DD (inclusive end in the UI). */
   @state() private allDay = false;
@@ -105,7 +115,11 @@ export class HacEventForm extends LitElement {
   }
 
   protected updated(changed: Map<string, unknown>): void {
-    if (changed.has("event") || changed.has("defaults")) {
+    if (
+      changed.has("event") ||
+      changed.has("defaults") ||
+      changed.has("doneDay")
+    ) {
       this.hydrateEventFields();
       this.applyReminderFields(true);
       this.scopePrompt = null;
@@ -121,9 +135,20 @@ export class HacEventForm extends LitElement {
 
   private eventKey(): string {
     if (this.event) {
-      return `edit:${this.event.calendar}:${this.event.uid}:${this.event.recurrence_id ?? ""}`;
+      return `edit:${this.event.calendar}:${this.event.uid}:${this.event.recurrence_id ?? ""}:${this.doneDay}`;
     }
     return `create:${this.defaults.start ?? ""}:${this.defaults.end ?? ""}:${this.defaults.calendar ?? ""}`;
+  }
+
+  private resolveDoneDay(startIso: string): string {
+    if (this.doneDay && /^\d{4}-\d{2}-\d{2}$/.test(this.doneDay)) {
+      return this.doneDay;
+    }
+    return startIso.slice(0, 10);
+  }
+
+  private isMultiDaySpan(startIso: string, endIso: string): boolean {
+    return listEventDayKeys({ start: startIso, end: endIso }).length > 1;
   }
 
   private hydrateEventFields(force = false): void {
@@ -137,7 +162,8 @@ export class HacEventForm extends LitElement {
       this.summary = this.event.summary;
       this.description = this.event.description ?? "";
       this.location = this.event.location ?? "";
-      this.completed = Boolean(this.event.completed);
+      const dayKey = this.resolveDoneDay(this.event.start);
+      this.completed = isDoneOnDay(this.event, dayKey);
       this.allDay = Boolean(
         this.event.all_day || /^\d{4}-\d{2}-\d{2}$/.test(this.event.start)
       );
@@ -541,16 +567,26 @@ export class HacEventForm extends LitElement {
       rrule = undefined;
     }
 
+    const dayKey = this.resolveDoneDay(startIso);
+    const { doneDates, description } = applyFormDoneForDay(
+      this.event,
+      dayKey,
+      this.completed,
+      this.description.trim() || undefined,
+      startIso,
+      endIso
+    );
+
     const input: CalendarEventInput = {
       summary: this.summary.trim(),
-      description: this.description.trim() || undefined,
+      description,
       location: this.location.trim() || undefined,
       start: startIso,
       end: endIso,
       all_day: this.allDay,
       calendar: this.calendar,
       rrule: rrule === undefined ? undefined : rrule,
-      completed: this.completed,
+      doneDates,
     };
     const crossCalendarMove = this.isCrossCalendarMove;
     const detail: EventFormSaveDetail = {
@@ -779,7 +815,10 @@ export class HacEventForm extends LitElement {
               <span class="done-label">Done</span>
             </label>
             <span class="done-hint"
-              >Stays on this calendar · shown with strikethrough on chips</span
+              >${this.event &&
+              this.isMultiDaySpan(this.event.start, this.event.end)
+                ? `This day only (${this.resolveDoneDay(this.event.start)}) · strikethrough on that day’s chips`
+                : "Stays on this calendar · strikethrough on chips"}</span
             >
           </div>
 

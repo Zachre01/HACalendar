@@ -16,11 +16,13 @@ import { FONT_STYLESHEET_HREF, cardStyles } from "./styles/shared";
 import type {
   CalendarEvent,
   CalendarViewMode,
+  EventSelectDetail,
   HaCalendarCardConfig,
   HomeAssistant,
   PendingDuplicate,
   ReminderFormState,
   ThemeMode,
+  ToggleDoneDetail,
   WeatherDay,
   WeatherSummary,
 } from "./types";
@@ -28,6 +30,11 @@ import type {
   EventFormDeleteDetail,
   EventFormSaveDetail,
 } from "./components/event-form";
+import {
+  isDoneOnDay,
+  parseDoneDescription,
+  toggleDayDone,
+} from "./utils/event-done";
 import {
   buildCalendarColorMap,
   fallbackCalendarColor,
@@ -80,6 +87,11 @@ export class HaCalendarCard extends LitElement {
   @state() private events: CalendarEvent[] = [];
   @state() private formOpen = false;
   @state() private editing: CalendarEvent | null = null;
+  /**
+   * YYYY-MM-DD for the chip day that opened the form — scopes the Done checkbox
+   * on multi-day events.
+   */
+  @state() private formDoneDay: string | null = null;
   @state() private formDefaults: {
     start?: string;
     end?: string;
@@ -663,6 +675,7 @@ export class HaCalendarCard extends LitElement {
 
   private openCreate(detail?: { start: Date; end: Date }): void {
     this.editing = null;
+    this.formDoneDay = null;
     this.formError = "";
     this.formBusy = false;
     this.formReminder = null;
@@ -683,8 +696,11 @@ export class HaCalendarCard extends LitElement {
     this.monthPickerOpen = false;
   }
 
-  private openEdit(ev: CalendarEvent): void {
+  private openEdit(detail: EventSelectDetail | CalendarEvent): void {
+    const ev = "event" in detail ? detail.event : detail;
+    const day = "event" in detail ? detail.day : undefined;
     this.editing = ev;
+    this.formDoneDay = day ?? ev.start.slice(0, 10);
     this.formError = "";
     this.formBusy = false;
     this.formDefaults = {};
@@ -694,24 +710,36 @@ export class HaCalendarCard extends LitElement {
   }
 
   /**
-   * Chip checkbox: toggle completed on the same calendar (no move).
-   * Recurring: this occurrence when `recurrence_id` exists; otherwise whole series.
+   * Chip checkbox: toggle Done for the visible day only (per-day description
+   * markers). Recurring: this occurrence when `recurrence_id` exists; otherwise
+   * whole series (same as before).
    */
   private toggleDoneBusy = false;
 
-  private async onToggleDone(e: CustomEvent<CalendarEvent>): Promise<void> {
-    const ev = e.detail;
-    if (!this.hass || this.toggleDoneBusy) return;
+  private async onToggleDone(e: CustomEvent<ToggleDoneDetail>): Promise<void> {
+    const { event: ev, day } = e.detail;
+    if (!this.hass || this.toggleDoneBusy || !day) return;
 
     this.toggleDoneBusy = true;
-    const nextCompleted = !ev.completed;
-    // Optimistic chip update so strikethrough feels instant
+    const nextCompleted = !isDoneOnDay(ev, day);
+    const toggled = toggleDayDone(ev, day, nextCompleted);
+
+    // Optimistic: update doneDates on the matching event (all day chips share it)
     this.events = this.events.map((item) =>
       item.uid === ev.uid &&
       item.calendar === ev.calendar &&
       item.recurrence_id === ev.recurrence_id &&
       item.start === ev.start
-        ? { ...item, completed: nextCompleted }
+        ? {
+            ...item,
+            summary: toggled.summary,
+            description:
+              parseDoneDescription(toggled.description).cleanDescription ||
+              undefined,
+            doneDates: toggled.doneDates,
+            legacyTitleDone: false,
+            completed: toggled.doneDates.length > 0,
+          }
         : item
     );
 
@@ -729,21 +757,21 @@ export class HaCalendarCard extends LitElement {
         ev.calendar,
         ev.uid,
         {
-          summary: ev.summary,
-          description: ev.description,
+          summary: toggled.summary,
+          description: toggled.description,
           location: ev.location,
           start: ev.start,
           end: ev.end,
           all_day: ev.all_day,
           calendar: ev.calendar,
-          completed: nextCompleted,
+          doneDates: toggled.doneDates,
         },
         recurrenceId,
         recurrenceRange
       );
       this.status = nextCompleted
-        ? `Marked “${ev.summary}” done`
-        : `Marked “${ev.summary}” not done`;
+        ? `Marked “${ev.summary}” done for ${day}`
+        : `Marked “${ev.summary}” not done for ${day}`;
       this.statusKind = "info";
       await this.refreshEvents();
     } catch (err) {
@@ -753,7 +781,14 @@ export class HaCalendarCard extends LitElement {
         item.calendar === ev.calendar &&
         item.recurrence_id === ev.recurrence_id &&
         item.start === ev.start
-          ? { ...item, completed: ev.completed }
+          ? {
+              ...item,
+              summary: ev.summary,
+              description: ev.description,
+              doneDates: ev.doneDates,
+              legacyTitleDone: ev.legacyTitleDone,
+              completed: ev.completed,
+            }
           : item
       );
       this.status = formatHassError(err, "Could not update done state");
@@ -1508,9 +1543,9 @@ export class HaCalendarCard extends LitElement {
                   .calendarColors=${this.calendarColors}
                   .weather=${weather}
                   .maxVisible=${this.monthMaxVisibleEvents}
-                  @event-select=${(e: CustomEvent<CalendarEvent>) =>
+                  @event-select=${(e: CustomEvent<EventSelectDetail>) =>
                     this.openEdit(e.detail)}
-                  @event-toggle-done=${(e: CustomEvent<CalendarEvent>) =>
+                  @event-toggle-done=${(e: CustomEvent<ToggleDoneDetail>) =>
                     void this.onToggleDone(e)}
                   @day-select=${(e: CustomEvent<{ date: Date }>) =>
                     this.openDayView(e.detail.date)}
@@ -1529,9 +1564,9 @@ export class HaCalendarCard extends LitElement {
                   .dayStartHour=${this.config.day_start_hour ?? DAY_START_HOUR}
                   .dayEndHour=${this.config.day_end_hour ?? DAY_END_HOUR}
                   .nowTick=${this.nowTick}
-                  @event-select=${(e: CustomEvent<CalendarEvent>) =>
+                  @event-select=${(e: CustomEvent<EventSelectDetail>) =>
                     this.openEdit(e.detail)}
-                  @event-toggle-done=${(e: CustomEvent<CalendarEvent>) =>
+                  @event-toggle-done=${(e: CustomEvent<ToggleDoneDetail>) =>
                     void this.onToggleDone(e)}
                   @day-select=${(e: CustomEvent<{ date: Date }>) =>
                     this.openDayView(e.detail.date)}
@@ -1547,6 +1582,7 @@ export class HaCalendarCard extends LitElement {
                   .calendars=${this.formCalendars()}
                   .calendarColors=${this.calendarColors}
                   .event=${this.editing}
+                  .doneDay=${this.formDoneDay ?? ""}
                   .defaults=${this.formDefaults}
                   .busy=${this.formBusy}
                   .errorMessage=${this.formError}

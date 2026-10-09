@@ -3,7 +3,13 @@ import { customElement, property } from "lit/decorators.js";
 import { MONTH_MAX_VISIBLE_EVENTS } from "../const";
 import { fallbackCalendarColor } from "../utils/calendar-colors";
 import type { CalendarColorMap } from "../utils/calendar-colors";
-import type { CalendarEvent, WeatherSummary } from "../types";
+import type {
+  CalendarEvent,
+  EventSelectDetail,
+  ToggleDoneDetail,
+  WeatherSummary,
+} from "../types";
+import { formatDayKey, isDoneOnDay } from "../utils/event-done";
 import { forecastForDate, weatherGlyph } from "../utils/weather";
 
 function startOfDay(d: Date): Date {
@@ -358,25 +364,33 @@ export class HacMonthGrid extends LitElement {
     }
   }
 
-  private onEventClick(ev: CalendarEvent, e: Event): void {
+  private onEventClick(ev: CalendarEvent, day: Date, e: Event): void {
     e.stopPropagation();
     this.clearDayClickTimer();
+    const detail: EventSelectDetail = {
+      event: ev,
+      day: formatDayKey(day),
+    };
     this.dispatchEvent(
       new CustomEvent("event-select", {
-        detail: ev,
+        detail,
         bubbles: true,
         composed: true,
       })
     );
   }
 
-  private onToggleDone(ev: CalendarEvent, e: Event): void {
+  private onToggleDone(ev: CalendarEvent, day: Date, e: Event): void {
     e.stopPropagation();
     e.preventDefault();
     this.clearDayClickTimer();
+    const detail: ToggleDoneDetail = {
+      event: ev,
+      day: formatDayKey(day),
+    };
     this.dispatchEvent(
       new CustomEvent("event-toggle-done", {
-        detail: ev,
+        detail,
         bubbles: true,
         composed: true,
       })
@@ -454,25 +468,28 @@ export class HacMonthGrid extends LitElement {
                     : nothing}
                 </div>
                 <div class="events">
-                  ${visible.map(
-                    (ev) => html`
+                  ${visible.map((ev) => {
+                    const dayDone = isDoneOnDay(ev, formatDayKey(day));
+                    return html`
                       <div
                         class="chip"
-                        data-done=${ev.completed ? "true" : "false"}
+                        data-done=${dayDone ? "true" : "false"}
                         style="background:${this.calendarColor(ev.calendar)}"
                       >
                         <button
                           type="button"
                           class="done-check"
                           role="checkbox"
-                          aria-checked=${ev.completed ? "true" : "false"}
-                          aria-label=${ev.completed
-                            ? `Mark “${ev.summary}” not done`
-                            : `Mark “${ev.summary}” done`}
-                          title=${ev.completed ? "Mark not done" : "Mark done"}
-                          @click=${(e: Event) => this.onToggleDone(ev, e)}
+                          aria-checked=${dayDone ? "true" : "false"}
+                          aria-label=${dayDone
+                            ? `Mark “${ev.summary}” not done for this day`
+                            : `Mark “${ev.summary}” done for this day`}
+                          title=${dayDone
+                            ? "Mark not done (this day)"
+                            : "Mark done (this day)"}
+                          @click=${(e: Event) => this.onToggleDone(ev, day, e)}
                         >
-                          ${ev.completed ? "✓" : nothing}
+                          ${dayDone ? "✓" : nothing}
                         </button>
                         <button
                           type="button"
@@ -480,7 +497,7 @@ export class HacMonthGrid extends LitElement {
                           title=${ev.rrule || ev.recurring
                             ? `${ev.summary} (repeats)`
                             : ev.summary}
-                          @click=${(e: Event) => this.onEventClick(ev, e)}
+                          @click=${(e: Event) => this.onEventClick(ev, day, e)}
                         >
                           ${ev.rrule || ev.recurring
                             ? html`<span class="recur" aria-hidden="true"
@@ -491,8 +508,8 @@ export class HacMonthGrid extends LitElement {
                           >${ev.summary}
                         </button>
                       </div>
-                    `
-                  )}
+                    `;
+                  })}
                   ${overflow > 0
                     ? html`<div class="more">+${overflow} more</div>`
                     : nothing}

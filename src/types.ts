@@ -72,6 +72,7 @@ export interface CalendarEvent {
   uid: string;
   /** Display title with done marker stripped */
   summary: string;
+  /** Description with `hac-done:` sentinel lines stripped */
   description?: string;
   location?: string;
   start: string; // ISO or HA date-only
@@ -82,15 +83,29 @@ export interface CalendarEvent {
   rrule?: string;
   recurrence_id?: string;
   /**
-   * Completed on the same calendar (not a move).
-   * Persisted as a `✓ ` title prefix in HA — see `utils/event-done.ts`.
+   * Days marked Done (YYYY-MM-DD), from `hac-done:` description lines.
+   * Chip styling uses `isDoneOnDay(ev, day)` — not a whole-event flag.
+   */
+  doneDates?: string[];
+  /**
+   * Raw HA title had a whole-event `✓ ` / `[done] ` prefix when loaded.
+   * Treated as done on every day of the span until a per-day write migrates it.
+   */
+  legacyTitleDone?: boolean;
+  /**
+   * Convenience: true when any day is done or legacy title-done.
+   * Prefer `isDoneOnDay` for chip UI.
    */
   completed?: boolean;
 }
 
 export interface CalendarEventInput {
-  /** Display title (no done marker); API layer applies `✓ ` when completed */
+  /** Display title (no done marker) */
   summary: string;
+  /**
+   * Description body. When `doneDates` is set, the API layer appends
+   * `hac-done:YYYY-MM-DD` sentinel lines (and never a title `✓ ` prefix).
+   */
   description?: string;
   location?: string;
   start: string;
@@ -99,8 +114,28 @@ export interface CalendarEventInput {
   calendar: string;
   /** RFC 5545 RRULE without prefix, e.g. FREQ=WEEKLY;BYDAY=MO */
   rrule?: string | null;
-  /** Persist as `✓ ` title prefix when true */
+  /**
+   * Per-day Done dates (YYYY-MM-DD). Preferred persistence — written as
+   * description sentinels. When set, title `✓ ` is not applied.
+   */
+  doneDates?: string[];
+  /**
+   * Legacy whole-event flag (title `✓ `). Only used when `doneDates` is omitted.
+   */
   completed?: boolean;
+}
+
+/** Chip Done toggle carries the visible calendar day for per-day scope. */
+export interface ToggleDoneDetail {
+  event: CalendarEvent;
+  /** Local YYYY-MM-DD of the chip’s cell / column / day view */
+  day: string;
+}
+
+/** Event open/edit from a chip — optional day scopes the form Done checkbox. */
+export interface EventSelectDetail {
+  event: CalendarEvent;
+  day?: string;
 }
 
 /** Raw event from REST /api/calendars or get_events */

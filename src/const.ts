@@ -1,4 +1,4 @@
-export const CARD_VERSION = "0.9.8";
+export const CARD_VERSION = "0.9.9";
 export const CARD_NAME = "ha-calendar-card";
 export const CARD_EDITOR_NAME = "ha-calendar-card-editor";
 
