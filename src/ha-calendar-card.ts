@@ -61,6 +61,10 @@ import {
   weatherGlyphCute,
   weatherMood,
 } from "./utils/weather-ui";
+import {
+  defaultTimedRangeForDay,
+  toFloatingLocal,
+} from "./utils/create-defaults";
 import { formatHassError } from "./utils/ha-error";
 import "./components/time-grid";
 import "./components/month-grid";
@@ -123,6 +127,8 @@ export class HaCalendarCard extends LitElement {
   @state() private monthPickerOpen = false;
   /** Year shown inside the month picker (may differ from anchor while browsing) */
   @state() private pickerYear = new Date().getFullYear();
+  /** Stock-HA-style add/remove calendar picker open */
+  @state() private calendarPickerOpen = false;
 
   private pollTimer: number | null = null;
   private clockTimer: number | null = null;
@@ -362,9 +368,11 @@ export class HaCalendarCard extends LitElement {
   }
 
   private entities(): string[] {
-    return this.config.entities?.length
-      ? [...this.config.entities]
-      : [...PLACEHOLDER_CALENDARS];
+    // Explicit [] (user unchecked everything) must not fall back to placeholders
+    if (Array.isArray(this.config.entities)) {
+      return [...this.config.entities];
+    }
+    return [...PLACEHOLDER_CALENDARS];
   }
 
   /** Month chips per day before “+N more”; config override clamped to ≥ 1. */
@@ -679,12 +687,106 @@ export class HaCalendarCard extends LitElement {
     this.formError = "";
     this.formBusy = false;
     this.formReminder = null;
+    const range = detail ?? this.defaultCreateRange();
     this.formDefaults = {
-      start: (detail?.start ?? new Date()).toISOString(),
-      end: (detail?.end ?? new Date(Date.now() + 3600000)).toISOString(),
+      // Floating local times — avoid toISOString() shifting the selected day
+      start: toFloatingLocal(range.start),
+      end: toFloatingLocal(range.end),
       calendar: this.entities()[0],
     };
     this.formOpen = true;
+  }
+
+  /**
+   * Toolbar / empty-state create with no slot: use the focused day (day view
+   * anchor, or today when browsing month/week), never a stale "today" after the
+   * user opened another day.
+   */
+  private defaultCreateRange(): { start: Date; end: Date } {
+    const day = new Date(
+      this.view === "day" ? this.anchorDate : new Date()
+    );
+    day.setHours(0, 0, 0, 0);
+    return defaultTimedRangeForDay(day, {
+      dayStartHour: this.config.day_start_hour ?? DAY_START_HOUR,
+      dayEndHour: this.config.day_end_hour ?? DAY_END_HOUR,
+    });
+  }
+
+  /** All `calendar.*` entities from hass.states (sorted). */
+  private availableCalendarEntities(): string[] {
+    if (!this.hass?.states) return [];
+    return Object.keys(this.hass.states)
+      .filter((id) => id.startsWith("calendar."))
+      .sort();
+  }
+
+  private configuredEntitySet(): Set<string> {
+    return new Set(this.entities());
+  }
+
+  private toggleCalendarPicker(): void {
+    this.calendarPickerOpen = !this.calendarPickerOpen;
+    if (this.calendarPickerOpen) this.monthPickerOpen = false;
+  }
+
+  /**
+   * Add/remove a calendar.* from the card entity list. Updates local config
+   * immediately and fires Lovelace `config-changed` so UI-mode dashboards can
+   * persist. YAML-mode dashboards still need a manual entities edit to stick
+   * after reload.
+   */
+  private setCalendarInConfig(entityId: string, enabled: boolean): void {
+    if (!entityId.startsWith("calendar.")) return;
+
+    const raw = this.config.entities?.length
+      ? [...this.config.entities]
+      : [...PLACEHOLDER_CALENDARS];
+
+    // First real pick while still on non-existent placeholders → replace them
+    const hass = this.hass;
+    const onlyMissingPlaceholders =
+      !this.config.entities?.length ||
+      raw.every(
+        (id) =>
+          !hass?.states[id] &&
+          (PLACEHOLDER_CALENDARS as readonly string[]).includes(id)
+      );
+
+    let next: string[];
+    if (enabled) {
+      if (raw.includes(entityId) && !onlyMissingPlaceholders) return;
+      next = onlyMissingPlaceholders ? [entityId] : [...raw, entityId];
+    } else {
+      next = raw.filter((id) => id !== entityId);
+    }
+
+    // Dedupe while preserving order
+    const seen = new Set<string>();
+    next = next.filter((id) => {
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+
+    const newConfig: HaCalendarCardConfig = {
+      ...this.config,
+      entities: next,
+      type: this.config.type ?? `custom:${CARD_NAME}`,
+    };
+    this.config = newConfig;
+    this.hiddenCalendars = this.hiddenCalendars.filter((id) =>
+      next.includes(id)
+    );
+    this.dispatchEvent(
+      new CustomEvent("config-changed", {
+        detail: { config: newConfig },
+        bubbles: true,
+        composed: true,
+      })
+    );
+    void this.refreshCalendarColors();
+    void this.refreshEvents();
   }
 
   /** Month cell / week day-header → focused day view for stacked events. */
@@ -1112,19 +1214,29 @@ export class HaCalendarCard extends LitElement {
   private bindPickerDismiss(): void {
     this.unbindPickerDismiss();
     this.onDocPointerDown = (e: Event) => {
-      if (!this.monthPickerOpen) return;
+      if (!this.monthPickerOpen && !this.calendarPickerOpen) return;
       const path = e.composedPath();
       if (path.includes(this)) {
-        const inPicker = path.some(
+        const inMonthPicker = path.some(
           (n) =>
             n instanceof HTMLElement &&
             (n.classList.contains("month-picker") ||
               n.classList.contains("range-label") ||
               n.classList.contains("range-wrap"))
         );
-        if (inPicker) return;
+        const inCalPicker = path.some(
+          (n) =>
+            n instanceof HTMLElement &&
+            (n.classList.contains("cal-picker") ||
+              n.classList.contains("cal-picker-wrap") ||
+              n.classList.contains("add-cal-pill"))
+        );
+        if (this.monthPickerOpen && inMonthPicker) return;
+        if (this.calendarPickerOpen && inCalPicker) return;
+        // Click elsewhere inside the card still dismisses open pickers
       }
       this.monthPickerOpen = false;
+      this.calendarPickerOpen = false;
     };
     document.addEventListener("pointerdown", this.onDocPointerDown, true);
   }
@@ -1140,6 +1252,7 @@ export class HaCalendarCard extends LitElement {
     this.monthPickerOpen = !this.monthPickerOpen;
     if (this.monthPickerOpen) {
       this.pickerYear = this.anchorDate.getFullYear();
+      this.calendarPickerOpen = false;
     }
   }
 
@@ -1329,6 +1442,67 @@ export class HaCalendarCard extends LitElement {
                 </button>
               `;
             })}
+            <div class="cal-picker-wrap">
+              <button
+                type="button"
+                class="pill add-cal-pill"
+                aria-haspopup="dialog"
+                aria-expanded=${this.calendarPickerOpen ? "true" : "false"}
+                title="Add or remove calendars"
+                @click=${() => this.toggleCalendarPicker()}
+              >
+                + Add calendar
+              </button>
+              ${this.calendarPickerOpen
+                ? html`
+                    <div
+                      class="cal-picker"
+                      role="dialog"
+                      aria-label="Choose calendars"
+                    >
+                      <div class="cal-picker-title">Calendars</div>
+                      <p class="cal-picker-hint">
+                        Pick from available calendar entities. Saved via
+                        Lovelace when the dashboard is in UI mode.
+                      </p>
+                      ${(() => {
+                        const available = this.availableCalendarEntities();
+                        const configured = this.configuredEntitySet();
+                        if (!available.length) {
+                          return html`<p class="cal-picker-empty">
+                            No <code>calendar.*</code> entities found in Home
+                            Assistant.
+                          </p>`;
+                        }
+                        return available.map((id) => {
+                          const checked = configured.has(id);
+                          return html`
+                            <label class="cal-picker-row">
+                              <input
+                                type="checkbox"
+                                .checked=${checked}
+                                @change=${(e: Event) => {
+                                  const on = (e.target as HTMLInputElement)
+                                    .checked;
+                                  this.setCalendarInConfig(id, on);
+                                }}
+                              />
+                              <span
+                                class="dot"
+                                style="background:${this.calendarColor(id)}"
+                              ></span>
+                              <span class="cal-picker-label"
+                                >${this.calendarLabel(id)}</span
+                              >
+                              <span class="cal-picker-id">${id}</span>
+                            </label>
+                          `;
+                        });
+                      })()}
+                    </div>
+                  `
+                : nothing}
+            </div>
           </div>
         </div>
 

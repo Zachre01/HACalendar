@@ -9,6 +9,7 @@ import type {
   ToggleDoneDetail,
   WeatherSummary,
 } from "../types";
+import { defaultTimedRangeForDay } from "../utils/create-defaults";
 import { formatDayKey, isDoneOnDay } from "../utils/event-done";
 import { forecastForDate, weatherGlyph } from "../utils/weather";
 
@@ -417,10 +418,7 @@ export class HacMonthGrid extends LitElement {
 
   private onDayCreate(day: Date): void {
     this.clearDayClickTimer();
-    const start = new Date(day);
-    start.setHours(9, 0, 0, 0);
-    const end = new Date(start);
-    end.setHours(10, 0, 0, 0);
+    const { start, end } = defaultTimedRangeForDay(day);
     this.dispatchEvent(
       new CustomEvent("slot-create", {
         detail: { start, end },

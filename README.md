@@ -8,6 +8,7 @@ Inspired by Daylight/Skylight aesthetics — **own codebase**, not a fork of tho
 
 ## Status
 
+- **Card v0.9.10** — **+ Add calendar** picker (from live `calendar.*` / `hass.states`) next to filter pills; persists via Lovelace `config-changed` in UI-mode dashboards (YAML dashboards still need a manual `entities:` edit to stick after reload). Day-click / day-view create defaults start+end to the **selected day** (next hour / +1h), not wall-clock “today”
 - **Card v0.9.9** — **Done** is per calendar day for multi-day events (and single-day for the same storage): chip/form toggles scope to the visible day; other days of the span stay incomplete; stored as `hac-done:YYYY-MM-DD` description lines (legacy title `✓ ` still read)
 - **Card v0.9.8** — month view shows up to **6** event chips per day (`MONTH_MAX_VISIBLE_EVENTS`), then **+N more**; optional YAML `month_max_events` override; click day / +more → day view (unchanged)
 - **Card v0.9.7** — mark events **Done** on the same calendar (checkbox on month/day/week/all-day chips + event form); strikethrough + muted chip styling; earlier builds used a whole-event `✓ ` title prefix
@@ -36,7 +37,7 @@ Private / custom-repo install — not yet in the HACS default store.
 4. Download **HA Calendar Card**, refresh Lovelace
 5. Add the card (see [Card YAML](#card-yaml))
 
-**After updating the card (HACS redownload or manual copy):** bump the Lovelace resource query string (`?v=0.9.8`, then `?v=0.9.9`, …) and hard-refresh the browser (or clear site cache). Home Assistant and browsers often keep serving the previous `ha-calendar-card.js` until the URL changes. Confirm the loaded build via the event form title (`v0.9.8`) or the browser console line `ha-calendar-card` / `v0.9.8`.
+**After updating the card (HACS redownload or manual copy):** bump the Lovelace resource query string (`?v=0.9.9`, then `?v=0.9.10`, …) and hard-refresh the browser (or clear site cache). Home Assistant and browsers often keep serving the previous `ha-calendar-card.js` until the URL changes. Confirm the loaded build via the event form title (`v0.9.10`) or the browser console line `ha-calendar-card` / `v0.9.10`.
 
 `hacs.json` targets the **card plugin only**. The integration is installed separately (below).
 
@@ -48,7 +49,7 @@ Private / custom-repo install — not yet in the HACS default store.
 
 ```yaml
 resources:
-  - url: /local/ha-calendar-card.js?v=0.9.8
+  - url: /local/ha-calendar-card.js?v=0.9.10
     type: module
 ```
 
@@ -116,7 +117,7 @@ weather_entity: weather.home
 | Option | Default | Notes |
 | --- | --- | --- |
 | `title` | `Calendar` | Centered brand / header label |
-| `entities` | placeholders | List of `calendar.*` entity ids (filter pills) |
+| `entities` | placeholders | List of `calendar.*` entity ids (filter pills). Also editable in-card via **+ Add calendar** (UI-mode save via `config-changed`) |
 | `initial_view` | `month` | `month`, `week`, or `day` |
 | `theme` | `auto` | `light`, `dark`, or `auto` (follows system). Toolbar toggle cycles modes and persists to `localStorage` |
 | `weather_entity` | — | **Canonical** optional `weather.*` for header + month chips |
@@ -126,6 +127,16 @@ weather_entity: weather.home
 | `reminder_notify_service` | `notify.mobile_app_phone` | Prefill for reminder form |
 | `reminder_minutes_before` | `30` | Prefill for reminder form |
 | `show_demo_when_empty` | `false` | Dev-only demo blocks |
+
+### Add calendar (in-card)
+
+Use **+ Add calendar** next to the filter pills (same idea as stock HA calendar entity checkboxes). The picker lists every `calendar.*` from `hass.states`; check to add, uncheck to remove. The card updates immediately and fires Lovelace `config-changed` so **UI-mode** dashboards can persist the new `entities` list. **YAML-mode** dashboards apply the change for the current session only — edit the card’s `entities:` in YAML (or switch the dashboard to UI mode and save) for it to stick after reload.
+
+### Create defaults (selected day)
+
+- Month **double-click** a day → create form start/end on **that day** (next whole hour / +1h).
+- Day view **+ Add Event** (and empty-state create) → uses the **focused day** (`anchorDate`), not wall-clock today.
+- Week/day **double-click** a time slot → still uses that slot’s hour.
 
 ### Theme
 
