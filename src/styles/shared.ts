@@ -388,6 +388,102 @@ export const cardStyles = css`
     flex: 0 0 auto;
   }
 
+  .pill.add-cal-pill {
+    border-style: dashed;
+    font-weight: 800;
+    color: var(--hac-accent);
+    background: var(--hac-surface-soft);
+  }
+
+  .cal-picker-wrap {
+    position: relative;
+    display: inline-flex;
+  }
+
+  .cal-picker {
+    position: absolute;
+    top: calc(100% + 0.4rem);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 40;
+    min-width: min(18rem, 86vw);
+    max-width: min(22rem, 92vw);
+    max-height: min(22rem, 60vh);
+    overflow: auto;
+    padding: 0.7rem 0.75rem 0.65rem;
+    border-radius: 0.85rem;
+    border: 1px solid var(--hac-line-strong);
+    background: var(--hac-surface);
+    box-shadow: 0 10px 28px rgba(44, 51, 64, 0.14);
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .cal-picker-title {
+    font-family: var(--hac-font-display);
+    font-size: 0.95rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  .cal-picker-hint {
+    margin: 0 0 0.25rem;
+    font-size: 0.72rem;
+    line-height: 1.35;
+    color: var(--hac-muted, #6b7280);
+  }
+
+  .cal-picker-empty {
+    margin: 0.25rem 0 0;
+    font-size: 0.78rem;
+    color: var(--hac-muted, #6b7280);
+  }
+
+  .cal-picker-row {
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    grid-template-rows: auto auto;
+    column-gap: 0.45rem;
+    row-gap: 0.05rem;
+    align-items: center;
+    padding: 0.35rem 0.3rem;
+    border-radius: 0.55rem;
+    cursor: pointer;
+  }
+
+  .cal-picker-row:hover {
+    background: var(--hac-surface-soft);
+  }
+
+  .cal-picker-row input {
+    grid-row: 1 / span 2;
+    margin: 0;
+    accent-color: var(--hac-accent);
+  }
+
+  .cal-picker-row .dot {
+    grid-row: 1 / span 2;
+    width: 0.65rem;
+    height: 0.65rem;
+    border-radius: 50%;
+  }
+
+  .cal-picker-label {
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-transform: capitalize;
+  }
+
+  .cal-picker-id {
+    grid-column: 3;
+    font-size: 0.68rem;
+    color: var(--hac-muted, #6b7280);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .toolbar {
     display: flex;
     flex-wrap: wrap;
