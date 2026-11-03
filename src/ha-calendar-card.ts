@@ -65,6 +65,11 @@ import {
   defaultTimedRangeForDay,
   toFloatingLocal,
 } from "./utils/create-defaults";
+import {
+  createLocalCalendar,
+  waitForCalendarEntity,
+} from "./utils/create-local-calendar";
+import { mergeEntitiesOnLoad, persistCardEntities } from "./utils/entities-persist";
 import { formatHassError } from "./utils/ha-error";
 import "./components/time-grid";
 import "./components/month-grid";
@@ -129,6 +134,13 @@ export class HaCalendarCard extends LitElement {
   @state() private pickerYear = new Date().getFullYear();
   /** Stock-HA-style add/remove calendar picker open */
   @state() private calendarPickerOpen = false;
+  /** Inline “Create Local Calendar” form inside the picker */
+  @state() private createCalendarOpen = false;
+  @state() private createCalendarName = "";
+  @state() private createCalendarBusy = false;
+  @state() private createCalendarError = "";
+  /** Soft note after persist (YAML-mode / save issues) */
+  @state() private persistNote = "";
 
   private pollTimer: number | null = null;
   private clockTimer: number | null = null;
@@ -151,7 +163,7 @@ export class HaCalendarCard extends LitElement {
       throw new Error("Invalid configuration");
     }
     const weatherEntity = resolveWeatherEntityId(config);
-    this.config = {
+    const base: HaCalendarCardConfig = {
       title: "Calendar",
       entities: [...PLACEHOLDER_CALENDARS],
       initial_view: "month",
@@ -163,6 +175,13 @@ export class HaCalendarCard extends LitElement {
       // Canonicalize: accept alias `weather` → `weather_entity`
       weather_entity: weatherEntity,
       type: config.type ?? `custom:${CARD_NAME}`,
+    };
+    const mergedEntities = mergeEntitiesOnLoad(base);
+    this.config = {
+      ...base,
+      entities: mergedEntities?.length
+        ? mergedEntities
+        : [...PLACEHOLDER_CALENDARS],
     };
     this.view = this.config.initial_view ?? "month";
     this.applyThemePreference(readThemePreference(this.config.theme));
@@ -727,26 +746,34 @@ export class HaCalendarCard extends LitElement {
 
   private toggleCalendarPicker(): void {
     this.calendarPickerOpen = !this.calendarPickerOpen;
-    if (this.calendarPickerOpen) this.monthPickerOpen = false;
+    if (this.calendarPickerOpen) {
+      this.monthPickerOpen = false;
+    } else {
+      this.createCalendarOpen = false;
+      this.createCalendarError = "";
+      this.persistNote = "";
+    }
   }
 
   /**
    * Add/remove a calendar.* from the card entity list. Updates local config
-   * immediately and fires Lovelace `config-changed` so UI-mode dashboards can
-   * persist. YAML-mode dashboards still need a manual entities edit to stick
-   * after reload.
+   * immediately, mirrors to localStorage, fires `config-changed`, and saves
+   * UI-mode Lovelace dashboards via `lovelace/config/save`.
    */
   private setCalendarInConfig(entityId: string, enabled: boolean): void {
     if (!entityId.startsWith("calendar.")) return;
 
-    const raw = this.config.entities?.length
+    const previousEntities = this.config.entities?.length
       ? [...this.config.entities]
+      : undefined;
+    const raw = previousEntities?.length
+      ? [...previousEntities]
       : [...PLACEHOLDER_CALENDARS];
 
     // First real pick while still on non-existent placeholders → replace them
     const hass = this.hass;
     const onlyMissingPlaceholders =
-      !this.config.entities?.length ||
+      !previousEntities?.length ||
       raw.every(
         (id) =>
           !hass?.states[id] &&
@@ -778,15 +805,72 @@ export class HaCalendarCard extends LitElement {
     this.hiddenCalendars = this.hiddenCalendars.filter((id) =>
       next.includes(id)
     );
-    this.dispatchEvent(
-      new CustomEvent("config-changed", {
-        detail: { config: newConfig },
-        bubbles: true,
-        composed: true,
-      })
-    );
+    void this.persistEntities(previousEntities, newConfig);
     void this.refreshCalendarColors();
     void this.refreshEvents();
+  }
+
+  private async persistEntities(
+    previousEntities: string[] | undefined,
+    nextConfig: HaCalendarCardConfig
+  ): Promise<void> {
+    const result = await persistCardEntities({
+      hass: this.hass,
+      host: this,
+      previousEntities,
+      nextConfig,
+    });
+    if (result.lovelace === "saved") {
+      this.persistNote = "";
+      return;
+    }
+    if (result.lovelace === "yaml") {
+      this.persistNote =
+        "Saved in this browser. YAML dashboards also need an entities: edit to stick after cache clear.";
+      return;
+    }
+    if (result.lovelace === "error") {
+      this.persistNote = result.local
+        ? "Saved in this browser; dashboard save failed — check admin permissions."
+        : `Could not save calendars: ${result.detail ?? "unknown error"}`;
+      return;
+    }
+    // skipped / local-only — still fine for navigate-away when localStorage worked
+    this.persistNote = result.local
+      ? ""
+      : "Could not persist calendars in this browser.";
+  }
+
+  private async submitCreateCalendar(): Promise<void> {
+    if (!this.hass) {
+      this.createCalendarError = "Home Assistant is not connected.";
+      return;
+    }
+    const name = this.createCalendarName.trim();
+    if (!name) {
+      this.createCalendarError = "Enter a calendar name.";
+      return;
+    }
+    this.createCalendarBusy = true;
+    this.createCalendarError = "";
+    try {
+      const { entityId: guessed } = await createLocalCalendar(this.hass, name);
+      const entityId = await waitForCalendarEntity(
+        () => this.hass,
+        guessed
+      );
+      this.setCalendarInConfig(entityId, true);
+      this.createCalendarName = "";
+      this.createCalendarOpen = false;
+      this.status = `Created ${entityId}`;
+      this.statusKind = "info";
+      void this.refreshCalendarColors();
+      void this.refreshEvents();
+    } catch (err) {
+      this.createCalendarError = formatHassError(err);
+    } finally {
+      this.createCalendarBusy = false;
+    }
   }
 
   /** Month cell / week day-header → focused day view for stacked events. */
@@ -1462,16 +1546,16 @@ export class HaCalendarCard extends LitElement {
                     >
                       <div class="cal-picker-title">Calendars</div>
                       <p class="cal-picker-hint">
-                        Pick from available calendar entities. Saved via
-                        Lovelace when the dashboard is in UI mode.
+                        Pick existing calendars or create a new Local Calendar.
+                        Changes are saved to this dashboard (and this browser).
                       </p>
                       ${(() => {
                         const available = this.availableCalendarEntities();
                         const configured = this.configuredEntitySet();
                         if (!available.length) {
                           return html`<p class="cal-picker-empty">
-                            No <code>calendar.*</code> entities found in Home
-                            Assistant.
+                            No <code>calendar.*</code> entities found yet —
+                            create one below.
                           </p>`;
                         }
                         return available.map((id) => {
@@ -1499,6 +1583,76 @@ export class HaCalendarCard extends LitElement {
                           `;
                         });
                       })()}
+                      <div class="cal-picker-create">
+                        ${this.createCalendarOpen
+                          ? html`
+                              <label class="cal-create-label" for="hac-new-cal"
+                                >New Local Calendar</label
+                              >
+                              <div class="cal-create-row">
+                                <input
+                                  id="hac-new-cal"
+                                  type="text"
+                                  class="cal-create-input"
+                                  placeholder="Name (e.g. Kids)"
+                                  .value=${this.createCalendarName}
+                                  ?disabled=${this.createCalendarBusy}
+                                  @input=${(e: Event) => {
+                                    this.createCalendarName = (
+                                      e.target as HTMLInputElement
+                                    ).value;
+                                  }}
+                                  @keydown=${(e: KeyboardEvent) => {
+                                    if (e.key === "Enter") {
+                                      e.preventDefault();
+                                      void this.submitCreateCalendar();
+                                    }
+                                  }}
+                                />
+                                <button
+                                  type="button"
+                                  class="cal-create-btn"
+                                  ?disabled=${this.createCalendarBusy}
+                                  @click=${() => void this.submitCreateCalendar()}
+                                >
+                                  ${this.createCalendarBusy
+                                    ? "Creating…"
+                                    : "Create"}
+                                </button>
+                              </div>
+                              <button
+                                type="button"
+                                class="cal-create-cancel"
+                                ?disabled=${this.createCalendarBusy}
+                                @click=${() => {
+                                  this.createCalendarOpen = false;
+                                  this.createCalendarError = "";
+                                }}
+                              >
+                                Cancel
+                              </button>
+                            `
+                          : html`
+                              <button
+                                type="button"
+                                class="cal-create-toggle"
+                                @click=${() => {
+                                  this.createCalendarOpen = true;
+                                  this.createCalendarError = "";
+                                }}
+                              >
+                                + Create new calendar
+                              </button>
+                            `}
+                        ${this.createCalendarError
+                          ? html`<p class="cal-picker-error">
+                              ${this.createCalendarError}
+                            </p>`
+                          : nothing}
+                        ${this.persistNote
+                          ? html`<p class="cal-picker-hint">${this.persistNote}</p>`
+                          : nothing}
+                      </div>
                     </div>
                   `
                 : nothing}
