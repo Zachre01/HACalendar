@@ -484,6 +484,83 @@ export const cardStyles = css`
     white-space: nowrap;
   }
 
+  .cal-picker-create {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-top: 0.35rem;
+    padding-top: 0.45rem;
+    border-top: 1px solid var(--hac-line, rgba(0, 0, 0, 0.08));
+  }
+
+  .cal-create-toggle,
+  .cal-create-cancel {
+    align-self: flex-start;
+    border: none;
+    background: transparent;
+    color: var(--hac-accent);
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 0.25rem 0.1rem;
+    cursor: pointer;
+  }
+
+  .cal-create-toggle:hover,
+  .cal-create-cancel:hover {
+    text-decoration: underline;
+  }
+
+  .cal-create-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--hac-muted, #6b7280);
+  }
+
+  .cal-create-row {
+    display: flex;
+    gap: 0.35rem;
+    align-items: center;
+  }
+
+  .cal-create-input {
+    flex: 1;
+    min-width: 0;
+    border: 1px solid var(--hac-line-strong);
+    border-radius: 0.5rem;
+    padding: 0.4rem 0.55rem;
+    font: inherit;
+    font-size: 0.82rem;
+    background: var(--hac-surface-soft);
+    color: inherit;
+  }
+
+  .cal-create-btn {
+    flex-shrink: 0;
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.4rem 0.7rem;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    background: var(--hac-accent);
+    color: #fff;
+  }
+
+  .cal-create-btn:disabled,
+  .cal-create-input:disabled {
+    opacity: 0.65;
+    cursor: default;
+  }
+
+  .cal-picker-error {
+    margin: 0;
+    font-size: 0.72rem;
+    line-height: 1.35;
+    color: var(--hac-danger, #b42318);
+  }
+
   .toolbar {
     display: flex;
     flex-wrap: wrap;
