@@ -59,6 +59,29 @@ function parseEventDate(value: string): Date {
 }
 
 /**
+ * True when `day` overlaps the event.
+ * HA's end is exclusive, but a zero-length span (Holiday sends end == start
+ * for a one-day all-day event) still belongs on the start day.
+ */
+export function eventIntersectsDay(
+  startValue: string,
+  endValue: string,
+  day: Date
+): boolean {
+  const start = parseEventDate(startValue);
+  const end = parseEventDate(endValue);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return false;
+  }
+  const dayStart = startOfLocalDay(day);
+  const dayEnd = addDays(dayStart, 1);
+  if (end.getTime() <= start.getTime()) {
+    return start >= dayStart && start < dayEnd;
+  }
+  return start < dayEnd && end > dayStart;
+}
+
+/**
  * Calendar days the event touches (all-day end is exclusive, same as HA).
  * Always includes at least the start day.
  */

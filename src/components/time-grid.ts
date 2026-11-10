@@ -16,7 +16,7 @@ import type {
   EventSelectDetail,
   ToggleDoneDetail,
 } from "../types";
-import { formatDayKey, isDoneOnDay } from "../utils/event-done";
+import { eventIntersectsDay, formatDayKey, isDoneOnDay } from "../utils/event-done";
 
 function startOfDay(d: Date): Date {
   const x = new Date(d);
@@ -58,7 +58,9 @@ function isAllDayLike(ev: CalendarEvent): boolean {
     start.getMinutes() === 0 &&
     start.getSeconds() === 0 &&
     start.getMilliseconds() === 0;
-  if (!startMidnight || end <= start) return false;
+  // Zero-length midnight span: Holiday-style all-day (end == start).
+  if (end <= start) return startMidnight;
+  if (!startMidnight) return false;
 
   const endMidnight =
     end.getHours() === 0 &&
@@ -71,11 +73,7 @@ function isAllDayLike(ev: CalendarEvent): boolean {
 }
 
 function eventTouchesDay(ev: CalendarEvent, day: Date): boolean {
-  const start = parseEventDate(ev.start);
-  const end = parseEventDate(ev.end);
-  const dayStart = startOfDay(day);
-  const dayEnd = addDays(dayStart, 1);
-  return start < dayEnd && end > dayStart;
+  return eventIntersectsDay(ev.start, ev.end, day);
 }
 
 @customElement("hac-time-grid")

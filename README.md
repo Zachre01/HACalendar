@@ -8,6 +8,7 @@ Inspired by Daylight/Skylight aesthetics — **own codebase**, not a fork of tho
 
 ## Status
 
+- **Card v0.9.13** — Home Assistant **Holiday** calendars show on the day. Those events are all-day with the end date equal to the start (Veterans Day is `2026-11-11` through `2026-11-11`); the card now treats that as the whole day instead of a zero-length span. Filter pills use the calendar’s friendly name. A dimmed pill is hidden — click it again to show that calendar. The status line counts events hidden by those pills
 - **Card v0.9.12** — drag an event onto another day in **month** or **week** view. The clock time and length stay put; multi-day events shift together (the day you grab is the anchor). Per-day Done marks move with the event. A repeating occurrence moves when Home Assistant sends a `recurrence_id`; a series master asks you to open the editor instead of shifting every repeat. Escape cancels a drag
 - **Card v0.9.11** — **+ Add calendar** persists for real (localStorage + UI Lovelace `lovelace/config/save` with full `entities`); **+ Create new calendar** runs the Local Calendar config flow (empty calendar) then auto-adds the entity. YAML-mode: browser save still keeps calendars across navigation; edit `entities:` only if you need YAML source-of-truth after cache clear
 - **Card v0.9.10** — **+ Add calendar** picker (from live `calendar.*` / `hass.states`) next to filter pills; day-click / day-view create defaults start+end to the **selected day** (next hour / +1h), not wall-clock “today”
@@ -39,7 +40,7 @@ Private / custom-repo install — not yet in the HACS default store.
 4. Download **HA Calendar Card**, refresh Lovelace
 5. Add the card (see [Card YAML](#card-yaml))
 
-**After updating the card (HACS redownload or manual copy):** bump the Lovelace resource query string (`?v=0.9.11`, then `?v=0.9.12`, …) and hard-refresh the browser (or clear site cache). Home Assistant and browsers often keep serving the previous `ha-calendar-card.js` until the URL changes. Confirm the loaded build via the event form title (`v0.9.12`) or the browser console line `ha-calendar-card` / `v0.9.12`.
+**After updating the card (HACS redownload or manual copy):** bump the Lovelace resource query string (`?v=0.9.12`, then `?v=0.9.13`, …) and hard-refresh the browser (or clear site cache). Home Assistant and browsers often keep serving the previous `ha-calendar-card.js` until the URL changes. Confirm the loaded build via the event form title (`v0.9.13`) or the browser console line `ha-calendar-card` / `v0.9.13`.
 
 `hacs.json` targets the **card plugin only**. The integration is installed separately (below).
 
@@ -51,7 +52,7 @@ Private / custom-repo install — not yet in the HACS default store.
 
 ```yaml
 resources:
-  - url: /local/ha-calendar-card.js?v=0.9.12
+  - url: /local/ha-calendar-card.js?v=0.9.13
     type: module
 ```
 

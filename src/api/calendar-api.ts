@@ -31,34 +31,113 @@ function hasCalendarService(
   return Boolean(calendar && service in calendar);
 }
 
-function getCalendarDate(
-  value: RawCalendarApiEvent["start"] | undefined
-): string | undefined {
+function getCalendarDate(value: unknown): string | undefined {
   if (!value) return undefined;
   if (typeof value === "string") return value;
-  if ("dateTime" in value && value.dateTime) return value.dateTime;
-  if ("date" in value && value.date) return value.date;
+  if (typeof value !== "object") return undefined;
+  const obj = value as { dateTime?: unknown; date?: unknown };
+  if (typeof obj.dateTime === "string" && obj.dateTime) return obj.dateTime;
+  if (typeof obj.date === "string" && obj.date) return obj.date;
   return undefined;
 }
 
-function isAllDay(value: RawCalendarApiEvent["start"] | undefined): boolean {
-  if (!value || typeof value === "string") {
-    return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value));
+function eventSummary(value: unknown): string {
+  if (typeof value === "string" && value.trim()) return value;
+  if (Array.isArray(value)) {
+    const parts = value
+      .map((item) => eventSummary(item))
+      .filter((item) => item && item !== "(no title)");
+    if (parts.length) return parts.join("; ");
   }
-  return Boolean(value.date && !value.dateTime);
+  return "(no title)";
+}
+
+function isAllDay(value: unknown): boolean {
+  if (typeof value === "string") {
+    return /^\d{4}-\d{2}-\d{2}$/.test(value);
+  }
+  if (!value || typeof value !== "object") return false;
+  const obj = value as { dateTime?: unknown; date?: unknown };
+  return Boolean(typeof obj.date === "string" && obj.date && !obj.dateTime);
+}
+
+function pad2(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+function localDayKeyFromDate(d: Date): string {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+function instantOf(value: string): Date | null {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [y, m, day] = value.split("-").map(Number);
+    return new Date(y, m - 1, day);
+  }
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function dayKeyOf(value: string, instant: Date): string {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : localDayKeyFromDate(instant);
+}
+
+function nextDayKey(dayKey: string): string {
+  const [y, m, d] = dayKey.split("-").map(Number);
+  return localDayKeyFromDate(new Date(y, m - 1, d + 1));
+}
+
+/**
+ * Holiday (and some other read-only calendars) send a one-day all-day event
+ * with end == start. HA's own calendar treats that as ending the next day.
+ * A zero-length midnight span never overlaps a day cell, so the holiday
+ * vanishes. Stretch those to an exclusive next-day end.
+ */
+function coerceAllDaySpan(
+  start: string,
+  end: string,
+  allDay: boolean
+): { start: string; end: string; allDay: boolean } {
+  const startAt = instantOf(start);
+  const endAt = instantOf(end);
+  if (!startAt || !endAt) return { start, end, allDay };
+
+  const startKey = dayKeyOf(start, startAt);
+  const endKey = dayKeyOf(end, endAt);
+  const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(start);
+  const zero = endAt.getTime() <= startAt.getTime();
+  const midnight =
+    startAt.getHours() === 0 &&
+    startAt.getMinutes() === 0 &&
+    startAt.getSeconds() === 0;
+  const treatAllDay = allDay || dateOnly || (zero && midnight);
+  if (!treatAllDay) return { start, end, allDay };
+  if (endKey > startKey) return { start, end, allDay: true };
+  return { start: startKey, end: nextDayKey(startKey), allDay: true };
 }
 
 export function normalizeApiEvent(
   raw: RawCalendarApiEvent,
   entityId: string
 ): CalendarEvent | null {
-  const start = getCalendarDate(raw.start);
-  const end = getCalendarDate(raw.end);
-  if (!start || !end) return null;
+  const record = raw as RawCalendarApiEvent & {
+    dtstart?: RawCalendarApiEvent["start"];
+    dtend?: RawCalendarApiEvent["end"];
+  };
+  const startRaw = getCalendarDate(record.start ?? record.dtstart);
+  const endRaw = getCalendarDate(record.end ?? record.dtend);
+  if (!startRaw || !endRaw) return null;
+  const span = coerceAllDaySpan(
+    startRaw,
+    endRaw,
+    Boolean(raw.all_day) || isAllDay(record.start ?? record.dtstart)
+  );
+  const start = span.start;
+  const end = span.end;
 
   const rrule = raw.rrule ?? undefined;
   const { legacyTitleDone, displaySummary } = parseDoneSummary(
-    raw.summary ?? "(no title)"
+    eventSummary(raw.summary)
   );
   const { cleanDescription, doneDates } = parseDoneDescription(
     raw.description
@@ -70,7 +149,7 @@ export function normalizeApiEvent(
     location: raw.location ?? undefined,
     start,
     end,
-    all_day: raw.all_day ?? isAllDay(raw.start),
+    all_day: span.allDay,
     calendar: entityId,
     recurring: Boolean(rrule || raw.recurrence_id),
     rrule,
@@ -165,6 +244,70 @@ function eventsMatch(
   );
 }
 
+function asEventRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function eventsFromBag(
+  bag: Record<string, unknown>,
+  entityId: string
+): RawCalendarApiEvent[] | null {
+  if (Array.isArray(bag.events)) return bag.events as RawCalendarApiEvent[];
+  const direct = asEventRecord(bag[entityId]);
+  if (direct && Array.isArray(direct.events)) {
+    return direct.events as RawCalendarApiEvent[];
+  }
+  const key = Object.keys(bag).find(
+    (id) => id.toLowerCase() === entityId.toLowerCase()
+  );
+  const matched = key ? asEventRecord(bag[key]) : null;
+  if (matched && Array.isArray(matched.events)) {
+    return matched.events as RawCalendarApiEvent[];
+  }
+  return null;
+}
+
+/**
+ * REST returns an array. `calendar.get_events` returns
+ * `{ [entity_id]: { events } }`, sometimes wrapped in `response`.
+ * Null means the payload wasn't an event list (caller may try another path).
+ */
+function coerceEventList(
+  payload: unknown,
+  entityId: string
+): RawCalendarApiEvent[] | null {
+  if (Array.isArray(payload)) return payload as RawCalendarApiEvent[];
+  const root = asEventRecord(payload);
+  if (!root) return null;
+  const bags = [root, asEventRecord(root.response), asEventRecord(root.service_response)]
+    .filter((bag): bag is Record<string, unknown> => bag !== null);
+  for (const bag of bags) {
+    const found = eventsFromBag(bag, entityId);
+    if (found) return found;
+  }
+  return null;
+}
+
+function normalizeEventList(
+  list: RawCalendarApiEvent[],
+  entityId: string
+): CalendarEvent[] {
+  const events: CalendarEvent[] = [];
+  for (const raw of list) {
+    try {
+      const ev = normalizeApiEvent(raw, entityId);
+      if (ev) events.push(ev);
+    } catch (err) {
+      console.warn(
+        `[ha-calendar-card] skipped event on ${entityId}:`,
+        err instanceof Error ? err.message : err
+      );
+    }
+  }
+  return events;
+}
+
 export interface GetEventsResult {
   events: CalendarEvent[];
   errors: string[];
@@ -252,13 +395,12 @@ export class CalendarApi {
     if (this.hass.callApi) {
       try {
         const params = `?start=${encodeURIComponent(start.toISOString())}&end=${encodeURIComponent(end.toISOString())}`;
-        const raw = await this.hass.callApi<RawCalendarApiEvent[]>(
+        const raw = await this.hass.callApi<unknown>(
           "GET",
           `calendars/${entityId}${params}`
         );
-        return (raw ?? [])
-          .map((ev) => normalizeApiEvent(ev, entityId))
-          .filter((ev): ev is CalendarEvent => ev !== null);
+        const list = coerceEventList(raw, entityId);
+        if (list) return normalizeEventList(list, entityId);
       } catch {
         // fall through
       }
@@ -278,23 +420,8 @@ export class CalendarApi {
       true
     );
 
-    type EventsByEntity = Record<string, { events?: RawCalendarApiEvent[] }>;
-    const payload = response as unknown;
-
-    let byEntity: EventsByEntity | undefined;
-    if (payload && typeof payload === "object") {
-      const obj = payload as Record<string, unknown>;
-      if (obj.response && typeof obj.response === "object") {
-        byEntity = obj.response as EventsByEntity;
-      } else {
-        byEntity = obj as EventsByEntity;
-      }
-    }
-
-    const list: RawCalendarApiEvent[] = byEntity?.[entityId]?.events ?? [];
-    return list
-      .map((ev: RawCalendarApiEvent) => normalizeApiEvent(ev, entityId))
-      .filter((ev): ev is CalendarEvent => ev !== null);
+    const list = coerceEventList(response, entityId) ?? [];
+    return normalizeEventList(list, entityId);
   }
 
   async createEvent(input: CalendarEventInput): Promise<{ uid?: string }> {

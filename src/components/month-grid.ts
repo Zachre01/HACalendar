@@ -12,7 +12,7 @@ import type {
   WeatherSummary,
 } from "../types";
 import { defaultTimedRangeForDay } from "../utils/create-defaults";
-import { formatDayKey, isDoneOnDay } from "../utils/event-done";
+import { eventIntersectsDay, formatDayKey, isDoneOnDay } from "../utils/event-done";
 import { forecastForDate, weatherGlyph } from "../utils/weather";
 
 function startOfDay(d: Date): Date {
@@ -371,13 +371,7 @@ export class HacMonthGrid extends LitElement {
 
   private eventsForDay(day: Date): CalendarEvent[] {
     return this.events
-      .filter((ev) => {
-        const start = parseEventDate(ev.start);
-        const end = parseEventDate(ev.end);
-        const dayStart = startOfDay(day);
-        const dayEnd = addDays(dayStart, 1);
-        return start < dayEnd && end > dayStart;
-      })
+      .filter((ev) => eventIntersectsDay(ev.start, ev.end, day))
       .sort(
         (a, b) =>
           parseEventDate(a.start).getTime() - parseEventDate(b.start).getTime()
