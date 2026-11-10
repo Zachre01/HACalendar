@@ -1,5 +1,5 @@
 import { LitElement, html, nothing } from "lit";
-import { customElement, property } from "lit/decorators.js";
+import { customElement, property, state } from "lit/decorators.js";
 import {
   DAY_END_HOUR,
   DAY_START_HOUR,
@@ -7,10 +7,12 @@ import {
 } from "../const";
 import { fallbackCalendarColor } from "../utils/calendar-colors";
 import type { CalendarColorMap } from "../utils/calendar-colors";
+import { DayDragController, eventInstanceKey } from "../utils/day-drag";
 import { gridStyles } from "../styles/shared";
 import type {
   CalendarEvent,
   CalendarViewMode,
+  EventMoveDetail,
   EventSelectDetail,
   ToggleDoneDetail,
 } from "../types";
@@ -89,6 +91,18 @@ export class HacTimeGrid extends LitElement {
   @property({ type: Number }) dayEndHour = DAY_END_HOUR;
   /** Tick from parent clock — refreshes now-line without event refetch */
   @property({ type: Number }) nowTick = 0;
+
+  /** Instance key of the chip currently being dragged. */
+  @state() private activeDragKey: string | null = null;
+  /** YYYY-MM-DD of the day column under the pointer. */
+  @state() private dropDay: string | null = null;
+
+  private drag: DayDragController | null = null;
+
+  /** Day view has a single column, so there is nowhere to drop. */
+  private get dragEnabled(): boolean {
+    return this.mode === "week";
+  }
 
   private get days(): Date[] {
     const base = startOfDay(this.anchorDate);
@@ -178,7 +192,64 @@ export class HacTimeGrid extends LitElement {
     });
   }
 
-  private onEventClick(ev: CalendarEvent, day: Date): void {
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this.drag?.destroy();
+    this.drag = null;
+  }
+
+  private ensureDrag(): DayDragController {
+    if (!this.drag) {
+      this.drag = new DayDragController({
+        getRoot: () => this.shadowRoot,
+        getScroller: () => this,
+        onVisual: ({ dragId, dropDay }) => {
+          this.toggleAttribute("data-dragging", Boolean(dragId));
+          if (dragId === this.activeDragKey && dropDay === this.dropDay) return;
+          this.activeDragKey = dragId;
+          this.dropDay = dropDay;
+        },
+        onMove: (detail: EventMoveDetail) => {
+          this.dispatchEvent(
+            new CustomEvent("event-move", {
+              detail,
+              bubbles: true,
+              composed: true,
+            })
+          );
+        },
+      });
+    }
+    return this.drag;
+  }
+
+  private chipColor(ev: CalendarEvent, source: HTMLElement): string {
+    const painted = getComputedStyle(source).backgroundColor;
+    if (
+      painted &&
+      painted !== "transparent" &&
+      painted !== "rgba(0, 0, 0, 0)"
+    ) {
+      return painted;
+    }
+    return this.calendarColor(ev.calendar);
+  }
+
+  private onChipPointerDown(ev: CalendarEvent, day: Date, e: PointerEvent): void {
+    if (!this.dragEnabled) return;
+    const source = e.currentTarget instanceof HTMLElement ? e.currentTarget : null;
+    if (!source) return;
+    this.ensureDrag().begin(e, {
+      event: ev,
+      fromDay: formatDayKey(day),
+      dragId: eventInstanceKey(ev),
+      label: ev.summary,
+      color: this.chipColor(ev, source),
+    });
+  }
+
+  private onEventClick(ev: CalendarEvent, day: Date, e?: Event): void {
+    if (e && this.drag?.consumeClick(e)) return;
     const detail: EventSelectDetail = {
       event: ev,
       day: formatDayKey(day),
@@ -208,7 +279,8 @@ export class HacTimeGrid extends LitElement {
     );
   }
 
-  private onDayOpen(day: Date): void {
+  private onDayOpen(day: Date, e?: Event): void {
+    if (e && this.drag?.consumeClick(e)) return;
     this.dispatchEvent(
       new CustomEvent("day-select", {
         detail: { date: startOfDay(day) },
@@ -218,7 +290,8 @@ export class HacTimeGrid extends LitElement {
     );
   }
 
-  private onSlotCreate(day: Date, hour: number): void {
+  private onSlotCreate(day: Date, hour: number, e?: Event): void {
+    if (e && this.drag?.consumeClick(e)) return;
     const start = new Date(day);
     start.setHours(hour, 0, 0, 0);
     const end = new Date(start);
@@ -254,15 +327,22 @@ export class HacTimeGrid extends LitElement {
         ${days.map((d) => {
           const isToday = sameDay(d, today);
           const openDayOnClick = this.mode === "week";
+          const dayKey = formatDayKey(d);
           return html`
             <div
               class="day-head"
+              data-day=${dayKey}
               data-today=${isToday ? "true" : "false"}
+              data-drop=${this.dropDay === dayKey ? "true" : "false"}
               data-clickable=${openDayOnClick ? "true" : "false"}
-              title=${openDayOnClick ? "Open day view" : nothing}
+              title=${openDayOnClick
+                ? "Open day view · drop an event to move it here"
+                : nothing}
               role=${openDayOnClick ? "button" : nothing}
               tabindex=${openDayOnClick ? 0 : nothing}
-              @click=${openDayOnClick ? () => this.onDayOpen(d) : undefined}
+              @click=${openDayOnClick
+                ? (e: Event) => this.onDayOpen(d, e)
+                : undefined}
               @keydown=${openDayOnClick
                 ? (e: KeyboardEvent) => {
                     if (e.key === "Enter" || e.key === " ") {
@@ -285,21 +365,34 @@ export class HacTimeGrid extends LitElement {
         <div class="allday-gutter" aria-hidden="true">All day</div>
         ${days.map((day) => {
           const isToday = sameDay(day, today);
+          const dayKey = formatDayKey(day);
           const allDay = this.allDayEventsForDay(day);
+          const draggable = this.dragEnabled;
           return html`
             <div
               class="allday-cell"
+              data-day=${dayKey}
               data-today=${isToday ? "true" : "false"}
+              data-drop=${this.dropDay === dayKey ? "true" : "false"}
               data-count=${String(allDay.length)}
             >
               ${allDay.map((ev) => {
                 const calShort = ev.calendar.replace(/^calendar\./, "");
-                const dayDone = isDoneOnDay(ev, formatDayKey(day));
+                const dayDone = isDoneOnDay(ev, dayKey);
+                const dragKey = eventInstanceKey(ev);
                 return html`
                   <div
                     class="allday-chip"
+                    data-summary=${ev.summary}
                     data-done=${dayDone ? "true" : "false"}
+                    data-draggable=${draggable ? "true" : "false"}
+                    data-dragging=${this.activeDragKey === dragKey
+                      ? "true"
+                      : "false"}
                     style="background:${this.calendarColor(ev.calendar)}"
+                    @pointerdown=${(e: PointerEvent) =>
+                      this.onChipPointerDown(ev, day, e)}
+                    @dragstart=${(e: DragEvent) => e.preventDefault()}
                   >
                     <button
                       type="button"
@@ -312,6 +405,7 @@ export class HacTimeGrid extends LitElement {
                       title=${dayDone
                         ? "Mark not done (this day)"
                         : "Mark done (this day)"}
+                      @pointerdown=${(e: Event) => e.stopPropagation()}
                       @click=${(e: Event) => this.onToggleDone(ev, day, e)}
                     >
                       ${dayDone ? "✓" : nothing}
@@ -319,12 +413,14 @@ export class HacTimeGrid extends LitElement {
                     <button
                       type="button"
                       class="chip-main"
-                      title=${ev.rrule || ev.recurring
-                        ? `${ev.summary} (repeats) · ${calShort}`
-                        : `${ev.summary} · ${calShort}`}
+                      title=${`${ev.summary}${
+                        ev.rrule || ev.recurring ? " (repeats)" : ""
+                      } · ${calShort}${
+                        draggable ? ". Drag to another day." : ""
+                      }`}
                       @click=${(e: Event) => {
                         e.stopPropagation();
-                        this.onEventClick(ev, day);
+                        this.onEventClick(ev, day, e);
                       }}
                     >
                       ${ev.rrule || ev.recurring
@@ -349,18 +445,22 @@ export class HacTimeGrid extends LitElement {
 
         ${days.map((day) => {
           const isToday = sameDay(day, today);
+          const dayKey = formatDayKey(day);
           const nowTop = this.nowLineTop(day);
+          const draggable = this.dragEnabled;
           return html`
             <div
               class="day-col"
+              data-day=${dayKey}
               data-today=${isToday ? "true" : "false"}
+              data-drop=${this.dropDay === dayKey ? "true" : "false"}
               style="height:${totalHeight}px"
               @dblclick=${(e: MouseEvent) => {
                 const hour = this.hourFromPointer(
                   e,
                   e.currentTarget as HTMLElement
                 );
-                this.onSlotCreate(day, hour);
+                this.onSlotCreate(day, hour, e);
               }}
             >
               ${hours.map(() => html`<div class="hour-line"></div>`)}
@@ -371,13 +471,22 @@ export class HacTimeGrid extends LitElement {
                 const style = this.eventStyle(ev, day);
                 if (!style) return nothing;
                 const calShort = ev.calendar.replace(/^calendar\./, "");
-                const dayDone = isDoneOnDay(ev, formatDayKey(day));
+                const dayDone = isDoneOnDay(ev, dayKey);
+                const dragKey = eventInstanceKey(ev);
                 return html`
                   <div
                     class="event-block"
                     style=${style}
+                    data-summary=${ev.summary}
                     data-done=${dayDone ? "true" : "false"}
+                    data-draggable=${draggable ? "true" : "false"}
+                    data-dragging=${this.activeDragKey === dragKey
+                      ? "true"
+                      : "false"}
                     data-recurring=${ev.rrule || ev.recurring ? "true" : "false"}
+                    @pointerdown=${(e: PointerEvent) =>
+                      this.onChipPointerDown(ev, day, e)}
+                    @dragstart=${(e: DragEvent) => e.preventDefault()}
                   >
                     <button
                       type="button"
@@ -390,6 +499,7 @@ export class HacTimeGrid extends LitElement {
                       title=${dayDone
                         ? "Mark not done (this day)"
                         : "Mark done (this day)"}
+                      @pointerdown=${(e: Event) => e.stopPropagation()}
                       @click=${(e: Event) => this.onToggleDone(ev, day, e)}
                     >
                       ${dayDone ? "✓" : nothing}
@@ -397,12 +507,12 @@ export class HacTimeGrid extends LitElement {
                     <button
                       type="button"
                       class="chip-main"
-                      title=${ev.rrule || ev.recurring
-                        ? `${ev.summary} (repeats)`
-                        : ev.summary}
+                      title=${`${ev.summary}${
+                        ev.rrule || ev.recurring ? " (repeats)" : ""
+                      }${draggable ? ". Drag to another day." : ""}`}
                       @click=${(e: Event) => {
                         e.stopPropagation();
-                        this.onEventClick(ev, day);
+                        this.onEventClick(ev, day, e);
                       }}
                     >
                       <strong

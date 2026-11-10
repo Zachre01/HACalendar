@@ -1152,6 +1152,15 @@ export const gridStyles = css`
     background: color-mix(in srgb, var(--hac-today-head, #fff6f1) 92%, transparent);
   }
 
+  :host([data-dragging]),
+  :host([data-dragging]) .event-block,
+  :host([data-dragging]) .allday-chip,
+  :host([data-dragging]) .day-col,
+  :host([data-dragging]) .day-head,
+  :host([data-dragging]) .allday-cell {
+    cursor: grabbing;
+  }
+
   .allday-chip {
     display: flex;
     align-items: center;
@@ -1181,6 +1190,17 @@ export const gridStyles = css`
     filter: saturate(0.75);
   }
 
+  .allday-chip[data-draggable="true"] {
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .allday-chip[data-dragging="true"] {
+    opacity: 0.35;
+  }
+
   .allday-chip .chip-main {
     display: flex;
     align-items: center;
@@ -1199,6 +1219,10 @@ export const gridStyles = css`
     background: transparent;
     cursor: pointer;
     overflow: hidden;
+  }
+
+  .allday-chip[data-draggable="true"] .chip-main {
+    cursor: grab;
   }
 
   .allday-chip .chip-main:hover,
@@ -1235,6 +1259,7 @@ export const gridStyles = css`
     font-weight: 900;
     line-height: 1;
     cursor: pointer;
+    touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
   }
 
@@ -1334,6 +1359,17 @@ export const gridStyles = css`
     background: var(--hac-today-bg, #fffaf7);
   }
 
+  .day-head[data-drop="true"],
+  .allday-cell[data-drop="true"],
+  .day-col[data-drop="true"] {
+    background: color-mix(
+      in srgb,
+      var(--hac-accent, #3d9b8f) 16%,
+      var(--hac-surface, #fff)
+    );
+    box-shadow: inset 0 0 0 2px var(--hac-accent, #3d9b8f);
+  }
+
   .hour-line {
     height: var(--hac-hour-height, 56px);
     box-sizing: border-box;
@@ -1384,9 +1420,25 @@ export const gridStyles = css`
     -webkit-tap-highlight-color: transparent;
   }
 
+  .event-block[data-draggable="true"] {
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .event-block[data-dragging="true"] {
+    opacity: 0.35;
+  }
+
   .event-block[data-done="true"] {
     opacity: 0.62;
     filter: saturate(0.75);
+  }
+
+  .event-block[data-dragging="true"],
+  .allday-chip[data-dragging="true"] {
+    opacity: 0.35;
   }
 
   .event-block .done-check {
@@ -1406,6 +1458,7 @@ export const gridStyles = css`
     font-weight: 900;
     line-height: 1;
     cursor: pointer;
+    touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
   }
 
@@ -1427,6 +1480,10 @@ export const gridStyles = css`
     text-align: left;
     cursor: pointer;
     overflow: hidden;
+  }
+
+  .event-block[data-draggable="true"] .chip-main {
+    cursor: grab;
   }
 
   .event-block .chip-main:hover,
