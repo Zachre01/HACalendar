@@ -520,6 +520,8 @@ export class HaCalendarCard extends LitElement {
   }
 
   private calendarLabel(entityId: string): string {
+    const friendly = this.hass?.states[entityId]?.attributes?.friendly_name;
+    if (typeof friendly === "string" && friendly.trim()) return friendly.trim();
     return entityId.replace(/^calendar\./, "").replace(/_/g, " ");
   }
 
@@ -527,6 +529,15 @@ export class HaCalendarCard extends LitElement {
     if (!this.hiddenCalendars.length) return this.events;
     const hidden = new Set(this.hiddenCalendars);
     return this.events.filter((ev) => !hidden.has(ev.calendar));
+  }
+
+  /** Fetch count plus how many of those are hidden by dimmed filter pills. */
+  private statusText(): string {
+    if (!this.hiddenCalendars.length || !this.hasLoadedOnce) return this.status;
+    const shown = this.filteredEvents().length;
+    const hiddenEvents = this.events.length - shown;
+    if (hiddenEvents <= 0) return this.status;
+    return `${this.status} · ${shown} on visible calendars (${hiddenEvents} hidden by filters)`;
   }
 
   private toggleCalendarFilter(entityId: string): void {
@@ -1663,6 +1674,9 @@ export class HaCalendarCard extends LitElement {
                   type="button"
                   class="pill"
                   aria-pressed=${pressed ? "true" : "false"}
+                  title=${pressed
+                    ? `Hide ${this.calendarLabel(id)}`
+                    : `Show ${this.calendarLabel(id)}`}
                   @click=${() => this.toggleCalendarFilter(id)}
                 >
                   <span
@@ -2083,7 +2097,7 @@ export class HaCalendarCard extends LitElement {
           ${this.loading
             ? html`<span class="spinner" aria-hidden="true"></span>`
             : nothing}
-          <span>${this.status}</span>
+          <span>${this.statusText()}</span>
           ${this.statusKind === "error" && !showError
             ? html`<button
                 class="ghost-btn"
