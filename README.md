@@ -8,6 +8,7 @@ Inspired by Daylight/Skylight aesthetics — **own codebase**, not a fork of tho
 
 ## Status
 
+- **Card v0.9.12** — drag an event onto another day in **month** or **week** view. The clock time and length stay put; multi-day events shift together (the day you grab is the anchor). Per-day Done marks move with the event. A repeating occurrence moves when Home Assistant sends a `recurrence_id`; a series master asks you to open the editor instead of shifting every repeat. Escape cancels a drag
 - **Card v0.9.11** — **+ Add calendar** persists for real (localStorage + UI Lovelace `lovelace/config/save` with full `entities`); **+ Create new calendar** runs the Local Calendar config flow (empty calendar) then auto-adds the entity. YAML-mode: browser save still keeps calendars across navigation; edit `entities:` only if you need YAML source-of-truth after cache clear
 - **Card v0.9.10** — **+ Add calendar** picker (from live `calendar.*` / `hass.states`) next to filter pills; day-click / day-view create defaults start+end to the **selected day** (next hour / +1h), not wall-clock “today”
 - **Card v0.9.9** — **Done** is per calendar day for multi-day events (and single-day for the same storage): chip/form toggles scope to the visible day; other days of the span stay incomplete; stored as `hac-done:YYYY-MM-DD` description lines (legacy title `✓ ` still read)
@@ -38,7 +39,7 @@ Private / custom-repo install — not yet in the HACS default store.
 4. Download **HA Calendar Card**, refresh Lovelace
 5. Add the card (see [Card YAML](#card-yaml))
 
-**After updating the card (HACS redownload or manual copy):** bump the Lovelace resource query string (`?v=0.9.10`, then `?v=0.9.11`, …) and hard-refresh the browser (or clear site cache). Home Assistant and browsers often keep serving the previous `ha-calendar-card.js` until the URL changes. Confirm the loaded build via the event form title (`v0.9.11`) or the browser console line `ha-calendar-card` / `v0.9.11`.
+**After updating the card (HACS redownload or manual copy):** bump the Lovelace resource query string (`?v=0.9.11`, then `?v=0.9.12`, …) and hard-refresh the browser (or clear site cache). Home Assistant and browsers often keep serving the previous `ha-calendar-card.js` until the URL changes. Confirm the loaded build via the event form title (`v0.9.12`) or the browser console line `ha-calendar-card` / `v0.9.12`.
 
 `hacs.json` targets the **card plugin only**. The integration is installed separately (below).
 
@@ -50,7 +51,7 @@ Private / custom-repo install — not yet in the HACS default store.
 
 ```yaml
 resources:
-  - url: /local/ha-calendar-card.js?v=0.9.11
+  - url: /local/ha-calendar-card.js?v=0.9.12
     type: module
 ```
 
@@ -139,6 +140,17 @@ Use **+ Add calendar** next to the filter pills (same idea as stock HA calendar 
 - Day view **+ Add Event** (and empty-state create) → uses the **focused day** (`anchorDate`), not wall-clock today.
 - Week/day **double-click** a time slot → still uses that slot’s hour.
 
+### Drag an event to another day
+
+In **month** view, drag a chip onto another day cell. In **week** view, drag a timed block or an all-day chip onto another day (column header, all-day row, or hour grid). **Day** view is a single column, so move the event from week or month.
+
+- The event keeps its **time of day** and **length**. Dropping a 10:00–11:00 event on Friday leaves it at 10:00–11:00 on Friday.
+- A multi-day event shifts as a whole. The day you grabbed is the anchor: drag the middle day of a Mon–Wed span onto Friday and the span moves by that same offset.
+- **Done** marks (`hac-done:` dates) move with the event, so a day you already checked stays checked on the new date.
+- Repeating events: when the chip has a `recurrence_id`, the drop updates **this occurrence**. A series master (repeats, but no instance id) stays put and the status line asks you to open the editor.
+- Dropping on the same day does nothing. **Escape** cancels the drag. The Done checkbox does not start a drag.
+- The event stays on the same calendar. Changing calendars is still the edit-form move (create, then delete).
+
 ### Theme
 
 Default is **`auto`** (system light/dark). The toolbar **theme** button cycles Light → Dark → Auto. The last choice is stored in `localStorage` (`ha-calendar-card-theme`) and overrides the YAML default until cleared. Light keeps the Skylight look; dark is a cohesive warm-slate companion with the same accents and calendar colors.
@@ -196,6 +208,7 @@ npm install
 npm run build
 npm run watch
 npm run typecheck
+node --experimental-strip-types scripts/verify-event-shift.mjs
 ```
 
 ## Cross-calendar moves (HA limitation)

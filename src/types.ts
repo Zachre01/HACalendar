@@ -138,6 +138,18 @@ export interface EventSelectDetail {
   day?: string;
 }
 
+/**
+ * Drag an event from one visible day onto another.
+ * `fromDay` is the cell that was grabbed (the anchor for multi-day spans).
+ */
+export interface EventMoveDetail {
+  event: CalendarEvent;
+  /** Local YYYY-MM-DD of the chip that was dragged. */
+  fromDay: string;
+  /** Local YYYY-MM-DD of the day under the pointer on drop. */
+  toDay: string;
+}
+
 /** Raw event from REST /api/calendars or get_events */
 export interface RawCalendarApiEvent {
   summary?: string;

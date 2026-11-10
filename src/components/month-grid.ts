@@ -1,10 +1,12 @@
 import { LitElement, html, nothing, css } from "lit";
-import { customElement, property } from "lit/decorators.js";
+import { customElement, property, state } from "lit/decorators.js";
 import { MONTH_MAX_VISIBLE_EVENTS } from "../const";
 import { fallbackCalendarColor } from "../utils/calendar-colors";
 import type { CalendarColorMap } from "../utils/calendar-colors";
+import { DayDragController, eventInstanceKey } from "../utils/day-drag";
 import type {
   CalendarEvent,
+  EventMoveDetail,
   EventSelectDetail,
   ToggleDoneDetail,
   WeatherSummary,
@@ -105,6 +107,12 @@ export class HacMonthGrid extends LitElement {
       grid-auto-rows: minmax(0, 1fr);
     }
 
+    :host([data-dragging]),
+    :host([data-dragging]) .chip,
+    :host([data-dragging]) .cell {
+      cursor: grabbing;
+    }
+
     .cell {
       border-right: 1px solid var(--hac-line, #e8ebf0);
       border-bottom: 1px solid var(--hac-line, #e8ebf0);
@@ -133,6 +141,16 @@ export class HacMonthGrid extends LitElement {
 
     .cell[data-today="true"] {
       background: var(--hac-today-bg, #fffaf7);
+    }
+
+    .cell[data-drop="true"],
+    .cell[data-drop="true"]:hover {
+      background: color-mix(
+        in srgb,
+        var(--hac-accent, #3d9b8f) 18%,
+        var(--hac-surface, #fff)
+      );
+      box-shadow: inset 0 0 0 2px var(--hac-accent, #3d9b8f);
     }
 
     .cell-top {
@@ -188,7 +206,15 @@ export class HacMonthGrid extends LitElement {
       color: #fff;
       text-align: left;
       overflow: hidden;
+      cursor: grab;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
       transition: filter 120ms ease, transform 120ms ease, opacity 120ms ease;
+    }
+
+    .chip[data-dragging="true"] {
+      opacity: 0.35;
     }
 
     .chip[data-done="true"] {
@@ -222,6 +248,7 @@ export class HacMonthGrid extends LitElement {
       font-weight: 900;
       line-height: 1;
       cursor: pointer;
+      touch-action: manipulation;
       -webkit-tap-highlight-color: transparent;
     }
 
@@ -242,7 +269,7 @@ export class HacMonthGrid extends LitElement {
       font: inherit;
       font-weight: inherit;
       text-align: left;
-      cursor: pointer;
+      cursor: grab;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -314,6 +341,13 @@ export class HacMonthGrid extends LitElement {
   /** Cap chips per day; excess become “+N more” (opens day view on click). */
   @property({ type: Number }) maxVisible = MONTH_MAX_VISIBLE_EVENTS;
 
+  /** Instance key of the chip currently being dragged. */
+  @state() private activeDragKey: string | null = null;
+  /** YYYY-MM-DD of the day cell under the pointer. */
+  @state() private dropDay: string | null = null;
+
+  private drag: DayDragController | null = null;
+
   private get monthStart(): Date {
     const d = startOfDay(this.anchorDate);
     d.setDate(1);
@@ -356,6 +390,58 @@ export class HacMonthGrid extends LitElement {
   disconnectedCallback(): void {
     super.disconnectedCallback();
     this.clearDayClickTimer();
+    this.drag?.destroy();
+    this.drag = null;
+  }
+
+  private ensureDrag(): DayDragController {
+    if (!this.drag) {
+      this.drag = new DayDragController({
+        getRoot: () => this.shadowRoot,
+        getScroller: () => this,
+        onVisual: ({ dragId, dropDay }) => {
+          this.toggleAttribute("data-dragging", Boolean(dragId));
+          if (dragId) this.clearDayClickTimer();
+          if (dragId === this.activeDragKey && dropDay === this.dropDay) return;
+          this.activeDragKey = dragId;
+          this.dropDay = dropDay;
+        },
+        onMove: (detail: EventMoveDetail) => {
+          this.dispatchEvent(
+            new CustomEvent("event-move", {
+              detail,
+              bubbles: true,
+              composed: true,
+            })
+          );
+        },
+      });
+    }
+    return this.drag;
+  }
+
+  private chipColor(ev: CalendarEvent, source: HTMLElement): string {
+    const painted = getComputedStyle(source).backgroundColor;
+    if (
+      painted &&
+      painted !== "transparent" &&
+      painted !== "rgba(0, 0, 0, 0)"
+    ) {
+      return painted;
+    }
+    return this.calendarColor(ev.calendar);
+  }
+
+  private onChipPointerDown(ev: CalendarEvent, day: Date, e: PointerEvent): void {
+    const source = e.currentTarget instanceof HTMLElement ? e.currentTarget : null;
+    if (!source) return;
+    this.ensureDrag().begin(e, {
+      event: ev,
+      fromDay: formatDayKey(day),
+      dragId: eventInstanceKey(ev),
+      label: ev.summary,
+      color: this.chipColor(ev, source),
+    });
   }
 
   private clearDayClickTimer(): void {
@@ -368,6 +454,7 @@ export class HacMonthGrid extends LitElement {
   private onEventClick(ev: CalendarEvent, day: Date, e: Event): void {
     e.stopPropagation();
     this.clearDayClickTimer();
+    if (this.drag?.consumeClick(e)) return;
     const detail: EventSelectDetail = {
       event: ev,
       day: formatDayKey(day),
@@ -408,7 +495,8 @@ export class HacMonthGrid extends LitElement {
     );
   }
 
-  private onDayClick(day: Date): void {
+  private onDayClick(day: Date, e: Event): void {
+    if (this.drag?.consumeClick(e)) return;
     this.clearDayClickTimer();
     this.dayClickTimer = window.setTimeout(() => {
       this.dayClickTimer = null;
@@ -416,7 +504,8 @@ export class HacMonthGrid extends LitElement {
     }, 250);
   }
 
-  private onDayCreate(day: Date): void {
+  private onDayCreate(day: Date, e: Event): void {
+    if (this.drag?.consumeClick(e)) return;
     this.clearDayClickTimer();
     const { start, end } = defaultTimedRangeForDay(day);
     this.dispatchEvent(
@@ -442,6 +531,7 @@ export class HacMonthGrid extends LitElement {
           ${this.cells.map((day) => {
             const outside = day.getMonth() !== month;
             const isToday = sameDay(day, today);
+            const dayKey = formatDayKey(day);
             const dayEvents = this.eventsForDay(day);
             const visible = dayEvents.slice(0, this.maxVisible);
             const overflow = dayEvents.length - visible.length;
@@ -449,11 +539,13 @@ export class HacMonthGrid extends LitElement {
             return html`
               <div
                 class="cell"
+                data-day=${dayKey}
                 data-outside=${outside ? "true" : "false"}
                 data-today=${isToday ? "true" : "false"}
-                title="Click for day view · double-click to add event"
-                @click=${() => this.onDayClick(day)}
-                @dblclick=${() => this.onDayCreate(day)}
+                data-drop=${this.dropDay === dayKey ? "true" : "false"}
+                title="Click for day view · double-click to add · drag events between days"
+                @click=${(e: Event) => this.onDayClick(day, e)}
+                @dblclick=${(e: Event) => this.onDayCreate(day, e)}
               >
                 <div class="cell-top">
                   <span class="num">${day.getDate()}</span>
@@ -467,12 +559,20 @@ export class HacMonthGrid extends LitElement {
                 </div>
                 <div class="events">
                   ${visible.map((ev) => {
-                    const dayDone = isDoneOnDay(ev, formatDayKey(day));
+                    const dayDone = isDoneOnDay(ev, dayKey);
+                    const dragKey = eventInstanceKey(ev);
                     return html`
                       <div
                         class="chip"
+                        data-summary=${ev.summary}
                         data-done=${dayDone ? "true" : "false"}
+                        data-dragging=${this.activeDragKey === dragKey
+                          ? "true"
+                          : "false"}
                         style="background:${this.calendarColor(ev.calendar)}"
+                        @pointerdown=${(e: PointerEvent) =>
+                          this.onChipPointerDown(ev, day, e)}
+                        @dragstart=${(e: DragEvent) => e.preventDefault()}
                       >
                         <button
                           type="button"
@@ -485,6 +585,7 @@ export class HacMonthGrid extends LitElement {
                           title=${dayDone
                             ? "Mark not done (this day)"
                             : "Mark done (this day)"}
+                          @pointerdown=${(e: Event) => e.stopPropagation()}
                           @click=${(e: Event) => this.onToggleDone(ev, day, e)}
                         >
                           ${dayDone ? "✓" : nothing}
@@ -492,9 +593,9 @@ export class HacMonthGrid extends LitElement {
                         <button
                           type="button"
                           class="chip-main"
-                          title=${ev.rrule || ev.recurring
-                            ? `${ev.summary} (repeats)`
-                            : ev.summary}
+                          title=${`${ev.summary}${
+                            ev.rrule || ev.recurring ? " (repeats)" : ""
+                          }. Drag to another day.`}
                           @click=${(e: Event) => this.onEventClick(ev, day, e)}
                         >
                           ${ev.rrule || ev.recurring

@@ -16,6 +16,7 @@ import { FONT_STYLESHEET_HREF, cardStyles } from "./styles/shared";
 import type {
   CalendarEvent,
   CalendarViewMode,
+  EventMoveDetail,
   EventSelectDetail,
   HaCalendarCardConfig,
   HomeAssistant,
@@ -31,10 +32,12 @@ import type {
   EventFormSaveDetail,
 } from "./components/event-form";
 import {
+  formatDayKey,
   isDoneOnDay,
   parseDoneDescription,
   toggleDayDone,
 } from "./utils/event-done";
+import { shiftEventDates } from "./utils/event-shift";
 import {
   buildCalendarColorMap,
   fallbackCalendarColor,
@@ -74,6 +77,30 @@ import { formatHassError } from "./utils/ha-error";
 import "./components/time-grid";
 import "./components/month-grid";
 import "./components/event-form";
+
+function sameCalendarInstance(a: CalendarEvent, b: CalendarEvent): boolean {
+  return (
+    a.uid === b.uid &&
+    a.calendar === b.calendar &&
+    a.recurrence_id === b.recurrence_id &&
+    a.start === b.start &&
+    a.end === b.end
+  );
+}
+
+function formatMoveDay(dayKey: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dayKey);
+  if (!match) return dayKey;
+  return new Date(
+    Number(match[1]),
+    Number(match[2]) - 1,
+    Number(match[3])
+  ).toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
 
 @customElement(CARD_NAME)
 export class HaCalendarCard extends LitElement {
@@ -624,11 +651,23 @@ export class HaCalendarCard extends LitElement {
       };
     };
     const cals = this.entities();
+    const allStart = new Date(day);
+    allStart.setDate(allStart.getDate() + 3);
+    const allEnd = new Date(allStart);
+    allEnd.setDate(allEnd.getDate() + 2);
     return [
       mk(0, 9, 1, "Morning standup", cals[0] ?? "calendar.family"),
       mk(0, 11, 2, "Deep work", cals[1] ?? "calendar.personal"),
       mk(1, 14, 1, "School pickup", cals[0] ?? "calendar.family"),
       mk(2, 10, 1, "Dentist", cals[2] ?? "calendar.work"),
+      {
+        uid: "demo-family-day",
+        summary: "Family day",
+        start: formatDayKey(allStart),
+        end: formatDayKey(allEnd),
+        all_day: true,
+        calendar: cals[0] ?? "calendar.family",
+      },
       mk(4, 16, 2, "Soccer practice", cals[0] ?? "calendar.family"),
       mk(5, 12, 1, "Lunch with Sam", cals[1] ?? "calendar.personal"),
     ];
@@ -901,10 +940,11 @@ export class HaCalendarCard extends LitElement {
    * whole series (same as before).
    */
   private toggleDoneBusy = false;
+  private moveBusy = false;
 
   private async onToggleDone(e: CustomEvent<ToggleDoneDetail>): Promise<void> {
     const { event: ev, day } = e.detail;
-    if (!this.hass || this.toggleDoneBusy || !day) return;
+    if (!this.hass || this.toggleDoneBusy || this.moveBusy || !day) return;
 
     this.toggleDoneBusy = true;
     const nextCompleted = !isDoneOnDay(ev, day);
@@ -982,6 +1022,113 @@ export class HaCalendarCard extends LitElement {
     } finally {
       this.toggleDoneBusy = false;
     }
+  }
+
+  /**
+   * Drag onto another day: keep the clock time and duration, shift the dates,
+   * and write them with the same calendar update used by the edit form.
+   * A repeating chip moves that occurrence when it has a recurrence id.
+   */
+  private async onEventMove(e: CustomEvent<EventMoveDetail>): Promise<void> {
+    const { event: ev, fromDay, toDay } = e.detail;
+    if (!ev || !fromDay || !toDay || fromDay === toDay) return;
+    if (this.moveBusy || this.toggleDoneBusy) {
+      this.status = "Still saving the last change…";
+      this.statusKind = "info";
+      return;
+    }
+    if ((ev.recurring || ev.rrule) && !ev.recurrence_id) {
+      this.status = `“${ev.summary}” repeats. Open it to choose which dates to change.`;
+      this.statusKind = "warn";
+      return;
+    }
+
+    const shifted = shiftEventDates(ev, fromDay, toDay);
+    if (!shifted) return;
+
+    const previous = this.events;
+    this.events = this.events.map((item) =>
+      sameCalendarInstance(item, ev)
+        ? {
+            ...item,
+            start: shifted.start,
+            end: shifted.end,
+            doneDates: shifted.doneDates,
+            legacyTitleDone: false,
+            completed: shifted.doneDates.length > 0,
+          }
+        : item
+    );
+
+    const occurrenceNote = ev.recurrence_id ? " (this occurrence)" : "";
+    const message = `Moved “${ev.summary}” to ${formatMoveDay(toDay)}${occurrenceNote}`;
+
+    if (!this.hass) {
+      this.status = `${message} (preview)`;
+      this.statusKind = "info";
+      return;
+    }
+
+    this.moveBusy = true;
+    const api = new CalendarApi(this.hass);
+    const { recurrenceId, recurrenceRange } = recurrenceParams(ev, "this");
+
+    try {
+      await api.updateEvent(
+        ev.calendar,
+        ev.uid,
+        {
+          summary: ev.summary,
+          description: ev.description,
+          location: ev.location,
+          start: shifted.start,
+          end: shifted.end,
+          all_day: ev.all_day,
+          calendar: ev.calendar,
+          doneDates: shifted.doneDates,
+        },
+        recurrenceId,
+        recurrenceRange
+      );
+      try {
+        await this.shiftReminderIfAny(ev, shifted.start);
+      } catch {
+        // The event is already on the new day; a reminder sync miss is non-fatal.
+      }
+      await this.refreshEvents({ silent: true });
+      if (!this.loadFailed) {
+        this.status = message;
+        this.statusKind = "info";
+      }
+    } catch (err) {
+      this.events = previous;
+      this.status = formatHassError(err, "Could not move event");
+      this.statusKind = "error";
+    } finally {
+      this.moveBusy = false;
+    }
+  }
+
+  /** Keep a one-off reminder aimed at the event’s new start. */
+  private async shiftReminderIfAny(
+    ev: CalendarEvent,
+    newStart: string
+  ): Promise<void> {
+    if (!this.hass || !this.remindersAvailable()) return;
+    if (ev.recurring || ev.rrule || ev.recurrence_id) return;
+    const api = new ReminderApi(this.hass);
+    const rule = await api.getReminder(ev.calendar, ev.uid);
+    if (!rule) return;
+    await api.setReminder({
+      calendar_entity_id: ev.calendar,
+      event_uid: ev.uid,
+      event_start: newStart,
+      event_summary: ev.summary,
+      minutes_before: rule.minutes_before,
+      notify_service: rule.notify_service,
+      message: rule.message ?? "",
+      enabled: rule.enabled,
+    });
   }
 
   private async loadReminderForEvent(ev: CalendarEvent): Promise<void> {
@@ -1875,6 +2022,8 @@ export class HaCalendarCard extends LitElement {
                     this.openEdit(e.detail)}
                   @event-toggle-done=${(e: CustomEvent<ToggleDoneDetail>) =>
                     void this.onToggleDone(e)}
+                  @event-move=${(e: CustomEvent<EventMoveDetail>) =>
+                    void this.onEventMove(e)}
                   @day-select=${(e: CustomEvent<{ date: Date }>) =>
                     this.openDayView(e.detail.date)}
                   @slot-create=${(
@@ -1896,6 +2045,8 @@ export class HaCalendarCard extends LitElement {
                     this.openEdit(e.detail)}
                   @event-toggle-done=${(e: CustomEvent<ToggleDoneDetail>) =>
                     void this.onToggleDone(e)}
+                  @event-move=${(e: CustomEvent<EventMoveDetail>) =>
+                    void this.onEventMove(e)}
                   @day-select=${(e: CustomEvent<{ date: Date }>) =>
                     this.openDayView(e.detail.date)}
                   @slot-create=${(
@@ -1954,7 +2105,7 @@ window.customCards.push({
   type: CARD_NAME,
   name: "HA Calendar Card",
   description:
-    "Skylight-style month/week/day calendar with create/edit and safe calendar moves",
+    "Skylight-style month/week/day calendar with create/edit, drag-to-reschedule, and safe calendar moves",
   preview: true,
 });
 
