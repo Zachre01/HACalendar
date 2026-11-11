@@ -391,6 +391,14 @@ export class CalendarApi {
     start: Date,
     end: Date
   ): Promise<CalendarEvent[]> {
+    // Disabled or deleted calendars are absent from hass.states. Calling
+    // get_events for them makes Home Assistant toast
+    // "did not match any entities".
+    const states = this.hass.states;
+    if (states && Object.keys(states).length > 0 && !states[entityId]) {
+      return [];
+    }
+
     // 1) REST — same path as stock HA calendar panel
     if (this.hass.callApi) {
       try {
@@ -406,7 +414,8 @@ export class CalendarApi {
       }
     }
 
-    // 2) Service fallback
+    // 2) Service fallback. notifyOnError is false so a stale entity id
+    // cannot raise the Home Assistant action toast.
     const response = await this.hass.callService(
       "calendar",
       "get_events",
@@ -415,8 +424,8 @@ export class CalendarApi {
         start_date_time: start.toISOString(),
         end_date_time: end.toISOString(),
       },
-      undefined,
-      undefined,
+      { entity_id: entityId },
+      false,
       true
     );
 

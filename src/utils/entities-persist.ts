@@ -73,6 +73,24 @@ export function writeStoredEntities(
  * pre-edit snapshot we wrote from. If the user edited YAML to something else,
  * respect that and refresh storage.
  */
+/**
+ * Configured calendar ids Home Assistant is no longer publishing.
+ * Skipped until states look loaded, so a half-connected hass object
+ * cannot wipe the card.
+ */
+export function missingCalendarIds(
+  configured: string[],
+  stateIds: readonly string[]
+): string[] {
+  const loaded =
+    stateIds.length >= 10 || stateIds.some((id) => id.startsWith("calendar."));
+  if (!loaded) return [];
+  const live = new Set(stateIds);
+  return configured.filter(
+    (id) => id.startsWith("calendar.") && !live.has(id)
+  );
+}
+
 export function mergeEntitiesOnLoad(
   config: HaCalendarCardConfig
 ): string[] | undefined {
