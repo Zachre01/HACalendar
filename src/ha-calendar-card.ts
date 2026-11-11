@@ -72,7 +72,11 @@ import {
   createLocalCalendar,
   waitForCalendarEntity,
 } from "./utils/create-local-calendar";
-import { mergeEntitiesOnLoad, persistCardEntities } from "./utils/entities-persist";
+import {
+  mergeEntitiesOnLoad,
+  missingCalendarIds,
+  persistCardEntities,
+} from "./utils/entities-persist";
 import { formatHassError } from "./utils/ha-error";
 import {
   BUILTIN_HOLIDAY_CALENDAR,
@@ -389,6 +393,12 @@ export class HaCalendarCard extends LitElement {
 
   protected updated(changed: Map<string, unknown>): void {
     this.syncPanelLayout();
+    if (
+      (changed.has("config") || changed.has("hass")) &&
+      this.pruneMissingCalendars()
+    ) {
+      return;
+    }
     // Do NOT refresh on every hass churn — Lovelace replaces hass ~1–2s and caused flicker.
     // Weather chips still re-render from live hass.states without refetching calendars.
     if (changed.has("config") || changed.has("anchorDate") || changed.has("view")) {
@@ -426,6 +436,37 @@ export class HaCalendarCard extends LitElement {
       return [...this.config.entities];
     }
     return [...PLACEHOLDER_CALENDARS];
+  }
+
+  /**
+   * Drop calendars Home Assistant is no longer publishing (disabled or
+   * deleted). Leaves the built-in US holidays pill alone.
+   * Returns true when config changed; the follow-up update refreshes events.
+   */
+  private pruneMissingCalendars(): boolean {
+    if (!this.hass?.states || !Array.isArray(this.config.entities)) return false;
+    const missing = missingCalendarIds(
+      this.config.entities,
+      Object.keys(this.hass.states)
+    ).filter((id) => id !== BUILTIN_HOLIDAY_CALENDAR);
+    if (!missing.length) return false;
+
+    const previous = [...this.config.entities];
+    const next = previous.filter((id) => !missing.includes(id));
+    const newConfig: HaCalendarCardConfig = {
+      ...this.config,
+      entities: next,
+      type: this.config.type ?? `custom:${CARD_NAME}`,
+    };
+    this.config = newConfig;
+    this.hiddenCalendars = this.hiddenCalendars.filter(
+      (id) => next.includes(id) || id === BUILTIN_HOLIDAY_CALENDAR
+    );
+    const names = missing.map((id) => this.calendarLabel(id)).join(", ");
+    this.status = `Removed ${names} — no longer in Home Assistant`;
+    this.statusKind = "info";
+    void this.persistEntities(previous, newConfig);
+    return true;
   }
 
   /** Configured calendars plus the synthetic holiday calendar (not persisted). */
@@ -1790,13 +1831,19 @@ export class HaCalendarCard extends LitElement {
                       ${(() => {
                         const available = this.availableCalendarEntities();
                         const configured = this.configuredEntitySet();
-                        if (!available.length) {
+                        const stale = this.entities().filter(
+                          (id) =>
+                            id !== BUILTIN_HOLIDAY_CALENDAR &&
+                            !available.includes(id)
+                        );
+                        const rows = [...available, ...stale];
+                        if (!rows.length) {
                           return html`<p class="cal-picker-empty">
                             No <code>calendar.*</code> entities found yet —
                             create one below.
                           </p>`;
                         }
-                        return available.map((id) => {
+                        return rows.map((id) => {
                           const checked = configured.has(id);
                           return html`
                             <label class="cal-picker-row">
@@ -1816,7 +1863,11 @@ export class HaCalendarCard extends LitElement {
                               <span class="cal-picker-label"
                                 >${this.calendarLabel(id)}</span
                               >
-                              <span class="cal-picker-id">${id}</span>
+                              <span class="cal-picker-id"
+                                >${available.includes(id)
+                                  ? id
+                                  : `${id} (not in Home Assistant)`}</span
+                              >
                             </label>
                           `;
                         });
