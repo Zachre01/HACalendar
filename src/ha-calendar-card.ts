@@ -74,6 +74,13 @@ import {
 } from "./utils/create-local-calendar";
 import { mergeEntitiesOnLoad, persistCardEntities } from "./utils/entities-persist";
 import { formatHassError } from "./utils/ha-error";
+import {
+  BUILTIN_HOLIDAY_CALENDAR,
+  BUILTIN_HOLIDAY_COLOR,
+  BUILTIN_HOLIDAY_LABEL,
+  builtinHolidayEvents,
+  holidayNameKeys,
+} from "./utils/builtin-holidays";
 import "./components/time-grid";
 import "./components/month-grid";
 import "./components/event-form";
@@ -421,6 +428,12 @@ export class HaCalendarCard extends LitElement {
     return [...PLACEHOLDER_CALENDARS];
   }
 
+  /** Configured calendars plus the synthetic holiday calendar (not persisted). */
+  private displayCalendars(): string[] {
+    const ids = this.entities().filter((id) => id !== BUILTIN_HOLIDAY_CALENDAR);
+    return [...ids, BUILTIN_HOLIDAY_CALENDAR];
+  }
+
   /** Month chips per day before “+N more”; config override clamped to ≥ 1. */
   private get monthMaxVisibleEvents(): number {
     const raw = this.config.month_max_events;
@@ -450,6 +463,7 @@ export class HaCalendarCard extends LitElement {
   }
 
   private calendarColor(entityId: string): string {
+    if (entityId === BUILTIN_HOLIDAY_CALENDAR) return BUILTIN_HOLIDAY_COLOR;
     if (this.calendarColors[entityId]) {
       return this.calendarColors[entityId];
     }
@@ -458,13 +472,17 @@ export class HaCalendarCard extends LitElement {
     return fallbackCalendarColor(idx);
   }
 
+  private stampHolidayColor(map: CalendarColorMap): CalendarColorMap {
+    return { ...map, [BUILTIN_HOLIDAY_CALENDAR]: BUILTIN_HOLIDAY_COLOR };
+  }
+
   private async refreshCalendarColors(): Promise<void> {
     const entities = this.entities();
     const generation = ++this.colorLoadGeneration;
 
     // Immediate palette / display-color map so UI never flashes empty
     const immediate = buildCalendarColorMap(entities, {}, this.hass);
-    this.calendarColors = immediate;
+    this.calendarColors = this.stampHolidayColor(immediate);
 
     if (!this.hass) return;
 
@@ -474,10 +492,8 @@ export class HaCalendarCard extends LitElement {
     );
     if (generation !== this.colorLoadGeneration) return;
 
-    this.calendarColors = buildCalendarColorMap(
-      entities,
-      fromRegistry,
-      this.hass
+    this.calendarColors = this.stampHolidayColor(
+      buildCalendarColorMap(entities, fromRegistry, this.hass)
     );
   }
 
@@ -520,9 +536,56 @@ export class HaCalendarCard extends LitElement {
   }
 
   private calendarLabel(entityId: string): string {
+    if (entityId === BUILTIN_HOLIDAY_CALENDAR) return BUILTIN_HOLIDAY_LABEL;
     const friendly = this.hass?.states[entityId]?.attributes?.friendly_name;
     if (typeof friendly === "string" && friendly.trim()) return friendly.trim();
     return entityId.replace(/^calendar\./, "").replace(/_/g, " ");
+  }
+
+  private holidayCountry(): string {
+    const country = this.hass?.config?.country;
+    return typeof country === "string" && country.trim() ? country.trim() : "US";
+  }
+
+  /** Append built-in holidays that this range does not already show by name. */
+  private withHolidays(events: CalendarEvent[]): CalendarEvent[] {
+    const { start, end } = this.range();
+    const holidays = builtinHolidayEvents(start, end, this.holidayCountry());
+    if (!holidays.length) return events;
+    const taken = new Set<string>();
+    for (const ev of events) {
+      for (const name of holidayNameKeys(ev.summary)) {
+        taken.add(`${ev.start.slice(0, 10)}|${name}`);
+      }
+    }
+    const extra = holidays.filter((ev) =>
+      holidayNameKeys(ev.summary).every((name) => !taken.has(`${ev.start}|${name}`))
+    );
+    return extra.length ? [...events, ...extra] : events;
+  }
+
+  private attachHolidays(): void {
+    const before = this.events.length;
+    this.events = this.withHolidays(this.events);
+    const added = this.events.length - before;
+    if (!added) return;
+    if (this.loadFailed) {
+      this.loadFailed = false;
+      this.statusKind = "warn";
+      this.status = `${this.status} · showing built-in holidays`;
+      return;
+    }
+    if (/^\d+ event\(s\)/.test(this.status)) {
+      this.status = this.status.replace(/^\d+/, String(this.events.length));
+      return;
+    }
+    if (
+      this.status === "No events in this range" ||
+      this.status === "No calendars loaded"
+    ) {
+      this.status = `${this.events.length} event(s)`;
+      this.statusKind = "info";
+    }
   }
 
   private filteredEvents(): CalendarEvent[] {
@@ -582,6 +645,7 @@ export class HaCalendarCard extends LitElement {
       this.loading = false;
       this.status = "Preview mode — demo events (no hass)";
       this.statusKind = "info";
+      this.attachHolidays();
       return;
     }
 
@@ -624,6 +688,7 @@ export class HaCalendarCard extends LitElement {
           : "No calendars loaded";
         this.statusKind = "error";
       }
+      this.attachHolidays();
     } catch (err) {
       if (generation !== this.loadGeneration) return;
       this.events = [];
@@ -631,6 +696,7 @@ export class HaCalendarCard extends LitElement {
       this.hasLoadedOnce = true;
       this.status = `Load failed: ${formatHassError(err)}`;
       this.statusKind = "error";
+      this.attachHolidays();
     } finally {
       if (generation === this.loadGeneration) {
         this.loading = false;
@@ -934,6 +1000,11 @@ export class HaCalendarCard extends LitElement {
 
   private openEdit(detail: EventSelectDetail | CalendarEvent): void {
     const ev = "event" in detail ? detail.event : detail;
+    if (ev.readonly) {
+      this.status = `“${ev.summary}” is a built-in holiday`;
+      this.statusKind = "info";
+      return;
+    }
     const day = "event" in detail ? detail.day : undefined;
     this.editing = ev;
     this.formDoneDay = day ?? ev.start.slice(0, 10);
@@ -955,6 +1026,7 @@ export class HaCalendarCard extends LitElement {
 
   private async onToggleDone(e: CustomEvent<ToggleDoneDetail>): Promise<void> {
     const { event: ev, day } = e.detail;
+    if (ev.readonly) return;
     if (!this.hass || this.toggleDoneBusy || this.moveBusy || !day) return;
 
     this.toggleDoneBusy = true;
@@ -1042,6 +1114,11 @@ export class HaCalendarCard extends LitElement {
    */
   private async onEventMove(e: CustomEvent<EventMoveDetail>): Promise<void> {
     const { event: ev, fromDay, toDay } = e.detail;
+    if (ev?.readonly) {
+      this.status = `“${ev.summary}” is a built-in holiday`;
+      this.statusKind = "info";
+      return;
+    }
     if (!ev || !fromDay || !toDay || fromDay === toDay) return;
     if (this.moveBusy || this.toggleDoneBusy) {
       this.status = "Still saving the last change…";
@@ -1561,7 +1638,7 @@ export class HaCalendarCard extends LitElement {
 
   protected render() {
     const title = this.config.title ?? "Calendar";
-    const calendars = this.entities();
+    const calendars = this.displayCalendars();
     const visibleEvents = this.filteredEvents();
     const weather = this.weather();
     const forecast = weather?.forecast?.slice(0, 7) ?? [];
