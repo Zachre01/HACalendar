@@ -208,6 +208,7 @@ function pickPersistableConfig(
     out.reminder_notify_service = config.reminder_notify_service;
   if (config.reminder_minutes_before !== undefined)
     out.reminder_minutes_before = config.reminder_minutes_before;
+  if (config.holiday_color) out.holiday_color = config.holiday_color;
   return out;
 }
 

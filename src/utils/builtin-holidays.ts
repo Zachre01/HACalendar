@@ -1,4 +1,5 @@
 import type { CalendarEvent } from "../types";
+import { isUsableCalendarColor, toCssCalendarColor } from "./calendar-colors";
 import { formatDayKey } from "./event-done";
 
 /** Synthetic calendar id. Not a Home Assistant entity. */
@@ -8,6 +9,14 @@ export const BUILTIN_HOLIDAY_CALENDAR = "calendar._hac_holidays";
 export const BUILTIN_HOLIDAY_COLOR = "#D4537E";
 
 export const BUILTIN_HOLIDAY_LABEL = "US holidays";
+
+/** Card config color, or the default rose when the value is blank or invalid. */
+export function resolveHolidayColor(raw: string | undefined): string {
+  if (typeof raw === "string" && isUsableCalendarColor(raw)) {
+    return toCssCalendarColor(raw);
+  }
+  return BUILTIN_HOLIDAY_COLOR;
+}
 
 interface HolidayDate {
   name: string;

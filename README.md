@@ -8,6 +8,7 @@ Inspired by Daylight/Skylight aesthetics — **own codebase**, not a fork of tho
 
 ## Status
 
+- **Card v0.9.16** — `holiday_color` sets the built-in **US holidays** color. Quote a hex value (`"#3d6bff"`) or use an HA theme name (`teal`). Other calendars still use their entity color under **Settings → Entities**
 - **Card v0.9.15** — disabling or deleting a calendar in Home Assistant removes its pill. The card no longer calls `calendar.get_events` for that missing entity, which was raising “Service call requested response data but did not match any entities”
 - **Card v0.9.14** — built-in **US holidays** pill (not a Home Assistant entity). February 2027 shows Valentine’s Day on the 14th and Presidents Day on the 15th, plus the other federal days and common observances for whatever month is on screen. Those chips are read-only. The Home Assistant Holiday integration’s default list is public holidays only, so it never includes Valentine’s Day
 - **Card v0.9.13** — Home Assistant **Holiday** calendars show on the day. Those events are all-day with the end date equal to the start (Veterans Day is `2026-11-11` through `2026-11-11`); the card now treats that as the whole day instead of a zero-length span. Filter pills use the calendar’s friendly name. A dimmed pill is hidden — click it again to show that calendar. The status line counts events hidden by those pills
@@ -42,7 +43,7 @@ Private / custom-repo install — not yet in the HACS default store.
 4. Download **HA Calendar Card**, refresh Lovelace
 5. Add the card (see [Card YAML](#card-yaml))
 
-**After updating the card (HACS redownload or manual copy):** bump the Lovelace resource query string (`?v=0.9.14`, then `?v=0.9.15`, …) and hard-refresh the browser (or clear site cache). Home Assistant and browsers often keep serving the previous `ha-calendar-card.js` until the URL changes. Confirm the loaded build via the event form title (`v0.9.15`) or the browser console line `ha-calendar-card` / `v0.9.15`.
+**After updating the card (HACS redownload or manual copy):** bump the Lovelace resource query string (`?v=0.9.15`, then `?v=0.9.16`, …) and hard-refresh the browser (or clear site cache). Home Assistant and browsers often keep serving the previous `ha-calendar-card.js` until the URL changes. Confirm the loaded build via the event form title (`v0.9.16`) or the browser console line `ha-calendar-card` / `v0.9.16`.
 
 `hacs.json` targets the **card plugin only**. The integration is installed separately (below).
 
@@ -54,7 +55,7 @@ Private / custom-repo install — not yet in the HACS default store.
 
 ```yaml
 resources:
-  - url: /local/ha-calendar-card.js?v=0.9.15
+  - url: /local/ha-calendar-card.js?v=0.9.16
     type: module
 ```
 
@@ -98,6 +99,7 @@ cards:
       - calendar.calendar
     initial_view: month
     theme: auto
+    holiday_color: "#3d6bff"
     weather_entity: weather.forecast_home
     # weather: weather.forecast_home   # alias also accepted
     # reminder_notify_service: notify.mobile_app_phone
