@@ -217,6 +217,11 @@ export class HacMonthGrid extends LitElement {
       opacity: 0.35;
     }
 
+    .chip[data-readonly="true"] {
+      cursor: default;
+      touch-action: auto;
+    }
+
     .chip[data-done="true"] {
       opacity: 0.62;
       filter: saturate(0.75);
@@ -427,6 +432,7 @@ export class HacMonthGrid extends LitElement {
   }
 
   private onChipPointerDown(ev: CalendarEvent, day: Date, e: PointerEvent): void {
+    if (ev.readonly) return;
     const source = e.currentTarget instanceof HTMLElement ? e.currentTarget : null;
     if (!source) return;
     this.ensureDrag().begin(e, {
@@ -563,33 +569,39 @@ export class HacMonthGrid extends LitElement {
                         data-dragging=${this.activeDragKey === dragKey
                           ? "true"
                           : "false"}
+                        data-readonly=${ev.readonly ? "true" : "false"}
                         style="background:${this.calendarColor(ev.calendar)}"
                         @pointerdown=${(e: PointerEvent) =>
                           this.onChipPointerDown(ev, day, e)}
                         @dragstart=${(e: DragEvent) => e.preventDefault()}
                       >
-                        <button
-                          type="button"
-                          class="done-check"
-                          role="checkbox"
-                          aria-checked=${dayDone ? "true" : "false"}
-                          aria-label=${dayDone
-                            ? `Mark “${ev.summary}” not done for this day`
-                            : `Mark “${ev.summary}” done for this day`}
-                          title=${dayDone
-                            ? "Mark not done (this day)"
-                            : "Mark done (this day)"}
-                          @pointerdown=${(e: Event) => e.stopPropagation()}
-                          @click=${(e: Event) => this.onToggleDone(ev, day, e)}
-                        >
-                          ${dayDone ? "✓" : nothing}
-                        </button>
+                        ${ev.readonly
+                          ? nothing
+                          : html`<button
+                              type="button"
+                              class="done-check"
+                              role="checkbox"
+                              aria-checked=${dayDone ? "true" : "false"}
+                              aria-label=${dayDone
+                                ? `Mark “${ev.summary}” not done for this day`
+                                : `Mark “${ev.summary}” done for this day`}
+                              title=${dayDone
+                                ? "Mark not done (this day)"
+                                : "Mark done (this day)"}
+                              @pointerdown=${(e: Event) => e.stopPropagation()}
+                              @click=${(e: Event) =>
+                                this.onToggleDone(ev, day, e)}
+                            >
+                              ${dayDone ? "✓" : nothing}
+                            </button>`}
                         <button
                           type="button"
                           class="chip-main"
-                          title=${`${ev.summary}${
-                            ev.rrule || ev.recurring ? " (repeats)" : ""
-                          }. Drag to another day.`}
+                          title=${ev.readonly
+                            ? `${ev.summary}. Built-in holiday.`
+                            : `${ev.summary}${
+                                ev.rrule || ev.recurring ? " (repeats)" : ""
+                              }. Drag to another day.`}
                           @click=${(e: Event) => this.onEventClick(ev, day, e)}
                         >
                           ${ev.rrule || ev.recurring

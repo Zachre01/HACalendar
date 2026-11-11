@@ -79,6 +79,11 @@ export interface CalendarEvent {
   end: string;
   all_day?: boolean;
   calendar: string; // entity_id
+  /**
+   * Built-in holiday. Shown on the grid, not stored in Home Assistant,
+   * and not editable, draggable, or markable Done.
+   */
+  readonly?: boolean;
   recurring?: boolean;
   rrule?: string;
   recurrence_id?: string;
@@ -231,6 +236,7 @@ export interface HomeAssistant {
     data?: unknown
   ) => Promise<T>;
   locale?: { language?: string };
+  config?: { country?: string };
 }
 
 export interface WeatherDay {
