@@ -33,6 +33,11 @@ export interface HaCalendarCardConfig {
   reminder_notify_service?: string;
   /** Default minutes-before for new reminders */
   reminder_minutes_before?: number;
+  /**
+   * Color for the built-in US holidays pill. Hex (`"#3d6bff"`) or an
+   * HA theme name (`teal`). Quoted hex is required in YAML.
+   */
+  holiday_color?: string;
 }
 
 /** Per-event reminder rule (ha_calendar_reminders integration) */

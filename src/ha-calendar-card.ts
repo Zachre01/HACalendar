@@ -80,10 +80,10 @@ import {
 import { formatHassError } from "./utils/ha-error";
 import {
   BUILTIN_HOLIDAY_CALENDAR,
-  BUILTIN_HOLIDAY_COLOR,
   BUILTIN_HOLIDAY_LABEL,
   builtinHolidayEvents,
   holidayNameKeys,
+  resolveHolidayColor,
 } from "./utils/builtin-holidays";
 import "./components/time-grid";
 import "./components/month-grid";
@@ -503,8 +503,12 @@ export class HaCalendarCard extends LitElement {
     return new CalendarApi(this.hass).canDelete(this.editing.calendar);
   }
 
+  private holidayColor(): string {
+    return resolveHolidayColor(this.config.holiday_color);
+  }
+
   private calendarColor(entityId: string): string {
-    if (entityId === BUILTIN_HOLIDAY_CALENDAR) return BUILTIN_HOLIDAY_COLOR;
+    if (entityId === BUILTIN_HOLIDAY_CALENDAR) return this.holidayColor();
     if (this.calendarColors[entityId]) {
       return this.calendarColors[entityId];
     }
@@ -514,7 +518,7 @@ export class HaCalendarCard extends LitElement {
   }
 
   private stampHolidayColor(map: CalendarColorMap): CalendarColorMap {
-    return { ...map, [BUILTIN_HOLIDAY_CALENDAR]: BUILTIN_HOLIDAY_COLOR };
+    return { ...map, [BUILTIN_HOLIDAY_CALENDAR]: this.holidayColor() };
   }
 
   private async refreshCalendarColors(): Promise<void> {
